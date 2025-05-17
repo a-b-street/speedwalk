@@ -5,9 +5,10 @@ use std::collections::HashMap;
 use std::sync::Once;
 
 use anyhow::Result;
-use geo::{Coord, GeometryCollection, LineString};
+use geo::{Coord, Euclidean, GeometryCollection, Length, LineString};
 use geojson::GeoJson;
 use osm_reader::{Element, WayID};
+use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
 
@@ -47,16 +48,7 @@ impl Speedwalk {
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
-            f.set_property(
-                "kind",
-                match way.kind {
-                    Kind::Sidewalk => "sidewalk",
-                    Kind::GoodRoadway => "good_roadway",
-                    Kind::QuickfixRoadway(_) => "quickfix_roadway",
-                    Kind::BadRoadway(_) => "bad_roadway",
-                    Kind::Other => "other",
-                },
-            );
+            f.set_property("kind", way.kind.to_simple_string());
             if let Kind::QuickfixRoadway(ref fix) = way.kind {
                 f.set_property("fix", fix.to_string());
             }
@@ -66,6 +58,11 @@ impl Speedwalk {
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = getMetrics)]
+    pub fn get_metrics(&self) -> Result<String, JsValue> {
+        serde_json::to_string(&Metrics::new(self)).map_err(err_to_js)
     }
 }
 
@@ -182,5 +179,33 @@ impl Kind {
         }
 
         Self::GoodRoadway
+    }
+
+    fn to_simple_string(&self) -> &'static str {
+        match self {
+            Kind::Sidewalk => "sidewalk",
+            Kind::GoodRoadway => "good_roadway",
+            Kind::QuickfixRoadway(_) => "quickfix_roadway",
+            Kind::BadRoadway(_) => "bad_roadway",
+            Kind::Other => "other",
+        }
+    }
+}
+
+#[derive(Default, Serialize)]
+struct Metrics {
+    total_length_meters: HashMap<&'static str, f64>,
+}
+
+impl Metrics {
+    fn new(model: &Speedwalk) -> Self {
+        let mut metrics = Self::default();
+        for way in model.ways.values() {
+            *metrics
+                .total_length_meters
+                .entry(way.kind.to_simple_string())
+                .or_insert(0.0) += Euclidean.length(&way.linestring);
+        }
+        metrics
     }
 }

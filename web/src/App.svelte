@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { colors } from "./";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
@@ -11,7 +12,6 @@
     Control,
   } from "svelte-maplibre";
   import { Layout } from "svelte-utils/two_column_layout";
-  import { QualitativeLegend } from "svelte-utils";
   import {
     emptyGeojson,
     bbox,
@@ -19,6 +19,7 @@
   } from "svelte-utils/map";
   import type { Feature, LineString, FeatureCollection } from "geojson";
   import init, { Speedwalk } from "backend";
+  import Metrics from "./Metrics.svelte";
 
   interface WayProps {
     id: number;
@@ -37,14 +38,6 @@
   let map: Map | undefined;
   let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
   let pinnedWay: Feature<LineString, WayProps> | null = null;
-
-  let colors = {
-    sidewalk: "black",
-    good_roadway: "green",
-    quickfix_roadway: "pink",
-    bad_roadway: "red",
-    other: "grey",
-  };
 
   onMount(async () => {
     await init();
@@ -138,6 +131,17 @@
     >
       <MapEvents on:click={onMapClick} />
 
+      <GeoJSON data={pinnedWay || emptyGeojson()}>
+        <LineLayer
+          id="pinned"
+          paint={{
+            "line-width": 12,
+            "line-color": "cyan",
+            "line-opacity": 0.5,
+          }}
+        />
+      </GeoJSON>
+
       <GeoJSON data={ways}>
         <LineLayer
           id="ways"
@@ -153,16 +157,11 @@
         />
       </GeoJSON>
 
-      <GeoJSON data={pinnedWay || emptyGeojson()}>
-        <LineLayer
-          id="pinned"
-          paint={{ "line-width": 8, "line-color": "red", "line-opacity": 0.5 }}
-        />
-      </GeoJSON>
-
       <Control position="top-right">
         <div style:background="white" style:width="150px">
-          <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+          {#if model}
+            <Metrics {model} />
+          {/if}
         </div>
       </Control>
     </MapLibre>
