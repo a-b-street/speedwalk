@@ -52,10 +52,14 @@ impl Speedwalk {
                 match way.kind {
                     Kind::Sidewalk => "sidewalk",
                     Kind::GoodRoadway => "good_roadway",
+                    Kind::QuickfixRoadway(_) => "quickfix_roadway",
                     Kind::BadRoadway(_) => "bad_roadway",
                     Kind::Other => "other",
                 },
             );
+            if let Kind::QuickfixRoadway(ref fix) = way.kind {
+                f.set_property("fix", fix.to_string());
+            }
             if let Kind::BadRoadway(ref problem) = way.kind {
                 f.set_property("problem", problem.to_string());
             }
@@ -117,8 +121,9 @@ enum Kind {
     Sidewalk,
     /// A roadway with bronze-level tags indicating the separate sidewalks
     GoodRoadway,
-    /// A roadway without valid bronze-level tags indicating the separate sidewalks, with at least
-    /// one problem described
+    /// A roadway not meeting bronze, but with a likely quick-fix
+    QuickfixRoadway(String),
+    /// A roadway not meeting bronze, with a problem
     BadRoadway(String),
     /// Something else / irrelevant
     Other,
@@ -136,10 +141,6 @@ impl Kind {
             return Self::Other;
         }
 
-        if tags.has("sidewalk") {
-            return Self::BadRoadway("Old-style sidewalk tag included".to_string());
-        }
-
         let left = tags.is_any("sidewalk:left", vec!["separate", "no"]);
         let right = tags.is_any("sidewalk:right", vec!["separate", "no"]);
         let both = tags.is_any("sidewalk:both", vec!["separate", "no"]);
@@ -150,6 +151,24 @@ impl Kind {
         if right && both {
             return Self::BadRoadway("Double-tagged: sidewalk:right and sidewalk:both".to_string());
         }
+
+        if let Some(sidewalk) = tags.get("sidewalk") {
+            if !both && !left && !right {
+                if sidewalk == "no" || sidewalk == "none" {
+                    return Self::QuickfixRoadway(format!(
+                        "Replace sidewalk={sidewalk} with sidewalk:both=no"
+                    ));
+                }
+                if sidewalk == "separate" {
+                    return Self::QuickfixRoadway(
+                        "Replace sidewalk=separate with sidewalk:both=separate".to_string(),
+                    );
+                }
+            }
+
+            return Self::BadRoadway("Old-style sidewalk tag included".to_string());
+        }
+
         if !both && !(left && right) {
             return Self::BadRoadway("Both sides aren't specified".to_string());
         }

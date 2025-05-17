@@ -23,7 +23,13 @@
   interface WayProps {
     id: number;
     tags: Record<string, string>;
-    kind: "sidewalk" | "good_roadway" | "bad_roadway" | "other";
+    kind:
+      | "sidewalk"
+      | "good_roadway"
+      | "quickfix_roadway"
+      | "bad_roadway"
+      | "other";
+    fix?: string;
     problem?: string;
   }
 
@@ -35,6 +41,7 @@
   let colors = {
     sidewalk: "black",
     good_roadway: "green",
+    quickfix_roadway: "pink",
     bad_roadway: "red",
     other: "grey",
   };
@@ -93,6 +100,9 @@
         </a>
         : {pinnedWay.properties.kind}
       </div>
+      {#if pinnedWay.properties.fix}
+        <p>{pinnedWay.properties.fix}</p>
+      {/if}
       {#if pinnedWay.properties.problem}
         <p>{pinnedWay.properties.problem}</p>
       {/if}
