@@ -1,3 +1,16 @@
+export interface WayProps {
+  id: number;
+  tags: Record<string, string>;
+  kind:
+    | "sidewalk"
+    | "good_roadway"
+    | "quickfix_roadway"
+    | "bad_roadway"
+    | "other";
+  fix?: string;
+  problem?: string;
+}
+
 export let colors = {
   sidewalk: "black",
   good_roadway: "green",

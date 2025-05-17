@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { colors } from "./";
+  import { colors, type WayProps } from "./";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
@@ -20,19 +20,7 @@
   import type { Feature, LineString, FeatureCollection } from "geojson";
   import init, { Speedwalk } from "backend";
   import Metrics from "./Metrics.svelte";
-
-  interface WayProps {
-    id: number;
-    tags: Record<string, string>;
-    kind:
-      | "sidewalk"
-      | "good_roadway"
-      | "quickfix_roadway"
-      | "bad_roadway"
-      | "other";
-    fix?: string;
-    problem?: string;
-  }
+  import WayDetails from "./WayDetails.svelte";
 
   let model: Speedwalk | undefined;
   let map: Map | undefined;
@@ -78,44 +66,13 @@
   <div slot="left">
     <h1>Speedwalk</h1>
 
-    <label>
-      Load an osm.pbf or osm.xml file
-      <input bind:this={fileInput} on:change={loadFile} type="file" />
-    </label>
-
     {#if pinnedWay}
-      <div>
-        <a
-          href="https://www.openstreetmap.org/way/{pinnedWay.properties.id}"
-          target="_blank"
-        >
-          Way {pinnedWay.properties.id}
-        </a>
-        : {pinnedWay.properties.kind}
-      </div>
-      {#if pinnedWay.properties.fix}
-        <p>{pinnedWay.properties.fix}</p>
-      {/if}
-      {#if pinnedWay.properties.problem}
-        <p>{pinnedWay.properties.problem}</p>
-      {/if}
-
-      <table style:width="100%">
-        <thead>
-          <tr>
-            <th>Key</th>
-            <th>Value</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
-            <tr>
-              <td>{key}</td>
-              <td>{value}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      <WayDetails {pinnedWay} />
+    {:else}
+      <label>
+        Load an osm.pbf or osm.xml file
+        <input bind:this={fileInput} on:change={loadFile} type="file" />
+      </label>
     {/if}
   </div>
 
