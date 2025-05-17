@@ -10,7 +10,7 @@
   } from "svelte-maplibre";
   import { Layout } from "svelte-utils/two_column_layout";
   import { emptyGeojson, bbox } from "svelte-utils/map";
-  import type { FeatureCollection } from "geojson";
+  import type { Feature, LineString, FeatureCollection } from "geojson";
   import init, { Speedwalk } from "backend";
 
   let model: Speedwalk | undefined;
@@ -26,6 +26,7 @@
     try {
       let bytes = await fileInput.files![0].arrayBuffer();
       model = new Speedwalk(new Uint8Array(bytes));
+      ways = JSON.parse(model.getWays());
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
@@ -59,6 +60,16 @@
         // @ts-ignore ErrorEvent isn't exported
         console.log(e.detail.error);
       }}
-    ></MapLibre>
+    >
+      <GeoJSON data={ways} generateId>
+        <LineLayer
+          manageHoverState
+          paint={{
+            "line-width": hoverStateFilter(5, 8),
+            "line-color": "black",
+          }}
+        />
+      </GeoJSON>
+    </MapLibre>
   </div>
 </Layout>

@@ -11,6 +11,7 @@ anyhow = "1.0.98"
 console_error_panic_hook = "0.1.7"
 console_log = "1.0.0"
 geo = "0.30.0"
+geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
 log = "0.4.27"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
 serde = "1.0.219"

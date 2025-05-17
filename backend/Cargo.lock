@@ -52,6 +52,7 @@ dependencies = [
  "console_error_panic_hook",
  "console_log",
  "geo",
+ "geojson",
  "log",
  "osm-reader",
  "serde",
