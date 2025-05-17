@@ -8,21 +8,36 @@
     LineLayer,
     hoverStateFilter,
     MapEvents,
+    Control,
   } from "svelte-maplibre";
   import { Layout } from "svelte-utils/two_column_layout";
-  import { emptyGeojson, bbox } from "svelte-utils/map";
+  import { QualitativeLegend } from "svelte-utils";
+  import {
+    emptyGeojson,
+    bbox,
+    constructMatchExpression,
+  } from "svelte-utils/map";
   import type { Feature, LineString, FeatureCollection } from "geojson";
   import init, { Speedwalk } from "backend";
 
   interface WayProps {
     id: number;
     tags: Record<string, string>;
+    kind: "sidewalk" | "good_roadway" | "bad_roadway" | "other";
+    problem?: string;
   }
 
   let model: Speedwalk | undefined;
   let map: Map | undefined;
   let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
   let pinnedWay: Feature<LineString, WayProps> | null = null;
+
+  let colors = {
+    sidewalk: "black",
+    good_roadway: "green",
+    bad_roadway: "red",
+    other: "grey",
+  };
 
   onMount(async () => {
     await init();
@@ -69,12 +84,18 @@
     </label>
 
     {#if pinnedWay}
-      <a
-        href="https://www.openstreetmap.org/way/{pinnedWay.properties.id}"
-        target="_blank"
-      >
-        Way {pinnedWay.properties.id}
-      </a>
+      <div>
+        <a
+          href="https://www.openstreetmap.org/way/{pinnedWay.properties.id}"
+          target="_blank"
+        >
+          Way {pinnedWay.properties.id}
+        </a>
+        : {pinnedWay.properties.kind}
+      </div>
+      {#if pinnedWay.properties.problem}
+        <p>{pinnedWay.properties.problem}</p>
+      {/if}
 
       <table style:width="100%">
         <thead>
@@ -113,7 +134,11 @@
           manageHoverState
           paint={{
             "line-width": hoverStateFilter(5, 8),
-            "line-color": "black",
+            "line-color": constructMatchExpression(
+              ["get", "kind"],
+              colors,
+              "cyan",
+            ),
           }}
         />
       </GeoJSON>
@@ -124,6 +149,12 @@
           paint={{ "line-width": 8, "line-color": "red", "line-opacity": 0.5 }}
         />
       </GeoJSON>
+
+      <Control position="top-right">
+        <div style:background="white" style:width="150px">
+          <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+        </div>
+      </Control>
     </MapLibre>
   </div>
 </Layout>

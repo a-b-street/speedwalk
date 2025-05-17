@@ -22,6 +22,7 @@ pub struct Speedwalk {
 struct Way {
     linestring: LineString,
     tags: Tags,
+    kind: Kind,
 }
 
 #[wasm_bindgen]
@@ -46,6 +47,18 @@ impl Speedwalk {
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
+            f.set_property(
+                "kind",
+                match way.kind {
+                    Kind::Sidewalk => "sidewalk",
+                    Kind::GoodRoadway => "good_roadway",
+                    Kind::BadRoadway(_) => "bad_roadway",
+                    Kind::Other => "other",
+                },
+            );
+            if let Kind::BadRoadway(ref problem) = way.kind {
+                f.set_property("problem", problem.to_string());
+            }
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
@@ -70,7 +83,15 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
             if tags.has("highway") {
                 let linestring =
                     LineString::new(node_ids.into_iter().map(|id| node_mapping[&id]).collect());
-                ways.insert(id, Way { linestring, tags });
+                let kind = Kind::classify(&tags);
+                ways.insert(
+                    id,
+                    Way {
+                        linestring,
+                        tags,
+                        kind,
+                    },
+                );
             }
         }
         Element::Relation { .. } => {}
@@ -89,4 +110,50 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     info!("Found {} ways", ways.len());
 
     Ok(Speedwalk { ways, mercator })
+}
+
+enum Kind {
+    /// A separately mapped sidewalk
+    Sidewalk,
+    /// A roadway with bronze-level tags indicating the separate sidewalks
+    GoodRoadway,
+    /// A roadway without valid bronze-level tags indicating the separate sidewalks, with at least
+    /// one problem described
+    BadRoadway(String),
+    /// Something else / irrelevant
+    Other,
+}
+
+// See
+// https://wiki.openstreetmap.org/wiki/Draft:Foundation/Local_Chapters/United_States/Pedestrian_Working_Group/Guide
+impl Kind {
+    fn classify(tags: &Tags) -> Self {
+        if tags.is("highway", "footway") && tags.is("footway", "sidewalk") {
+            return Self::Sidewalk;
+        }
+
+        if tags.is_any("highway", vec!["footway", "path"]) {
+            return Self::Other;
+        }
+
+        if tags.has("sidewalk") {
+            return Self::BadRoadway("Old-style sidewalk tag included".to_string());
+        }
+
+        let left = tags.is_any("sidewalk:left", vec!["separate", "no"]);
+        let right = tags.is_any("sidewalk:right", vec!["separate", "no"]);
+        let both = tags.is_any("sidewalk:both", vec!["separate", "no"]);
+
+        if left && both {
+            return Self::BadRoadway("Double-tagged: sidewalk:left and sidewalk:both".to_string());
+        }
+        if right && both {
+            return Self::BadRoadway("Double-tagged: sidewalk:right and sidewalk:both".to_string());
+        }
+        if !both && !(left && right) {
+            return Self::BadRoadway("Both sides aren't specified".to_string());
+        }
+
+        Self::GoodRoadway
+    }
 }
