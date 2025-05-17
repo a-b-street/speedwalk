@@ -137,7 +137,7 @@ impl Kind {
             return Self::Sidewalk;
         }
 
-        if tags.is_any("highway", vec!["footway", "path"]) {
+        if tags.is_any("highway", vec!["footway", "path", "steps"]) {
             return Self::Other;
         }
 
@@ -167,6 +167,14 @@ impl Kind {
             }
 
             return Self::BadRoadway("Old-style sidewalk tag included".to_string());
+        }
+
+        if tags.is("highway", "motorway") {
+            // No sidewalks implied
+            return Self::GoodRoadway;
+        }
+        if tags.is("highway", "service") && tags.is("service", "driveway") {
+            return Self::GoodRoadway;
         }
 
         if !both && !(left && right) {
