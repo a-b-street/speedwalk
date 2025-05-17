@@ -1,21 +1,28 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import "@picocss/pico/css/pico.jade.min.css";
-  import type { Map } from "maplibre-gl";
+  import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
     GeoJSON,
     MapLibre,
     LineLayer,
     hoverStateFilter,
+    MapEvents,
   } from "svelte-maplibre";
   import { Layout } from "svelte-utils/two_column_layout";
   import { emptyGeojson, bbox } from "svelte-utils/map";
   import type { Feature, LineString, FeatureCollection } from "geojson";
   import init, { Speedwalk } from "backend";
 
+  interface WayProps {
+    id: number;
+    tags: Record<string, string>;
+  }
+
   let model: Speedwalk | undefined;
   let map: Map | undefined;
-  let ways: FeatureCollection = emptyGeojson();
+  let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
+  let pinnedWay: Feature<LineString, WayProps> | null = null;
 
   onMount(async () => {
     await init();
@@ -39,6 +46,17 @@
       padding: 10,
     });
   }
+
+  function onMapClick(e: CustomEvent<MapMouseEvent>) {
+    pinnedWay = null;
+    for (let rendered of map!.queryRenderedFeatures(e.detail.point, {
+      layers: ["ways"],
+    })) {
+      // Find the original feature in the GJ, to avoid having to parse nested properties
+      pinnedWay = ways.features.find((f) => f.id == rendered.id)!;
+      break;
+    }
+  }
 </script>
 
 <Layout>
@@ -49,6 +67,32 @@
       Load an osm.pbf or osm.xml file
       <input bind:this={fileInput} on:change={loadFile} type="file" />
     </label>
+
+    {#if pinnedWay}
+      <a
+        href="https://www.openstreetmap.org/way/{pinnedWay.properties.id}"
+        target="_blank"
+      >
+        Way {pinnedWay.properties.id}
+      </a>
+
+      <table style:width="100%">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
+            <tr>
+              <td>{key}</td>
+              <td>{value}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    {/if}
   </div>
 
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
@@ -61,13 +105,23 @@
         console.log(e.detail.error);
       }}
     >
-      <GeoJSON data={ways} generateId>
+      <MapEvents on:click={onMapClick} />
+
+      <GeoJSON data={ways}>
         <LineLayer
+          id="ways"
           manageHoverState
           paint={{
             "line-width": hoverStateFilter(5, 8),
             "line-color": "black",
           }}
+        />
+      </GeoJSON>
+
+      <GeoJSON data={pinnedWay || emptyGeojson()}>
+        <LineLayer
+          id="pinned"
+          paint={{ "line-width": 8, "line-color": "red", "line-opacity": 0.5 }}
         />
       </GeoJSON>
     </MapLibre>

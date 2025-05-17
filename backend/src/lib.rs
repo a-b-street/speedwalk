@@ -40,9 +40,11 @@ impl Speedwalk {
     #[wasm_bindgen(js_name = getWays)]
     pub fn get_ways(&self) -> Result<String, JsValue> {
         let mut features = Vec::new();
-        for (id, way) in &self.ways {
+        // TODO HashMap nondet order
+        for (idx, (id, way)) in self.ways.iter().enumerate() {
             let mut f = self.mercator.to_wgs84_gj(&way.linestring);
-            f.set_property("id", id.to_string());
+            f.id = Some(geojson::feature::Id::Number(idx.into()));
+            f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
             features.push(f);
         }
