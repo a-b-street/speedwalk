@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate log;
 
+mod classify;
+
 use std::collections::HashMap;
 use std::sync::Once;
 
@@ -11,6 +13,8 @@ use osm_reader::{Element, WayID};
 use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
+
+use crate::classify::Kind;
 
 static START: Once = Once::new();
 
@@ -50,10 +54,13 @@ impl Speedwalk {
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
             f.set_property("kind", way.kind.to_simple_string());
             if let Kind::QuickfixRoadway(ref fix) = way.kind {
-                f.set_property("fix", fix.to_string());
+                f.set_property("fix", serde_json::to_value(&fix).map_err(err_to_js)?);
             }
             if let Kind::BadRoadway(ref problem) = way.kind {
-                f.set_property("problem", problem.to_string());
+                f.set_property(
+                    "problem",
+                    serde_json::to_value(&problem).map_err(err_to_js)?,
+                );
             }
             features.push(f);
         }
@@ -111,85 +118,6 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     info!("Found {} ways", ways.len());
 
     Ok(Speedwalk { ways, mercator })
-}
-
-enum Kind {
-    /// A separately mapped sidewalk
-    Sidewalk,
-    /// A roadway with bronze-level tags indicating the separate sidewalks
-    GoodRoadway,
-    /// A roadway not meeting bronze, but with a likely quick-fix
-    QuickfixRoadway(String),
-    /// A roadway not meeting bronze, with a problem
-    BadRoadway(String),
-    /// Something else / irrelevant
-    Other,
-}
-
-// See
-// https://wiki.openstreetmap.org/wiki/Draft:Foundation/Local_Chapters/United_States/Pedestrian_Working_Group/Guide
-impl Kind {
-    fn classify(tags: &Tags) -> Self {
-        if tags.is("highway", "footway") && tags.is("footway", "sidewalk") {
-            return Self::Sidewalk;
-        }
-
-        if tags.is_any("highway", vec!["footway", "path", "steps"]) {
-            return Self::Other;
-        }
-
-        let left = tags.is_any("sidewalk:left", vec!["separate", "no"]);
-        let right = tags.is_any("sidewalk:right", vec!["separate", "no"]);
-        let both = tags.is_any("sidewalk:both", vec!["separate", "no"]);
-
-        if left && both {
-            return Self::BadRoadway("Double-tagged: sidewalk:left and sidewalk:both".to_string());
-        }
-        if right && both {
-            return Self::BadRoadway("Double-tagged: sidewalk:right and sidewalk:both".to_string());
-        }
-
-        if let Some(sidewalk) = tags.get("sidewalk") {
-            if !both && !left && !right {
-                if sidewalk == "no" || sidewalk == "none" {
-                    return Self::QuickfixRoadway(format!(
-                        "Replace sidewalk={sidewalk} with sidewalk:both=no"
-                    ));
-                }
-                if sidewalk == "separate" {
-                    return Self::QuickfixRoadway(
-                        "Replace sidewalk=separate with sidewalk:both=separate".to_string(),
-                    );
-                }
-            }
-
-            return Self::BadRoadway("Old-style sidewalk tag included".to_string());
-        }
-
-        if tags.is("highway", "motorway") {
-            // No sidewalks implied
-            return Self::GoodRoadway;
-        }
-        if tags.is("highway", "service") && tags.is("service", "driveway") {
-            return Self::GoodRoadway;
-        }
-
-        if !both && !(left && right) {
-            return Self::BadRoadway("Both sides aren't specified".to_string());
-        }
-
-        Self::GoodRoadway
-    }
-
-    fn to_simple_string(&self) -> &'static str {
-        match self {
-            Kind::Sidewalk => "sidewalk",
-            Kind::GoodRoadway => "good_roadway",
-            Kind::QuickfixRoadway(_) => "quickfix_roadway",
-            Kind::BadRoadway(_) => "bad_roadway",
-            Kind::Other => "other",
-        }
-    }
 }
 
 #[derive(Default, Serialize)]

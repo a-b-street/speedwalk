@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Feature, LineString } from "geojson";
-  import type { WayProps } from "./";
+  import { type WayProps, problems, quickfixes } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
 </script>
@@ -15,10 +15,10 @@
   : {pinnedWay.properties.kind}
 </div>
 {#if pinnedWay.properties.fix}
-  <p>{pinnedWay.properties.fix}</p>
+  <p>{quickfixes[pinnedWay.properties.fix]}</p>
 {/if}
 {#if pinnedWay.properties.problem}
-  <p>{pinnedWay.properties.problem}</p>
+  <p>{problems[pinnedWay.properties.problem]}</p>
 {/if}
 
 <table style:width="100%">

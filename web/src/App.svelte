@@ -91,6 +91,7 @@
       <GeoJSON data={pinnedWay || emptyGeojson()}>
         <LineLayer
           id="pinned"
+          beforeId="Road labels"
           paint={{
             "line-width": 12,
             "line-color": "cyan",
@@ -102,6 +103,7 @@
       <GeoJSON data={ways}>
         <LineLayer
           id="ways"
+          beforeId="Road labels"
           manageHoverState
           paint={{
             "line-width": hoverStateFilter(5, 8),
