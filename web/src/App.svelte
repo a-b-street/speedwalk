@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { MapLibre } from "svelte-maplibre";
+  import "@fortawesome/fontawesome-free/css/all.min.css";
+  import { MapLibre, Control } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
   import { backend, previewSidewalk } from "./";
@@ -51,6 +52,16 @@
     $previewSidewalk = null;
   }
 
+  let basemap: "osm" | "satellite" = "osm";
+  let basemaps = {
+    osm: "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo",
+    satellite:
+      "https://api.maptiler.com/maps/hybrid/style.json?key=MZEJTanw3WpxRvt7qDfo",
+  };
+  function swapBasemap() {
+    basemap = basemap == "osm" ? "satellite" : "osm";
+  }
+
   let sidebarDiv: HTMLDivElement;
   let mapDiv: HTMLDivElement;
   $: if (sidebarDiv && $sidebarContents) {
@@ -92,7 +103,7 @@
 
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
-      style="https://api.maptiler.com/maps/dataviz/style.json?key=MZEJTanw3WpxRvt7qDfo"
+      style={basemaps[basemap]}
       standardControls
       bind:map
       on:error={(e) => {
@@ -107,6 +118,13 @@
       {:else}
         <PolygonToolLayer />
       {/if}
+
+      <Control position="bottom-left">
+        <button type="button" class="outline" on:click={swapBasemap}>
+          <i class="fa-solid fa-layer-group"></i>
+          Basemap
+        </button>
+      </Control>
     </MapLibre>
   </div>
 </Layout>
