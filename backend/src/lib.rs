@@ -23,21 +23,23 @@ static START: Once = Once::new();
 
 #[wasm_bindgen]
 pub struct Speedwalk {
-    // All of these are immutable
-    // TODO Rename to be clear
-    nodes: HashMap<NodeID, Node>,
-    ways: HashMap<WayID, Way>,
+    original_nodes: HashMap<NodeID, Node>,
+    original_ways: HashMap<WayID, Way>,
     mercator: Mercator,
 
-    // TODO Store derived nodes/ways?
     edits: Option<Edits>,
+
+    derived_nodes: HashMap<NodeID, Node>,
+    derived_ways: HashMap<WayID, Way>,
 }
 
+#[derive(Clone)]
 pub struct Node {
     pub pt: Coord,
     pub tags: Tags,
 }
 
+#[derive(Clone)]
 pub struct Way {
     // TODO Will need to store node_ids
     pub linestring: LineString,
@@ -62,7 +64,7 @@ impl Speedwalk {
     pub fn get_nodes(&self) -> Result<String, JsValue> {
         let mut features = Vec::new();
         // TODO HashMap nondet order
-        for (idx, (id, node)) in self.nodes.iter().enumerate() {
+        for (idx, (id, node)) in self.derived_nodes.iter().enumerate() {
             let mut f = self.mercator.to_wgs84_gj(&Point::from(node.pt));
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
@@ -76,7 +78,7 @@ impl Speedwalk {
     pub fn get_ways(&self) -> Result<String, JsValue> {
         let mut features = Vec::new();
         // TODO HashMap nondet order
-        for (idx, (id, way)) in self.ways.iter().enumerate() {
+        for (idx, (id, way)) in self.derived_ways.iter().enumerate() {
             let mut f = self.mercator.to_wgs84_gj(&way.linestring);
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
@@ -124,6 +126,7 @@ impl Speedwalk {
             self,
         );
         self.edits = Some(edits);
+        self.after_edit();
     }
 
     #[wasm_bindgen(js_name = editApplyQuickfix)]
@@ -132,12 +135,14 @@ impl Speedwalk {
         let mut edits = self.edits.take().unwrap();
         edits.apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self);
         self.edits = Some(edits);
+        self.after_edit();
         Ok(())
     }
 
     #[wasm_bindgen(js_name = editClear)]
     pub fn edit_clear(&mut self) {
         self.edits = Some(Edits::default());
+        self.after_edit();
     }
 
     /// List of UserCmd
@@ -210,11 +215,14 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     info!("Found {} ways", ways.len());
 
     Ok(Speedwalk {
-        nodes,
-        ways,
+        original_nodes: nodes.clone(),
+        original_ways: ways.clone(),
         mercator,
 
         edits: Some(edits::Edits::default()),
+
+        derived_nodes: nodes,
+        derived_ways: ways,
     })
 }
 
@@ -226,7 +234,7 @@ struct Metrics {
 impl Metrics {
     fn new(model: &Speedwalk) -> Self {
         let mut metrics = Self::default();
-        for way in model.ways.values() {
+        for way in model.derived_ways.values() {
             *metrics
                 .total_length_meters
                 .entry(way.kind.to_simple_string())

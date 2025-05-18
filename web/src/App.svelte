@@ -105,6 +105,7 @@
     <MapLibre
       style={basemaps[basemap]}
       standardControls
+      hash
       bind:map
       on:error={(e) => {
         // @ts-ignore ErrorEvent isn't exported

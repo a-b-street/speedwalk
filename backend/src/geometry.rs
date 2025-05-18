@@ -13,12 +13,16 @@ impl Speedwalk {
     ) -> (Option<LineString>, Option<LineString>) {
         let mut left = None;
         if left_meters > 0.0 {
-            left = self.ways[&base].linestring.offset_curve(-left_meters);
+            left = self.derived_ways[&base]
+                .linestring
+                .offset_curve(-left_meters);
         }
 
         let mut right = None;
         if right_meters > 0.0 {
-            right = self.ways[&base].linestring.offset_curve(right_meters);
+            right = self.derived_ways[&base]
+                .linestring
+                .offset_curve(right_meters);
         }
 
         (left, right)

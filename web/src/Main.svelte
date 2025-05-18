@@ -4,6 +4,7 @@
     backend,
     previewSidewalk,
     colors,
+    mutationCounter,
     type NodeProps,
     type WayProps,
   } from "./";
@@ -29,16 +30,33 @@
 
   export let map: Map;
 
-  let nodes: FeatureCollection<Point, NodeProps> = JSON.parse(
-    $backend!.getNodes(),
-  );
-  let ways: FeatureCollection<LineString, WayProps> = JSON.parse(
-    $backend!.getWays(),
-  );
+  let nodes: FeatureCollection<Point, NodeProps> = {
+    type: "FeatureCollection",
+    features: [],
+  };
+  let ways: FeatureCollection<LineString, WayProps> = {
+    type: "FeatureCollection",
+    features: [],
+  };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
+  let first = true;
 
-  zoomFit();
+  $: updateModel($mutationCounter);
+  function updateModel(mutationCounter: number) {
+    nodes = JSON.parse($backend!.getNodes());
+    ways = JSON.parse($backend!.getWays());
+
+    if (pinnedWay) {
+      let findId = pinnedWay.id;
+      pinnedWay = ways.features.find((f) => f.id == findId)!;
+    }
+
+    if (first) {
+      first = false;
+      zoomFit();
+    }
+  }
 
   function zoomFit() {
     map.fitBounds(bbox(ways), {

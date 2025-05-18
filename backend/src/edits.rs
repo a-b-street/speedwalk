@@ -94,3 +94,35 @@ impl Edits {
         }
     }
 }
+
+impl Speedwalk {
+    // TODO Or do this as we apply each UserCmd?
+    pub fn after_edit(&mut self) {
+        self.derived_nodes = self.original_nodes.clone();
+        self.derived_ways = self.original_ways.clone();
+
+        let edits = self.edits.as_ref().unwrap();
+
+        for (way, cmds) in &edits.change_way_tags {
+            let way = self.derived_ways.get_mut(way).unwrap();
+            for cmd in cmds {
+                match cmd {
+                    TagCmd::Set(k, v) => {
+                        way.tags.insert(*k, *v);
+                    }
+                    TagCmd::Remove(k) => {
+                        way.tags.remove(*k);
+                    }
+                }
+            }
+            way.kind = Kind::classify(&way.tags);
+        }
+
+        for (id, node) in &edits.new_nodes {
+            self.derived_nodes.insert(*id, node.clone());
+        }
+        for (id, way) in &edits.new_ways {
+            self.derived_ways.insert(*id, way.clone());
+        }
+    }
+}

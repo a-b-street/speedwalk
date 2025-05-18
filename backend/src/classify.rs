@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use utils::Tags;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Kind {
     /// A separately mapped sidewalk
     Sidewalk,
@@ -22,7 +22,7 @@ pub enum Quickfix {
     OldSidewalkNone,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub enum Problem {
     DoubleTaggedLeftBoth,
     DoubleTaggedRightBoth,

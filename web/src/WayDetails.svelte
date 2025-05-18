@@ -37,14 +37,14 @@
   $: updateSidewalkPreview(makeLeft, distanceLeft, makeRight, distanceRight);
 
   function makeSidewalk() {
-    makeLeft = false;
-    makeRight = false;
     $backend!.editMakeSidewalk(
       BigInt(pinnedWay.properties.id),
       makeLeft ? distanceLeft : 0,
       makeRight ? distanceRight : 0,
     );
     $mutationCounter++;
+    makeLeft = false;
+    makeRight = false;
   }
 
   function applyQuickfix() {
