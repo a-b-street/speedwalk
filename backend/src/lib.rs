@@ -42,7 +42,7 @@ pub struct Node {
 
 #[derive(Clone)]
 pub struct Way {
-    // TODO Will need to store node_ids
+    pub node_ids: Vec<NodeID>,
     pub linestring: LineString,
     pub tags: Tags,
     pub kind: Kind,

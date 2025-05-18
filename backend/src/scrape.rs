@@ -29,15 +29,16 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
             let tags: Tags = tags.into();
             if tags.has("highway") {
                 let mut pts = Vec::new();
-                for node in node_ids {
-                    used_nodes.insert(node);
-                    pts.push(nodes[&node].pt);
+                for node in &node_ids {
+                    used_nodes.insert(*node);
+                    pts.push(nodes[node].pt);
                 }
                 let linestring = LineString::new(pts);
                 let kind = Kind::classify(&tags);
                 ways.insert(
                     id,
                     Way {
+                        node_ids,
                         linestring,
                         tags,
                         kind,

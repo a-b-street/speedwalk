@@ -33,12 +33,12 @@ pub enum TagCmd {
 impl Edits {
     fn new_node_id(&mut self) -> NodeID {
         self.id_counter += 1;
-        NodeID(self.id_counter as i64)
+        NodeID(-1 * (self.id_counter as i64))
     }
 
     fn new_way_id(&mut self) -> WayID {
         self.id_counter += 1;
-        WayID(self.id_counter as i64)
+        WayID(-1 * (self.id_counter as i64))
     }
 
     pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) {
@@ -75,7 +75,18 @@ impl Edits {
                 }
 
                 for linestring in vec![left, right].into_iter().flatten() {
-                    // TODO Make a bunch of new nodes
+                    let mut node_ids = Vec::new();
+                    for pt in linestring.coords() {
+                        let id = self.new_node_id();
+                        self.new_nodes.insert(
+                            id,
+                            Node {
+                                pt: *pt,
+                                tags: Tags::empty(),
+                            },
+                        );
+                        node_ids.push(id);
+                    }
 
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
@@ -84,6 +95,7 @@ impl Edits {
                     self.new_ways.insert(
                         id,
                         Way {
+                            node_ids,
                             linestring,
                             tags,
                             kind: Kind::Sidewalk,
