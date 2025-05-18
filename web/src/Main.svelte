@@ -35,6 +35,7 @@
     $backend!.getWays(),
   );
   let pinnedWay: Feature<LineString, WayProps> | null = null;
+  let showNodes = false;
 
   zoomFit();
 
@@ -88,6 +89,7 @@
         id="ways"
         beforeId="Road labels"
         manageHoverState
+        eventsIfTopMost
         paint={{
           "line-width": hoverStateFilter(5, 8),
           "line-color": constructMatchExpression(
@@ -122,15 +124,30 @@
           "circle-stroke-color": "black",
           "circle-stroke-width": 1,
         }}
+        layout={{
+          visibility: showNodes ? "visible" : "none",
+        }}
       >
         <Popup openOn="hover" let:props>
-          <p>{JSON.stringify(props)}</p>
+          <h4>Node {props.id}</h4>
+          <table>
+            {#each Object.entries(JSON.parse(props.tags)) as [key, value]}
+              <tr>
+                <td>{key}</td>
+                <td>{value}</td>
+              </tr>
+            {/each}
+          </table>
         </Popup>
       </CircleLayer>
     </GeoJSON>
 
     <Control position="top-right">
-      <div style:background="white" style:width="150px">
+      <div style:background="white" style:width="200px" style:padding="8px">
+        <label>
+          <input type="checkbox" bind:checked={showNodes} />
+          Nodes
+        </label>
         <Metrics />
       </div>
     </Control>

@@ -80,19 +80,11 @@
   </details>
 {/if}
 
-<table style:width="100%">
-  <thead>
+<table>
+  {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
     <tr>
-      <th>Key</th>
-      <th>Value</th>
+      <td>{key}</td>
+      <td>{value}</td>
     </tr>
-  </thead>
-  <tbody>
-    {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
-      <tr>
-        <td>{key}</td>
-        <td>{value}</td>
-      </tr>
-    {/each}
-  </tbody>
+  {/each}
 </table>
