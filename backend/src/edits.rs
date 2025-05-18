@@ -4,6 +4,9 @@ use osm_reader::WayID;
 
 use crate::classify::Quickfix;
 
+// TODO How do high and low level edits work? One "make a sidewalk on the left" changes a bunch of
+// things
+
 pub struct Edits {
     pub tags: HashMap<WayID, Vec<Cmd>>,
 }

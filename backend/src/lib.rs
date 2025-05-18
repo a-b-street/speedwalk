@@ -95,8 +95,13 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = makeSidewalk)]
-    pub fn make_sidewalk_wasm(&self, base: i64, project_meters: f64) -> Result<String, JsValue> {
-        self.make_sidewalk(WayID(base), project_meters)
+    pub fn make_sidewalk_wasm(
+        &self,
+        base: i64,
+        left_meters: f64,
+        right_meters: f64,
+    ) -> Result<String, JsValue> {
+        self.make_sidewalk(WayID(base), left_meters, right_meters)
             .map_err(err_to_js)
     }
 }

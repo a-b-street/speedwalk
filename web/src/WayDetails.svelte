@@ -10,28 +10,30 @@
 
   export let pinnedWay: Feature<LineString, WayProps>;
 
-  let makeSidewalk = false;
-  let makeDirection: "left" | "right" = "left";
-  let projectDistance = 1.0;
+  let makeLeft = false;
+  let distanceLeft = 1.0;
+  let makeRight = false;
+  let distanceRight = 1.0;
 
   function remakeSidewalk(
-    makeSidewalk: boolean,
-    makeDirection: "left" | "right",
-    projectDistance: number,
+    makeLeft: boolean,
+    distanceLeft: number,
+    makeRight: boolean,
+    distanceRight: number,
   ) {
-    if (!makeSidewalk) {
+    if (!makeLeft && !makeRight) {
       $previewSidewalk = null;
       return;
     }
-    let direction = makeDirection == "left" ? -1 : 1;
     $previewSidewalk = JSON.parse(
       $backend!.makeSidewalk(
         BigInt(pinnedWay.properties.id),
-        direction * projectDistance,
+        makeLeft ? distanceLeft : 0,
+        makeRight ? distanceRight : 0,
       ),
     );
   }
-  $: remakeSidewalk(makeSidewalk, makeDirection, projectDistance);
+  $: remakeSidewalk(makeLeft, distanceLeft, makeRight, distanceRight);
 </script>
 
 <div>
@@ -51,33 +53,37 @@
 {/if}
 
 {#if pinnedWay.properties.kind == "bad_roadway"}
-  <details bind:open={makeSidewalk}>
-    <summary>Create a sidewalk</summary>
-
-    <fieldset>
-      <label>
-        <input type="radio" value="left" bind:group={makeDirection} />
-        Left
-      </label>
-      <label>
-        <input type="radio" value="right" bind:group={makeDirection} />
-        Right
-      </label>
-    </fieldset>
+  <div style:background="grey" style:padding="4px">
+    <h3>Create a sidewalk</h3>
 
     <label>
+      <input type="checkbox" bind:checked={makeLeft} />
+      Left
       <input
         type="number"
-        bind:value={projectDistance}
+        bind:value={distanceLeft}
         min="0.1"
         max="10"
         step="0.1"
+        disabled={!makeLeft}
       />
-      Project away
+    </label>
+
+    <label>
+      <input type="checkbox" bind:checked={makeRight} />
+      Right
+      <input
+        type="number"
+        bind:value={distanceRight}
+        min="0.1"
+        max="10"
+        step="0.1"
+        disabled={!makeRight}
+      />
     </label>
 
     <button>Confirm</button>
-  </details>
+  </div>
 {/if}
 
 <table>
