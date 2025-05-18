@@ -2,6 +2,7 @@
 extern crate log;
 
 mod classify;
+mod edits;
 
 use std::collections::HashMap;
 use std::sync::Once;
