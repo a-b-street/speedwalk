@@ -53,5 +53,6 @@ export function prettyPrintDistance(meters: number): string {
 }
 
 export let backend: Writable<Speedwalk | null> = writable(null);
+export let mutationCounter = writable(0);
 export let previewSidewalk: Writable<FeatureCollection<LineString> | null> =
   writable(null);

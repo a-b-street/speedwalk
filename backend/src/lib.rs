@@ -16,23 +16,30 @@ use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
 
-use crate::classify::Kind;
+use crate::classify::{Kind, Quickfix};
+use crate::edits::{Edits, UserCmd};
 
 static START: Once = Once::new();
 
 #[wasm_bindgen]
 pub struct Speedwalk {
+    // All of these are immutable
+    // TODO Rename to be clear
     nodes: HashMap<NodeID, Node>,
     ways: HashMap<WayID, Way>,
     mercator: Mercator,
+
+    // TODO Store derived nodes/ways?
+    edits: Option<Edits>,
 }
 
-struct Node {
-    pt: Coord,
-    tags: Tags,
+pub struct Node {
+    pub pt: Coord,
+    pub tags: Tags,
 }
 
 pub struct Way {
+    // TODO Will need to store node_ids
     pub linestring: LineString,
     pub tags: Tags,
     pub kind: Kind,
@@ -108,6 +115,36 @@ impl Speedwalk {
         }
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
+
+    #[wasm_bindgen(js_name = editMakeSidewalk)]
+    pub fn edit_make_sidewalk(&mut self, base: i64, left_meters: f64, right_meters: f64) {
+        let mut edits = self.edits.take().unwrap();
+        edits.apply_cmd(
+            UserCmd::MakeSidewalk(WayID(base), left_meters, right_meters),
+            self,
+        );
+        self.edits = Some(edits);
+    }
+
+    #[wasm_bindgen(js_name = editApplyQuickfix)]
+    pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
+        let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;
+        let mut edits = self.edits.take().unwrap();
+        edits.apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self);
+        self.edits = Some(edits);
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editClear)]
+    pub fn edit_clear(&mut self) {
+        self.edits = Some(Edits::default());
+    }
+
+    /// List of UserCmd
+    #[wasm_bindgen(js_name = getEdits)]
+    pub fn get_edits(&self) -> Result<String, JsValue> {
+        serde_json::to_string(&self.edits.as_ref().unwrap().user_commands).map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
@@ -176,6 +213,8 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         nodes,
         ways,
         mercator,
+
+        edits: Some(edits::Edits::default()),
     })
 }
 

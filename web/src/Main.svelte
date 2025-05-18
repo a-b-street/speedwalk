@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Edits from "./Edits.svelte";
   import {
     backend,
     previewSidewalk,
@@ -64,6 +65,8 @@
 
 <SplitComponent>
   <div slot="sidebar">
+    <Edits />
+
     {#if pinnedWay}
       <WayDetails {pinnedWay} />
     {/if}

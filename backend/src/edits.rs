@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use osm_reader::WayID;
+use osm_reader::{NodeID, WayID};
+use serde::Serialize;
 use utils::Tags;
 
-use crate::{classify::Quickfix, Kind, Speedwalk, Way};
+use crate::{classify::Quickfix, Kind, Node, Speedwalk, Way};
 
 #[derive(Default)]
 pub struct Edits {
@@ -12,12 +13,13 @@ pub struct Edits {
     // Derived consequences below
     pub change_way_tags: HashMap<WayID, Vec<TagCmd>>,
 
+    pub new_nodes: HashMap<NodeID, Node>,
     pub new_ways: HashMap<WayID, Way>,
 
     id_counter: usize,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
     MakeSidewalk(WayID, f64, f64),
@@ -29,6 +31,11 @@ pub enum TagCmd {
 }
 
 impl Edits {
+    fn new_node_id(&mut self) -> NodeID {
+        self.id_counter += 1;
+        NodeID(self.id_counter as i64)
+    }
+
     fn new_way_id(&mut self) -> WayID {
         self.id_counter += 1;
         WayID(self.id_counter as i64)
@@ -68,6 +75,8 @@ impl Edits {
                 }
 
                 for linestring in vec![left, right].into_iter().flatten() {
+                    // TODO Make a bunch of new nodes
+
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");

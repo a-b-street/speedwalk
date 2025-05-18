@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utils::Tags;
 
 #[derive(Debug, PartialEq)]
@@ -15,7 +15,7 @@ pub enum Kind {
     Other,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum Quickfix {
     OldSidewalkSeparate,
     OldSidewalkNo,

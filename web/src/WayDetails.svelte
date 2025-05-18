@@ -6,6 +6,7 @@
     problems,
     quickfixes,
     previewSidewalk,
+    mutationCounter,
   } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
@@ -15,7 +16,7 @@
   let makeRight = false;
   let distanceRight = 1.0;
 
-  function remakeSidewalk(
+  function updateSidewalkPreview(
     makeLeft: boolean,
     distanceLeft: number,
     makeRight: boolean,
@@ -33,7 +34,26 @@
       ),
     );
   }
-  $: remakeSidewalk(makeLeft, distanceLeft, makeRight, distanceRight);
+  $: updateSidewalkPreview(makeLeft, distanceLeft, makeRight, distanceRight);
+
+  function makeSidewalk() {
+    makeLeft = false;
+    makeRight = false;
+    $backend!.editMakeSidewalk(
+      BigInt(pinnedWay.properties.id),
+      makeLeft ? distanceLeft : 0,
+      makeRight ? distanceRight : 0,
+    );
+    $mutationCounter++;
+  }
+
+  function applyQuickfix() {
+    $backend!.editApplyQuickfix(
+      BigInt(pinnedWay.properties.id),
+      pinnedWay.properties.fix!,
+    );
+    $mutationCounter++;
+  }
 </script>
 
 <div>
@@ -47,6 +67,7 @@
 </div>
 {#if pinnedWay.properties.fix}
   <p>{quickfixes[pinnedWay.properties.fix]}</p>
+  <button on:click={applyQuickfix}>Apply this fix</button>
 {/if}
 {#if pinnedWay.properties.problem}
   <p>{problems[pinnedWay.properties.problem]}</p>
@@ -82,7 +103,7 @@
       />
     </label>
 
-    <button>Confirm</button>
+    <button on:click={makeSidewalk}>Confirm</button>
   </div>
 {/if}
 
