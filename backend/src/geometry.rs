@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use osm_reader::WayID;
 use utils::OffsetCurve;
 

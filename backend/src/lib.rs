@@ -5,13 +5,13 @@ mod classify;
 mod edits;
 mod geometry;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Once;
 
 use anyhow::Result;
-use geo::{Coord, Euclidean, GeometryCollection, Length, LineString};
+use geo::{Coord, Euclidean, GeometryCollection, Length, LineString, Point};
 use geojson::GeoJson;
-use osm_reader::{Element, WayID};
+use osm_reader::{Element, NodeID, WayID};
 use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
@@ -22,8 +22,14 @@ static START: Once = Once::new();
 
 #[wasm_bindgen]
 pub struct Speedwalk {
+    nodes: HashMap<NodeID, Node>,
     ways: HashMap<WayID, Way>,
     mercator: Mercator,
+}
+
+struct Node {
+    pt: Coord,
+    tags: Tags,
 }
 
 struct Way {
@@ -43,6 +49,20 @@ impl Speedwalk {
         });
 
         scrape_osm(input_bytes).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = getNodes)]
+    pub fn get_nodes(&self) -> Result<String, JsValue> {
+        let mut features = Vec::new();
+        // TODO HashMap nondet order
+        for (idx, (id, node)) in self.nodes.iter().enumerate() {
+            let mut f = self.mercator.to_wgs84_gj(&Point::from(node.pt));
+            f.id = Some(geojson::feature::Id::Number(idx.into()));
+            f.set_property("id", id.0);
+            f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
+            features.push(f);
+        }
+        serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = getWays)]
@@ -86,19 +106,32 @@ fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
 }
 
 fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
-    let mut node_mapping = HashMap::new();
+    let mut nodes = HashMap::new();
     let mut ways = HashMap::new();
+    let mut used_nodes = HashSet::new();
     osm_reader::parse(input_bytes, |elem| match elem {
-        Element::Node { id, lon, lat, .. } => {
-            node_mapping.insert(id, Coord { x: lon, y: lat });
+        Element::Node {
+            id, lon, lat, tags, ..
+        } => {
+            nodes.insert(
+                id,
+                Node {
+                    pt: Coord { x: lon, y: lat },
+                    tags: tags.into(),
+                },
+            );
         }
         Element::Way {
             id, node_ids, tags, ..
         } => {
             let tags: Tags = tags.into();
             if tags.has("highway") {
-                let linestring =
-                    LineString::new(node_ids.into_iter().map(|id| node_mapping[&id]).collect());
+                let mut pts = Vec::new();
+                for node in node_ids {
+                    used_nodes.insert(node);
+                    pts.push(nodes[&node].pt);
+                }
+                let linestring = LineString::new(pts);
                 let kind = Kind::classify(&tags);
                 ways.insert(
                     id,
@@ -114,18 +147,27 @@ fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         Element::Bounds { .. } => {}
     })?;
 
+    nodes.retain(|id, _| used_nodes.contains(id));
+
     let mercator = Mercator::from(GeometryCollection::from(
         ways.values()
             .map(|way| way.linestring.clone())
             .collect::<Vec<_>>(),
     ))
     .unwrap();
+    for node in nodes.values_mut() {
+        node.pt = mercator.pt_to_mercator(node.pt);
+    }
     for way in ways.values_mut() {
         mercator.to_mercator_in_place(&mut way.linestring);
     }
     info!("Found {} ways", ways.len());
 
-    Ok(Speedwalk { ways, mercator })
+    Ok(Speedwalk {
+        nodes,
+        ways,
+        mercator,
+    })
 }
 
 #[derive(Default, Serialize)]

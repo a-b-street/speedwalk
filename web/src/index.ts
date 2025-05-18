@@ -2,6 +2,11 @@ import { type Writable, writable } from "svelte/store";
 import type { Feature, LineString } from "geojson";
 import { Speedwalk } from "backend";
 
+export interface NodeProps {
+  id: number;
+  tags: Record<string, string>;
+}
+
 export interface WayProps {
   id: number;
   tags: Record<string, string>;

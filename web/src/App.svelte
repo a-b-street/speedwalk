@@ -1,12 +1,19 @@
 <script lang="ts">
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
-  import { backend, previewSidewalk, colors, type WayProps } from "./";
+  import {
+    backend,
+    previewSidewalk,
+    colors,
+    type NodeProps,
+    type WayProps,
+  } from "./";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
     GeoJSON,
     MapLibre,
+    CircleLayer,
     LineLayer,
     hoverStateFilter,
     MapEvents,
@@ -19,14 +26,16 @@
     emptyGeojson,
     bbox,
     constructMatchExpression,
+    Popup,
   } from "svelte-utils/map";
-  import type { Feature, LineString, FeatureCollection } from "geojson";
+  import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import init, { Speedwalk } from "backend";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
 
   let loading = "";
   let map: Map | undefined;
+  let nodes = emptyGeojson() as FeatureCollection<Point, NodeProps>;
   let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
   let pinnedWay: Feature<LineString, WayProps> | null = null;
 
@@ -40,6 +49,7 @@
       loading = "Loading from file";
       let bytes = await fileInput.files![0].arrayBuffer();
       $backend = new Speedwalk(new Uint8Array(bytes));
+      nodes = JSON.parse($backend.getNodes());
       ways = JSON.parse($backend.getWays());
       zoomFit();
     } catch (err) {
@@ -54,6 +64,7 @@
       // TODO Can we avoid turning into bytes?
       let bytes = new TextEncoder().encode(e.detail.xml);
       $backend = new Speedwalk(new Uint8Array(bytes));
+      nodes = JSON.parse($backend.getNodes());
       ways = JSON.parse($backend.getWays());
       zoomFit();
     } catch (err) {
@@ -65,6 +76,7 @@
 
   function clear() {
     $backend = null;
+    nodes = emptyGeojson() as FeatureCollection<Point, NodeProps>;
     ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
     pinnedWay = null;
   }
@@ -172,6 +184,25 @@
             "line-color": "purple",
           }}
         />
+      </GeoJSON>
+
+      <GeoJSON data={nodes}>
+        <CircleLayer
+          id="nodes"
+          beforeId="Road labels"
+          manageHoverState
+          paint={{
+            "circle-radius": 7,
+            "circle-color": "grey",
+            "circle-opacity": hoverStateFilter(0, 0.5),
+            "circle-stroke-color": "black",
+            "circle-stroke-width": 1,
+          }}
+        >
+          <Popup openOn="hover" let:props>
+            <p>{JSON.stringify(props)}</p>
+          </Popup>
+        </CircleLayer>
       </GeoJSON>
 
       <Control position="top-right">
