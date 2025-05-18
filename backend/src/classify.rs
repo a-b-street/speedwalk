@@ -15,7 +15,7 @@ pub enum Kind {
     Other,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
 pub enum Quickfix {
     OldSidewalkSeparate,
     OldSidewalkNo,

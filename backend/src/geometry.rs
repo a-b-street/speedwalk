@@ -1,5 +1,4 @@
-use anyhow::{bail, Result};
-use geojson::GeoJson;
+use geo::LineString;
 use osm_reader::WayID;
 use utils::OffsetCurve;
 
@@ -11,23 +10,17 @@ impl Speedwalk {
         base: WayID,
         left_meters: f64,
         right_meters: f64,
-    ) -> Result<String> {
-        let mut features = Vec::new();
-
+    ) -> (Option<LineString>, Option<LineString>) {
+        let mut left = None;
         if left_meters > 0.0 {
-            let Some(linestring) = self.ways[&base].linestring.offset_curve(-left_meters) else {
-                bail!("offset_curve failed");
-            };
-            features.push(self.mercator.to_wgs84_gj(&linestring));
+            left = self.ways[&base].linestring.offset_curve(-left_meters);
         }
 
+        let mut right = None;
         if right_meters > 0.0 {
-            let Some(linestring) = self.ways[&base].linestring.offset_curve(right_meters) else {
-                bail!("offset_curve failed");
-            };
-            features.push(self.mercator.to_wgs84_gj(&linestring));
+            right = self.ways[&base].linestring.offset_curve(right_meters);
         }
 
-        Ok(serde_json::to_string(&GeoJson::from(features))?)
+        (left, right)
     }
 }

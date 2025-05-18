@@ -32,10 +32,10 @@ struct Node {
     tags: Tags,
 }
 
-struct Way {
-    linestring: LineString,
-    tags: Tags,
-    kind: Kind,
+pub struct Way {
+    pub linestring: LineString,
+    pub tags: Tags,
+    pub kind: Kind,
 }
 
 #[wasm_bindgen]
@@ -94,15 +94,19 @@ impl Speedwalk {
         serde_json::to_string(&Metrics::new(self)).map_err(err_to_js)
     }
 
-    #[wasm_bindgen(js_name = makeSidewalk)]
-    pub fn make_sidewalk_wasm(
+    #[wasm_bindgen(js_name = previewSidewalk)]
+    pub fn preview_sidewalk(
         &self,
         base: i64,
         left_meters: f64,
         right_meters: f64,
     ) -> Result<String, JsValue> {
-        self.make_sidewalk(WayID(base), left_meters, right_meters)
-            .map_err(err_to_js)
+        let (left, right) = self.make_sidewalk(WayID(base), left_meters, right_meters);
+        let mut features = Vec::new();
+        for x in vec![left, right].into_iter().flatten() {
+            features.push(self.mercator.to_wgs84_gj(&x));
+        }
+        Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 }
 

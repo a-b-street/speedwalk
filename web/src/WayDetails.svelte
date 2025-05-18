@@ -26,7 +26,7 @@
       return;
     }
     $previewSidewalk = JSON.parse(
-      $backend!.makeSidewalk(
+      $backend!.previewSidewalk(
         BigInt(pinnedWay.properties.id),
         makeLeft ? distanceLeft : 0,
         makeRight ? distanceRight : 0,
