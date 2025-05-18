@@ -3,6 +3,7 @@ extern crate log;
 
 mod classify;
 mod edits;
+mod geometry;
 
 use std::collections::HashMap;
 use std::sync::Once;
@@ -71,6 +72,12 @@ impl Speedwalk {
     #[wasm_bindgen(js_name = getMetrics)]
     pub fn get_metrics(&self) -> Result<String, JsValue> {
         serde_json::to_string(&Metrics::new(self)).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = makeSidewalk)]
+    pub fn make_sidewalk_wasm(&self, base: i64, project_meters: f64) -> Result<String, JsValue> {
+        self.make_sidewalk(WayID(base), project_meters)
+            .map_err(err_to_js)
     }
 }
 

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
-  import { colors, type WayProps } from "./";
+  import { backend, previewSidewalk, colors, type WayProps } from "./";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
@@ -25,7 +25,6 @@
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
 
-  let model: Speedwalk | undefined;
   let loading = "";
   let map: Map | undefined;
   let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
@@ -40,8 +39,8 @@
     try {
       loading = "Loading from file";
       let bytes = await fileInput.files![0].arrayBuffer();
-      model = new Speedwalk(new Uint8Array(bytes));
-      ways = JSON.parse(model.getWays());
+      $backend = new Speedwalk(new Uint8Array(bytes));
+      ways = JSON.parse($backend.getWays());
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
@@ -54,8 +53,8 @@
     try {
       // TODO Can we avoid turning into bytes?
       let bytes = new TextEncoder().encode(e.detail.xml);
-      model = new Speedwalk(new Uint8Array(bytes));
-      ways = JSON.parse(model.getWays());
+      $backend = new Speedwalk(new Uint8Array(bytes));
+      ways = JSON.parse($backend.getWays());
       zoomFit();
     } catch (err) {
       window.alert(`Couldn't import from Overpass: ${err}`);
@@ -65,7 +64,7 @@
   }
 
   function clear() {
-    model = undefined;
+    $backend = null;
     ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
     pinnedWay = null;
   }
@@ -87,6 +86,10 @@
       break;
     }
   }
+
+  $: if (!pinnedWay) {
+    $previewSidewalk = null;
+  }
 </script>
 
 <Loading {loading} progress={100} />
@@ -95,7 +98,7 @@
   <div slot="left">
     <h1>Speedwalk</h1>
 
-    {#if model}
+    {#if $backend}
       <button on:click={clear}>Load another area</button>
     {:else if map}
       <label>
@@ -160,10 +163,21 @@
         />
       </GeoJSON>
 
+      <GeoJSON data={$previewSidewalk || emptyGeojson()}>
+        <LineLayer
+          id="preview-sidewalk"
+          beforeId="Road labels"
+          paint={{
+            "line-width": 5,
+            "line-color": "purple",
+          }}
+        />
+      </GeoJSON>
+
       <Control position="top-right">
         <div style:background="white" style:width="150px">
-          {#if model}
-            <Metrics {model} />
+          {#if $backend}
+            <Metrics />
           {/if}
         </div>
       </Control>

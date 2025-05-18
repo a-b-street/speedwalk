@@ -1,3 +1,7 @@
+import { type Writable, writable } from "svelte/store";
+import type { Feature, LineString } from "geojson";
+import { Speedwalk } from "backend";
+
 export interface WayProps {
   id: number;
   tags: Record<string, string>;
@@ -42,3 +46,7 @@ export function prettyPrintDistance(meters: number): string {
   }
   return (meters / 1000.0).toFixed(1) + "km";
 }
+
+export let backend: Writable<Speedwalk | null> = writable(null);
+export let previewSidewalk: Writable<Feature<LineString> | null> =
+  writable(null);

@@ -1,8 +1,5 @@
 <script lang="ts">
-  import { Speedwalk } from "backend";
-  import { prettyPrintDistance, sum, colors } from "./";
-
-  export let model: Speedwalk;
+  import { backend, prettyPrintDistance, sum, colors } from "./";
 
   interface Metrics {
     total_length_meters: {
@@ -14,7 +11,7 @@
     };
   }
 
-  let metrics: Metrics = JSON.parse(model.getMetrics());
+  let metrics: Metrics = JSON.parse($backend!.getMetrics());
 
   let total = sum(Object.values(metrics.total_length_meters));
 
