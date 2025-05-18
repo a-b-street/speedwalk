@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
   import { colors, type WayProps } from "./";
   import "@picocss/pico/css/pico.jade.min.css";
@@ -11,6 +12,8 @@
     MapEvents,
     Control,
   } from "svelte-maplibre";
+  import { OverpassSelector } from "svelte-utils/overpass";
+  import { Loading } from "svelte-utils";
   import { Layout } from "svelte-utils/two_column_layout";
   import {
     emptyGeojson,
@@ -23,6 +26,7 @@
   import WayDetails from "./WayDetails.svelte";
 
   let model: Speedwalk | undefined;
+  let loading = "";
   let map: Map | undefined;
   let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
   let pinnedWay: Feature<LineString, WayProps> | null = null;
@@ -34,13 +38,36 @@
   let fileInput: HTMLInputElement;
   async function loadFile(e: Event) {
     try {
+      loading = "Loading from file";
       let bytes = await fileInput.files![0].arrayBuffer();
       model = new Speedwalk(new Uint8Array(bytes));
       ways = JSON.parse(model.getWays());
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
+    } finally {
+      loading = "";
     }
+  }
+
+  async function gotXml(e: CustomEvent<{ xml: string }>) {
+    try {
+      // TODO Can we avoid turning into bytes?
+      let bytes = new TextEncoder().encode(e.detail.xml);
+      model = new Speedwalk(new Uint8Array(bytes));
+      ways = JSON.parse(model.getWays());
+      zoomFit();
+    } catch (err) {
+      window.alert(`Couldn't import from Overpass: ${err}`);
+    } finally {
+      loading = "";
+    }
+  }
+
+  function clear() {
+    model = undefined;
+    ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
+    pinnedWay = null;
   }
 
   function zoomFit() {
@@ -62,17 +89,32 @@
   }
 </script>
 
+<Loading {loading} progress={100} />
+
 <Layout>
   <div slot="left">
     <h1>Speedwalk</h1>
 
-    {#if pinnedWay}
-      <WayDetails {pinnedWay} />
-    {:else}
+    {#if model}
+      <button on:click={clear}>Load another area</button>
+    {:else if map}
       <label>
         Load an osm.pbf or osm.xml file
         <input bind:this={fileInput} on:change={loadFile} type="file" />
       </label>
+
+      <i>or...</i>
+
+      <OverpassSelector
+        {map}
+        on:gotXml={gotXml}
+        on:loading={(e) => (loading = e.detail)}
+        on:error={(e) => window.alert(e.detail)}
+      />
+    {/if}
+
+    {#if pinnedWay}
+      <WayDetails {pinnedWay} />
     {/if}
   </div>
 
@@ -87,6 +129,8 @@
       }}
     >
       <MapEvents on:click={onMapClick} />
+
+      <PolygonToolLayer />
 
       <GeoJSON data={pinnedWay || emptyGeojson()}>
         <LineLayer
