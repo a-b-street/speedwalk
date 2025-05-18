@@ -4,14 +4,15 @@ extern crate log;
 mod classify;
 mod edits;
 mod geometry;
+mod scrape;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::Once;
 
 use anyhow::Result;
-use geo::{Coord, Euclidean, GeometryCollection, Length, LineString, Point};
+use geo::{Coord, Euclidean, Length, LineString, Point};
 use geojson::GeoJson;
-use osm_reader::{Element, NodeID, WayID};
+use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
@@ -57,7 +58,7 @@ impl Speedwalk {
             console_log::init_with_level(log::Level::Info).unwrap();
         });
 
-        scrape_osm(input_bytes).map_err(err_to_js)
+        scrape::scrape_osm(input_bytes).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = getNodes)]
@@ -154,76 +155,6 @@ impl Speedwalk {
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
     JsValue::from_str(&err.to_string())
-}
-
-fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
-    let mut nodes = HashMap::new();
-    let mut ways = HashMap::new();
-    let mut used_nodes = HashSet::new();
-    osm_reader::parse(input_bytes, |elem| match elem {
-        Element::Node {
-            id, lon, lat, tags, ..
-        } => {
-            nodes.insert(
-                id,
-                Node {
-                    pt: Coord { x: lon, y: lat },
-                    tags: tags.into(),
-                },
-            );
-        }
-        Element::Way {
-            id, node_ids, tags, ..
-        } => {
-            let tags: Tags = tags.into();
-            if tags.has("highway") {
-                let mut pts = Vec::new();
-                for node in node_ids {
-                    used_nodes.insert(node);
-                    pts.push(nodes[&node].pt);
-                }
-                let linestring = LineString::new(pts);
-                let kind = Kind::classify(&tags);
-                ways.insert(
-                    id,
-                    Way {
-                        linestring,
-                        tags,
-                        kind,
-                    },
-                );
-            }
-        }
-        Element::Relation { .. } => {}
-        Element::Bounds { .. } => {}
-    })?;
-
-    nodes.retain(|id, _| used_nodes.contains(id));
-
-    let mercator = Mercator::from(GeometryCollection::from(
-        ways.values()
-            .map(|way| way.linestring.clone())
-            .collect::<Vec<_>>(),
-    ))
-    .unwrap();
-    for node in nodes.values_mut() {
-        node.pt = mercator.pt_to_mercator(node.pt);
-    }
-    for way in ways.values_mut() {
-        mercator.to_mercator_in_place(&mut way.linestring);
-    }
-    info!("Found {} ways", ways.len());
-
-    Ok(Speedwalk {
-        original_nodes: nodes.clone(),
-        original_ways: ways.clone(),
-        mercator,
-
-        edits: Some(edits::Edits::default()),
-
-        derived_nodes: nodes,
-        derived_ways: ways,
-    })
 }
 
 #[derive(Default, Serialize)]
