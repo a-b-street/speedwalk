@@ -38,7 +38,10 @@ impl Kind {
             return Self::Sidewalk;
         }
 
-        if tags.is_any("highway", vec!["footway", "path", "steps"]) {
+        if tags.is_any(
+            "highway",
+            vec!["footway", "path", "pedestrian", "platform", "steps"],
+        ) {
             return Self::Other;
         }
 
