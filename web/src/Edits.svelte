@@ -7,7 +7,7 @@
   let cmds: any[] = [];
 
   $: if ($mutationCounter > 0) {
-    cmds = JSON.parse($backend!.getEdits());
+    cmds = $backend ? JSON.parse($backend.getEdits()) : [];
   }
 
   function clear() {
