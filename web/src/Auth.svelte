@@ -14,6 +14,7 @@
         uid: user.id,
         avatarUrl: user.img?.href || "",
       };
+      history.pushState({}, "", window.location.pathname);
     }
   });
 
