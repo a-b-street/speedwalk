@@ -139,7 +139,7 @@ impl Edits {
         for id in self.change_way_tags.keys() {
             let way = &model.derived_ways[id];
 
-            out.push(format!(r#"    <way id="{}" version="{}">"#, id.0, way.version + 1));
+            out.push(format!(r#"    <way id="{}" version="{}">"#, id.0, way.version));
             for node in &way.node_ids {
                 out.push(format!(r#"      <nd ref="{}" />"#, node.0));
             }
