@@ -1,4 +1,5 @@
 <script lang="ts">
+  import favicon from "../assets/favicon.ico?url";
   import "@fortawesome/fontawesome-free/css/all.min.css";
   import { MapLibre, Control } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
@@ -73,6 +74,10 @@
     mapDiv.appendChild($mapContents);
   }
 </script>
+
+<svelte:head>
+  <link rel="icon" type="image/x-icon" href={favicon} />
+</svelte:head>
 
 <Loading {loading} />
 
