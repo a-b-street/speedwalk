@@ -1,56 +1,34 @@
 <script lang="ts">
-  // @ts-expect-error No types
-  import { osmAuth } from "osm-auth";
-
-  let auth = osmAuth({
-    client_id: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
-    redirect_uri: "http://127.0.0.1:5173/speedwalk/index.html",
-    scope: "read_prefs write_api",
-    singlepage: true,
-  });
+  import * as OSM from "osm-api";
+  import { onMount } from "svelte";
 
   let loggedInUser: { name: string; uid: number; avatarUrl: string } | null =
     null;
-  if (
-    window.location.search
-      .slice(1)
-      .split("&")
-      .some((p) => p.startsWith("code="))
-  ) {
-    login();
-  }
 
-  // TODO Try async everything style if this works
+  onMount(async () => {
+    await OSM.authReady;
+    if (OSM.isLoggedIn()) {
+      let user = await OSM.getUser("me");
+      loggedInUser = {
+        name: user.display_name,
+        uid: user.id,
+        avatarUrl: user.img?.href || "",
+      };
+    }
+  });
+
   function login() {
-    auth.authenticate((err: any, result: any) => {
-      if (err) {
-        window.alert(err);
-        return;
-      }
-
-      auth.xhr(
-        { method: "GET", path: "/api/0.6/user/details" },
-        (err: any, result: any) => {
-          if (result) {
-            history.pushState({}, "", window.location.pathname);
-            let user = result.getElementsByTagName("user")[0];
-            let avatar = result.getElementsByTagName("img")[0];
-            loggedInUser = {
-              name: user.getAttribute("display_name"),
-              uid: user.getAttribute("id"),
-              avatarUrl: avatar?.getAttribute("href") || "",
-            };
-          } else if (err) {
-            window.alert(err);
-          }
-        },
-      );
+    OSM.login({
+      mode: "redirect",
+      clientId: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
+      redirectUrl: "http://127.0.0.1:5173/speedwalk/index.html",
+      scopes: ["read_prefs", "write_api"],
     });
   }
 
-  function logout() {
+  async function logout() {
     loggedInUser = null;
-    auth.logout();
+    await OSM.logout();
   }
 </script>
 
