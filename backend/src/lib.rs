@@ -158,6 +158,15 @@ impl Speedwalk {
     pub fn to_osc(&self) -> String {
         self.edits.as_ref().unwrap().to_osc(self)
     }
+
+    #[wasm_bindgen(js_name = toOsmChangeJson)]
+    pub fn to_osmchange_json(&self) -> Result<String, JsValue> {
+        self.edits
+            .as_ref()
+            .unwrap()
+            .to_osmchange_json(self)
+            .map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {

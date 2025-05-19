@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
+use anyhow::Result;
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -160,6 +161,53 @@ impl Edits {
 
         out.join("\n")
     }
+
+    pub fn to_osmchange_json(&self, model: &Speedwalk) -> Result<String> {
+        let mut out = OsmChange::default();
+
+        for (id, node) in &self.new_nodes {
+            let pt = model.mercator.pt_to_wgs84(node.pt);
+            out.create.push(OsmElement {
+                r#type: "node",
+                id: id.0,
+                tags: node.tags.0.clone(),
+                version: node.version,
+
+                lon: Some(pt.x),
+                lat: Some(pt.y),
+                nodes: Vec::new(),
+            });
+        }
+
+        for (id, way) in &self.new_ways {
+            out.create.push(OsmElement {
+                r#type: "way",
+                id: id.0,
+                tags: way.tags.0.clone(),
+                version: way.version,
+
+                lon: None,
+                lat: None,
+                nodes: way.node_ids.iter().map(|n| n.0).collect(),
+            });
+        }
+
+        for id in self.change_way_tags.keys() {
+            let way = &model.derived_ways[id];
+            out.modify.push(OsmElement {
+                r#type: "way",
+                id: id.0,
+                tags: way.tags.0.clone(),
+                version: way.version,
+
+                lon: None,
+                lat: None,
+                nodes: way.node_ids.iter().map(|n| n.0).collect(),
+            });
+        }
+
+        Ok(serde_json::to_string(&out)?)
+    }
 }
 
 impl Speedwalk {
@@ -192,4 +240,29 @@ impl Speedwalk {
             self.derived_ways.insert(*id, way.clone());
         }
     }
+}
+
+#[derive(Default, Serialize)]
+struct OsmChange {
+    create: Vec<OsmElement>,
+    modify: Vec<OsmElement>,
+    delete: Vec<OsmElement>,
+}
+
+#[derive(Serialize)]
+struct OsmElement {
+    r#type: &'static str,
+    id: i64,
+    version: i32,
+    tags: BTreeMap<String, String>,
+
+    // For nodes
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lon: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    lat: Option<f64>,
+
+    // For ways
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    nodes: Vec<i64>,
 }

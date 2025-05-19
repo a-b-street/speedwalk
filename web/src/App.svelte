@@ -15,7 +15,6 @@
   } from "svelte-utils/two_column_layout";
   import init, { Speedwalk } from "backend";
   import Main from "./Main.svelte";
-  import Auth from "./Auth.svelte";
 
   let loading = "";
   let map: Map | undefined;
@@ -80,8 +79,6 @@
 <Layout>
   <div slot="left">
     <h1>Speedwalk</h1>
-
-    <Auth />
 
     {#if $backend}
       <button on:click={clear}>Load another area</button>
