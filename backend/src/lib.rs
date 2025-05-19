@@ -38,6 +38,7 @@ pub struct Speedwalk {
 pub struct Node {
     pub pt: Coord,
     pub tags: Tags,
+    pub version: i32,
 }
 
 #[derive(Clone)]
@@ -46,6 +47,7 @@ pub struct Way {
     pub linestring: LineString,
     pub tags: Tags,
     pub kind: Kind,
+    pub version: i32,
 }
 
 #[wasm_bindgen]
@@ -150,6 +152,11 @@ impl Speedwalk {
     #[wasm_bindgen(js_name = getEdits)]
     pub fn get_edits(&self) -> Result<String, JsValue> {
         serde_json::to_string(&self.edits.as_ref().unwrap().user_commands).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = toOsc)]
+    pub fn to_osc(&self) -> String {
+        self.edits.as_ref().unwrap().to_osc(self)
     }
 }
 

@@ -83,6 +83,7 @@ impl Edits {
                             Node {
                                 pt: *pt,
                                 tags: Tags::empty(),
+                                version: 0,
                             },
                         );
                         node_ids.push(id);
@@ -99,11 +100,59 @@ impl Edits {
                             linestring,
                             tags,
                             kind: Kind::Sidewalk,
+                            version: 0,
                         },
                     );
                 }
             }
         }
+    }
+
+    pub fn to_osc(&self, model: &Speedwalk) -> String {
+        let mut out = vec![r#"<osmChange version="0.6" generator="Speedwalk">"#.to_string()];
+
+        out.push("  <create>".to_string());
+        for (id, node) in &self.new_nodes {
+            let pt = model.mercator.pt_to_wgs84(node.pt);
+            out.push(format!(
+                r#"    <node id="{}" version="{}" lon="{}" lat="{}">"#,
+                id.0, node.version, pt.x, pt.y
+            ));
+            for (k, v) in &node.tags.0 {
+                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+            }
+            out.push("    </node>".to_string());
+        }
+        for (id, way) in &self.new_ways {
+            out.push(format!(r#"    <way id="{}" version="{}">"#, id.0, way.version));
+            for node in &way.node_ids {
+                out.push(format!(r#"      <nd ref="{}" />"#, node.0));
+            }
+            for (k, v) in &way.tags.0 {
+                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+            }
+            out.push("    </way>".to_string());
+        }
+        out.push("  </create>".to_string());
+
+        out.push("  <modify>".to_string());
+        for id in self.change_way_tags.keys() {
+            let way = &model.derived_ways[id];
+
+            out.push(format!(r#"    <way id="{}" version="{}">"#, id.0, way.version + 1));
+            for node in &way.node_ids {
+                out.push(format!(r#"      <nd ref="{}" />"#, node.0));
+            }
+            for (k, v) in &way.tags.0 {
+                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+            }
+            out.push("    </way>".to_string());
+        }
+        out.push("  </modify>".to_string());
+
+        out.push("</osmChange>".to_string());
+
+        out.join("\n")
     }
 }
 

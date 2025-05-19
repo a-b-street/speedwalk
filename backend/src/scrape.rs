@@ -13,18 +13,29 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     let mut used_nodes = HashSet::new();
     osm_reader::parse(input_bytes, |elem| match elem {
         Element::Node {
-            id, lon, lat, tags, ..
+            id,
+            lon,
+            lat,
+            tags,
+            version,
+            ..
         } => {
             nodes.insert(
                 id,
                 Node {
                     pt: Coord { x: lon, y: lat },
                     tags: tags.into(),
+                    // TODO Change API to be fallible
+                    version: version.expect("node missing version"),
                 },
             );
         }
         Element::Way {
-            id, node_ids, tags, ..
+            id,
+            node_ids,
+            tags,
+            version,
+            ..
         } => {
             let tags: Tags = tags.into();
             if tags.has("highway") {
@@ -42,6 +53,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         linestring,
                         tags,
                         kind,
+                        version: version.expect("way missing version"),
                     },
                 );
             }
