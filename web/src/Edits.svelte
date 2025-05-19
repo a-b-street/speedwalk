@@ -5,9 +5,19 @@
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
+  let idx = 0;
 
   $: if ($mutationCounter > 0) {
     cmds = $backend ? JSON.parse($backend.getEdits()) : [];
+    idx = 0;
+  }
+
+  function prev() {
+    idx--;
+  }
+
+  function next() {
+    idx++;
   }
 
   function clear() {
@@ -55,8 +65,19 @@
 
 <h3>{cmds.length} {cmds.length == 1 ? "edit" : "edits"}</h3>
 {#if cmds.length > 0}
-  <button on:click={clear}>Clear edits</button>
-  <button on:click={downloadOsc}>Download .osc</button>
+  <button class="outline" on:click={clear}>Clear edits</button>
+  <button class="outline" on:click={downloadOsc}>Download .osc</button>
   <button on:click={uploadOsc}>Upload changeset</button>
+
+  <div style="display: flex; justify-content: space-between">
+    <button class="outline" on:click={prev} disabled={idx == 0}>
+      Previous
+    </button>
+    <span>{idx + 1} / {cmds.length}</span>
+    <button class="outline" on:click={next} disabled={idx == cmds.length - 1}>
+      Next
+    </button>
+  </div>
+
+  <p>{JSON.stringify(cmds[idx])}</p>
 {/if}
-<p>{JSON.stringify(cmds)}</p>
