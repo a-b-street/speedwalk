@@ -1,7 +1,7 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
   import { downloadGeneratedFile } from "svelte-utils";
-  import { backend, mutationCounter } from "./";
+  import { previewSidewalk, backend, mutationCounter } from "./";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
@@ -41,7 +41,10 @@
         JSON.parse($backend!.toOsmChangeJson()),
       );
       window.open(`https://www.openstreetmap.org/changeset/${id}`, "_blank");
-      clear();
+      // Clear the entire state -- since upstream OSM was just updated, make
+      // people re-import the area
+      $backend = null;
+      $previewSidewalk = null;
     } catch (err) {
       window.alert(`Upload failed: ${err}`);
     }
