@@ -54,6 +54,14 @@
     );
     $mutationCounter++;
   }
+
+  function markSeparateSidewalks() {
+    $backend!.editApplyQuickfix(
+      BigInt(pinnedWay.properties.id),
+      "OldSidewalkSeparate",
+    );
+    $mutationCounter++;
+  }
 </script>
 
 <div>
@@ -71,6 +79,9 @@
 {/if}
 {#if pinnedWay.properties.problem}
   <p>{problems[pinnedWay.properties.problem]}</p>
+  <button on:click={markSeparateSidewalks}>
+    This road already has separate sidewalks on both sides
+  </button>
 {/if}
 
 {#if pinnedWay.properties.kind == "bad_roadway"}
