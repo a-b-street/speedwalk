@@ -1,5 +1,5 @@
 import { type Writable, writable } from "svelte/store";
-import type { FeatureCollection, LineString } from "geojson";
+import type { FeatureCollection, LineString, Point } from "geojson";
 import { Speedwalk } from "backend";
 
 export interface NodeProps {
@@ -54,5 +54,6 @@ export function prettyPrintDistance(meters: number): string {
 
 export let backend: Writable<Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
-export let previewSidewalk: Writable<FeatureCollection<LineString> | null> =
-  writable(null);
+export let previewSidewalk: Writable<FeatureCollection<
+  LineString | Point
+> | null> = writable(null);

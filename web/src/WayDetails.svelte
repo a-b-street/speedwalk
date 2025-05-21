@@ -26,6 +26,7 @@
       $previewSidewalk = null;
       return;
     }
+    // TODO This can fail; handle it
     $previewSidewalk = JSON.parse(
       $backend!.previewSidewalk(
         BigInt(pinnedWay.properties.id),

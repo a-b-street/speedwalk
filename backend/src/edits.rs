@@ -12,6 +12,7 @@ pub struct Edits {
     pub user_commands: Vec<UserCmd>,
 
     // Derived consequences below
+    // TODO Or maybe ditch TagCmd and the equivalent for inserting nodes somewhere
     pub change_way_tags: HashMap<WayID, Vec<TagCmd>>,
 
     pub new_nodes: HashMap<NodeID, Node>,
@@ -42,9 +43,8 @@ impl Edits {
         WayID(-1 * (self.id_counter as i64))
     }
 
-    pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) {
+    pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) -> Result<()> {
         self.user_commands.push(cmd);
-
         match cmd {
             UserCmd::ApplyQuickfix(way, quickfix) => {
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
@@ -60,7 +60,7 @@ impl Edits {
                 }
             }
             UserCmd::MakeSidewalk(way, left_meters, right_meters) => {
-                let (left, right) = model.make_sidewalk(way, left_meters, right_meters);
+                let (left, right) = model.make_sidewalk(way, left_meters, right_meters)?;
 
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
                 cmds.push(TagCmd::Remove("sidewalk"));
@@ -75,9 +75,9 @@ impl Edits {
                     cmds.push(TagCmd::Set("sidewalk:right", "separate"));
                 }
 
-                for linestring in vec![left, right].into_iter().flatten() {
+                for new_sidewalk in vec![left, right].into_iter().flatten() {
                     let mut node_ids = Vec::new();
-                    for pt in linestring.coords() {
+                    for pt in new_sidewalk.linestring.coords() {
                         let id = self.new_node_id();
                         self.new_nodes.insert(
                             id,
@@ -98,7 +98,7 @@ impl Edits {
                         id,
                         Way {
                             node_ids,
-                            linestring,
+                            linestring: new_sidewalk.linestring,
                             tags,
                             kind: Kind::Sidewalk,
                             version: 0,
@@ -107,6 +107,7 @@ impl Edits {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn to_osc(&self, model: &Speedwalk) -> String {

@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate anyhow;
+#[macro_use]
 extern crate log;
 
 mod classify;
@@ -113,30 +115,45 @@ impl Speedwalk {
         left_meters: f64,
         right_meters: f64,
     ) -> Result<String, JsValue> {
-        let (left, right) = self.make_sidewalk(WayID(base), left_meters, right_meters);
+        let (left, right) = self
+            .make_sidewalk(WayID(base), left_meters, right_meters)
+            .map_err(err_to_js)?;
         let mut features = Vec::new();
-        for x in vec![left, right].into_iter().flatten() {
-            features.push(self.mercator.to_wgs84_gj(&x));
+        for new_sidewalk in vec![left, right].into_iter().flatten() {
+            features.push(self.mercator.to_wgs84_gj(&new_sidewalk.linestring));
+            for (_, new_node, _) in new_sidewalk.crossing_points {
+                features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));
+            }
         }
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 
     #[wasm_bindgen(js_name = editMakeSidewalk)]
-    pub fn edit_make_sidewalk(&mut self, base: i64, left_meters: f64, right_meters: f64) {
+    pub fn edit_make_sidewalk(
+        &mut self,
+        base: i64,
+        left_meters: f64,
+        right_meters: f64,
+    ) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
-        edits.apply_cmd(
-            UserCmd::MakeSidewalk(WayID(base), left_meters, right_meters),
-            self,
-        );
+        edits
+            .apply_cmd(
+                UserCmd::MakeSidewalk(WayID(base), left_meters, right_meters),
+                self,
+            )
+            .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = editApplyQuickfix)]
     pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
         let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;
         let mut edits = self.edits.take().unwrap();
-        edits.apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self);
+        edits
+            .apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self)
+            .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
         Ok(())

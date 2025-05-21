@@ -23,6 +23,8 @@
     bbox,
     constructMatchExpression,
     Popup,
+    isLine,
+    isPoint,
   } from "svelte-utils/map";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
@@ -124,11 +126,24 @@
 
     <GeoJSON data={$previewSidewalk || emptyGeojson()}>
       <LineLayer
+        filter={isLine}
         id="preview-sidewalk"
         beforeId="Road labels"
         paint={{
           "line-width": 5,
           "line-color": "purple",
+        }}
+      />
+
+      <CircleLayer
+        filter={isPoint}
+        id="preview-sidewalk-new-nodes"
+        beforeId="Road labels"
+        paint={{
+          "circle-radius": 7,
+          "circle-color": "yellow",
+          "circle-stroke-color": "black",
+          "circle-stroke-width": 1,
         }}
       />
     </GeoJSON>
