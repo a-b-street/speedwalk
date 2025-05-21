@@ -8,6 +8,7 @@
   import { previewSidewalk } from "./sidewalks/";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map } from "maplibre-gl";
+  import { bbox } from "svelte-utils/map";
   import { OverpassSelector } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
   import {
@@ -33,6 +34,7 @@
       loading = "Loading from file";
       let bytes = await fileInput.files![0].arrayBuffer();
       $backend = new Speedwalk(new Uint8Array(bytes));
+      zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
     } finally {
@@ -44,11 +46,19 @@
     try {
       let bytes = new TextEncoder().encode(e.detail.xml);
       $backend = new Speedwalk(new Uint8Array(bytes));
+      zoomFit();
     } catch (err) {
       window.alert(`Couldn't import from Overpass: ${err}`);
     } finally {
       loading = "";
     }
+  }
+
+  function zoomFit() {
+    map!.fitBounds(bbox(JSON.parse($backend!.getNodes())), {
+      animate: false,
+      padding: 10,
+    });
   }
 
   function clear() {

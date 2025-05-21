@@ -14,7 +14,6 @@
   import { SplitComponent } from "svelte-utils/two_column_layout";
   import {
     emptyGeojson,
-    bbox,
     constructMatchExpression,
     isLine,
     isPoint,
@@ -35,7 +34,6 @@
   };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
-  let first = true;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -46,18 +44,6 @@
       let findId = pinnedWay.id;
       pinnedWay = ways.features.find((f) => f.id == findId)!;
     }
-
-    if (first) {
-      first = false;
-      zoomFit();
-    }
-  }
-
-  function zoomFit() {
-    map.fitBounds(bbox(ways), {
-      animate: false,
-      padding: 10,
-    });
   }
 
   function onMapClick(e: CustomEvent<MapMouseEvent>) {
