@@ -15,6 +15,8 @@
 
   export let map: Map;
 
+  let onlyMainRoads = true;
+
   let ways: FeatureCollection<LineString, WayProps> = {
     type: "FeatureCollection",
     features: [],
@@ -23,9 +25,13 @@
     type: "FeatureCollection",
     features: [],
   };
+  let sideRoads: FeatureCollection<Point> = {
+    type: "FeatureCollection",
+    features: [],
+  };
 
-  $: updateModel($mutationCounter);
-  function updateModel(mutationCounter: number) {
+  $: updateModel($mutationCounter, onlyMainRoads);
+  function updateModel(mutationCounter: number, onlyMainRoads: boolean) {
     ways = JSON.parse($backend!.getWays());
 
     let nodes = JSON.parse($backend!.getNodes());
@@ -33,6 +39,8 @@
       (f: any) => f.properties.is_crossing,
     );
     crossings = nodes;
+
+    sideRoads = JSON.parse($backend!.getSideRoads(onlyMainRoads));
   }
 
   let kindColors = {
@@ -45,7 +53,12 @@
 </script>
 
 <SplitComponent>
-  <div slot="sidebar"></div>
+  <div slot="sidebar">
+    <label>
+      <input type="checkbox" bind:checked={onlyMainRoads} />
+      Only audit along main roads
+    </label>
+  </div>
 
   <div slot="map">
     <GeoJSON data={ways}>
@@ -95,6 +108,18 @@
           </table>
         </Popup>
       </CircleLayer>
+    </GeoJSON>
+
+    <GeoJSON data={sideRoads}>
+      <CircleLayer
+        id="side-roads"
+        beforeId="Road labels"
+        paint={{
+          "circle-radius": 20,
+          "circle-color": "cyan",
+          "circle-opacity": 0.5,
+        }}
+      />
     </GeoJSON>
 
     <Control position="top-right">

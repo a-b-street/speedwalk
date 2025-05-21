@@ -4,6 +4,7 @@ extern crate anyhow;
 extern crate log;
 
 mod classify;
+mod crossings;
 mod edits;
 mod geometry;
 mod scrape;
@@ -41,6 +42,8 @@ pub struct Node {
     pub pt: Coord,
     pub tags: Tags,
     pub version: i32,
+
+    pub way_ids: Vec<WayID>,
 }
 
 #[derive(Clone)]
@@ -53,6 +56,7 @@ pub struct Way {
     // TODO Manage derived state better
     pub kind: Kind,
     pub num_crossings: usize,
+    pub is_main_road: bool,
 }
 
 #[wasm_bindgen]

@@ -27,6 +27,8 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                     tags: tags.into(),
                     // TODO Change API to be fallible
                     version: version.expect("node missing version"),
+
+                    way_ids: Vec::new(),
                 },
             );
         }
@@ -49,15 +51,34 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
                 let mut pts = Vec::new();
                 let mut num_crossings = 0;
-                for node in &node_ids {
-                    used_nodes.insert(*node);
-                    pts.push(nodes[node].pt);
-                    if nodes[node].tags.is("highway", "crossing") {
+                for node_id in &node_ids {
+                    used_nodes.insert(*node_id);
+
+                    let node = nodes.get_mut(node_id).unwrap();
+                    node.way_ids.push(id);
+
+                    pts.push(node.pt);
+                    if node.tags.is("highway", "crossing") {
                         num_crossings += 1;
                     }
                 }
                 let linestring = LineString::new(pts);
                 let kind = Kind::classify(&tags);
+                let is_main_road = tags.is_any(
+                    "highway",
+                    vec![
+                        "motorway",
+                        "motorway_link",
+                        "trunk",
+                        "trunk_link",
+                        "primary",
+                        "primary_link",
+                        "secondary",
+                        "secondary_link",
+                        "tertiary",
+                        "tertiary_link",
+                    ],
+                );
                 ways.insert(
                     id,
                     Way {
@@ -68,6 +89,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
                         kind,
                         num_crossings,
+                        is_main_road,
                     },
                 );
             }

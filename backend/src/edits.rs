@@ -76,6 +76,8 @@ impl Edits {
                 }
 
                 for new_sidewalk in vec![left, right].into_iter().flatten() {
+                    let way_id = self.new_way_id();
+
                     let mut node_ids = Vec::new();
                     for pt in new_sidewalk.linestring.coords() {
                         let id = self.new_node_id();
@@ -85,6 +87,8 @@ impl Edits {
                                 pt: *pt,
                                 tags: Tags::empty(),
                                 version: 0,
+
+                                way_ids: vec![way_id],
                             },
                         );
                         node_ids.push(id);
@@ -93,9 +97,8 @@ impl Edits {
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");
-                    let id = self.new_way_id();
                     self.new_ways.insert(
-                        id,
+                        way_id,
                         Way {
                             node_ids,
                             linestring: new_sidewalk.linestring,
@@ -105,6 +108,7 @@ impl Edits {
                             kind: Kind::Sidewalk,
                             // TODO So far
                             num_crossings: 0,
+                            is_main_road: false,
                         },
                     );
                 }
