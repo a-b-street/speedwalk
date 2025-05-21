@@ -57,6 +57,8 @@ pub struct Way {
     pub kind: Kind,
     pub num_crossings: usize,
     pub is_main_road: bool,
+    // From the start of the line. first entry is 0, last entry is linestring length
+    pub distance_per_node: Vec<f64>,
 }
 
 #[wasm_bindgen]

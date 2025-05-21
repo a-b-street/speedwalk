@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use anyhow::Result;
+use geo::{Euclidean, Length, LineString};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -79,6 +80,8 @@ impl Edits {
                     let way_id = self.new_way_id();
 
                     let mut node_ids = Vec::new();
+                    let mut distance_per_node = Vec::new();
+                    let mut pts = Vec::new();
                     for pt in new_sidewalk.linestring.coords() {
                         let id = self.new_node_id();
                         self.new_nodes.insert(
@@ -92,6 +95,13 @@ impl Edits {
                             },
                         );
                         node_ids.push(id);
+
+                        pts.push(*pt);
+                        if pts.len() == 1 {
+                            distance_per_node.push(0.0);
+                        } else {
+                            distance_per_node.push(Euclidean.length(&LineString::new(pts.clone())));
+                        }
                     }
 
                     let mut tags = Tags::empty();
@@ -109,6 +119,7 @@ impl Edits {
                             // TODO So far
                             num_crossings: 0,
                             is_main_road: false,
+                            distance_per_node,
                         },
                     );
                 }
