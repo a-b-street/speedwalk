@@ -100,8 +100,11 @@ impl Edits {
                             node_ids,
                             linestring: new_sidewalk.linestring,
                             tags,
-                            kind: Kind::Sidewalk,
                             version: 0,
+
+                            kind: Kind::Sidewalk,
+                            // TODO So far
+                            num_crossings: 0,
                         },
                     );
                 }
@@ -240,6 +243,8 @@ impl Speedwalk {
         for (id, way) in &edits.new_ways {
             self.derived_ways.insert(*id, way.clone());
         }
+
+        // TODO Update num_crossings sometimes
     }
 }
 

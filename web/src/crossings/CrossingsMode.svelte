@@ -1,19 +1,24 @@
 <script lang="ts">
   import { backend, mutationCounter } from "../";
-  import type { NodeProps } from "../sidewalks";
+  import type { NodeProps, WayProps } from "../sidewalks";
   import { SplitComponent } from "svelte-utils/two_column_layout";
   import {
     hoverStateFilter,
     Control,
     GeoJSON,
     CircleLayer,
+    LineLayer,
   } from "svelte-maplibre";
-  import type { FeatureCollection, Point } from "geojson";
-  import { Popup } from "svelte-utils/map";
+  import type { LineString, FeatureCollection, Point } from "geojson";
+  import { constructMatchExpression, Popup } from "svelte-utils/map";
   import type { Map } from "maplibre-gl";
 
   export let map: Map;
 
+  let ways: FeatureCollection<LineString, WayProps> = {
+    type: "FeatureCollection",
+    features: [],
+  };
   let crossings: FeatureCollection<Point, NodeProps> = {
     type: "FeatureCollection",
     features: [],
@@ -21,18 +26,50 @@
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
+    ways = JSON.parse($backend!.getWays());
+
     let nodes = JSON.parse($backend!.getNodes());
     nodes.features = nodes.features.filter(
       (f: any) => f.properties.is_crossing,
     );
     crossings = nodes;
   }
+
+  let kindColors = {
+    sidewalk: "black",
+    good_roadway: "red",
+    quickfix_roadway: "red",
+    bad_roadway: "red",
+    other: "grey",
+  };
 </script>
 
 <SplitComponent>
   <div slot="sidebar"></div>
 
   <div slot="map">
+    <GeoJSON data={ways}>
+      <LineLayer
+        id="ways"
+        beforeId="Road labels"
+        manageHoverState
+        eventsIfTopMost
+        paint={{
+          "line-width": hoverStateFilter(5, 8),
+          "line-color": constructMatchExpression(
+            ["get", "kind"],
+            kindColors,
+            "cyan",
+          ),
+        }}
+      >
+        <Popup openOn="hover" let:props>
+          <h4>Way {props.id}</h4>
+          <p>{props.num_crossings} crossings</p>
+        </Popup>
+      </LineLayer>
+    </GeoJSON>
+
     <GeoJSON data={crossings}>
       <CircleLayer
         id="crossings"

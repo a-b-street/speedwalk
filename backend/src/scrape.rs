@@ -48,9 +48,13 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                 }
 
                 let mut pts = Vec::new();
+                let mut num_crossings = 0;
                 for node in &node_ids {
                     used_nodes.insert(*node);
                     pts.push(nodes[node].pt);
+                    if nodes[node].tags.is("highway", "crossing") {
+                        num_crossings += 1;
+                    }
                 }
                 let linestring = LineString::new(pts);
                 let kind = Kind::classify(&tags);
@@ -60,8 +64,10 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         node_ids,
                         linestring,
                         tags,
-                        kind,
                         version: version.expect("way missing version"),
+
+                        kind,
+                        num_crossings,
                     },
                 );
             }

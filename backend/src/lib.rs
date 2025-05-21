@@ -48,8 +48,11 @@ pub struct Way {
     pub node_ids: Vec<NodeID>,
     pub linestring: LineString,
     pub tags: Tags,
-    pub kind: Kind,
     pub version: i32,
+
+    // TODO Manage derived state better
+    pub kind: Kind,
+    pub num_crossings: usize,
 }
 
 #[wasm_bindgen]
@@ -92,6 +95,7 @@ impl Speedwalk {
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
             f.set_property("kind", way.kind.to_simple_string());
+            f.set_property("num_crossings", way.num_crossings);
             if let Kind::QuickfixRoadway(ref fix) = way.kind {
                 f.set_property("fix", serde_json::to_value(&fix).map_err(err_to_js)?);
             }
