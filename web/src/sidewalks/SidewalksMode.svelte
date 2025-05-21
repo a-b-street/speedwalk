@@ -1,13 +1,6 @@
 <script lang="ts">
-  import Edits from "./Edits.svelte";
-  import {
-    backend,
-    previewSidewalk,
-    colors,
-    mutationCounter,
-    type NodeProps,
-    type WayProps,
-  } from "./";
+  import { backend, mutationCounter } from "../";
+  import { previewSidewalk, colors, type NodeProps, type WayProps } from "./";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
     GeoJSON,
@@ -89,8 +82,6 @@
 
 <SplitComponent>
   <div slot="sidebar">
-    <Edits />
-
     {#if pinnedWay}
       <WayDetails {pinnedWay} />
     {/if}

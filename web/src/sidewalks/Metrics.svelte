@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { backend, prettyPrintDistance, sum, colors } from "./";
+  import { backend, prettyPrintDistance, sum } from "../";
+  import { colors } from "./";
 
   interface Metrics {
     total_length_meters: {

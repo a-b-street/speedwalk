@@ -1,13 +1,7 @@
 <script lang="ts">
   import type { Feature, LineString } from "geojson";
-  import {
-    type WayProps,
-    backend,
-    problems,
-    quickfixes,
-    previewSidewalk,
-    mutationCounter,
-  } from "./";
+  import { backend, mutationCounter } from "../";
+  import { type WayProps, problems, quickfixes, previewSidewalk } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
 

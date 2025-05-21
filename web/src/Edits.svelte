@@ -1,7 +1,8 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
   import { downloadGeneratedFile } from "svelte-utils";
-  import { previewSidewalk, backend, mutationCounter } from "./";
+  import { backend, mutationCounter } from "./";
+  import { previewSidewalk } from "./sidewalks/";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];

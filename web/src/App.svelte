@@ -4,7 +4,8 @@
   import { MapLibre, Control } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
-  import { backend, previewSidewalk } from "./";
+  import { backend, mode } from "./";
+  import { previewSidewalk } from "./sidewalks/";
   import "@picocss/pico/css/pico.jade.min.css";
   import type { Map } from "maplibre-gl";
   import { OverpassSelector } from "svelte-utils/overpass";
@@ -15,7 +16,9 @@
     Layout,
   } from "svelte-utils/two_column_layout";
   import init, { Speedwalk } from "backend";
-  import Main from "./Main.svelte";
+  import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
+  import CrossingsMode from "./crossings/CrossingsMode.svelte";
+  import Edits from "./Edits.svelte";
 
   let loading = "";
   let map: Map | undefined;
@@ -103,6 +106,24 @@
       />
     {/if}
 
+    {#if $backend}
+      <Edits />
+      <div>
+        <button
+          on:click={() => ($mode = "sidewalks")}
+          disabled={$mode == "sidewalks"}
+        >
+          Sidewalks
+        </button>
+        <button
+          on:click={() => ($mode = "crossings")}
+          disabled={$mode == "crossings"}
+        >
+          Crossings
+        </button>
+      </div>
+    {/if}
+
     <div bind:this={sidebarDiv} />
   </div>
 
@@ -120,7 +141,11 @@
       {#if $backend && map}
         <div bind:this={mapDiv} />
 
-        <Main {map} />
+        {#if $mode == "sidewalks"}
+          <SidewalksMode {map} />
+        {:else if $mode == "crossings"}
+          <CrossingsMode {map} />
+        {/if}
       {:else}
         <PolygonToolLayer />
       {/if}
