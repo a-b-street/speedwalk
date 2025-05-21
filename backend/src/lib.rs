@@ -73,7 +73,9 @@ impl Speedwalk {
             let mut f = self.mercator.to_wgs84_gj(&Point::from(node.pt));
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
-            f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
+            if !node.tags.0.is_empty() {
+                f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
+            }
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)

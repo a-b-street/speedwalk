@@ -4,7 +4,7 @@ import { Speedwalk } from "backend";
 
 export interface NodeProps {
   id: number;
-  tags: Record<string, string>;
+  tags?: Record<string, string>;
 }
 
 export interface WayProps {

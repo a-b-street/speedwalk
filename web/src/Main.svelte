@@ -16,13 +16,13 @@
     hoverStateFilter,
     MapEvents,
     Control,
+    Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/two_column_layout";
   import {
     emptyGeojson,
     bbox,
     constructMatchExpression,
-    Popup,
     isLine,
     isPoint,
   } from "svelte-utils/map";
@@ -76,6 +76,10 @@
       pinnedWay = ways.features.find((f) => f.id == rendered.id)!;
       break;
     }
+  }
+
+  function hasTags(features: Feature[]): boolean {
+    return features[0]?.properties?.tags;
   }
 
   $: if (!pinnedWay) {
@@ -157,17 +161,18 @@
           "circle-radius": 7,
           "circle-color": "grey",
           "circle-opacity": hoverStateFilter(0, 0.5),
-          "circle-stroke-color": "black",
+          "circle-stroke-color": ["case", ["has", "tags"], "black", "grey"],
           "circle-stroke-width": 1,
         }}
         layout={{
           visibility: showNodes ? "visible" : "none",
         }}
       >
-        <Popup openOn="hover" let:props>
+        <Popup openOn="hover" let:data canOpen={hasTags}>
+          {@const props = data?.properties ?? {}}
           <h4>Node {props.id}</h4>
           <table>
-            {#each Object.entries(JSON.parse(props.tags)) as [key, value]}
+            {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
               <tr>
                 <td>{key}</td>
                 <td>{value}</td>
