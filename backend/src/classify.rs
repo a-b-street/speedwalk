@@ -40,7 +40,14 @@ impl Kind {
 
         if tags.is_any(
             "highway",
-            vec!["cycleway", "footway", "path", "pedestrian", "platform", "steps"],
+            vec![
+                "cycleway",
+                "footway",
+                "path",
+                "pedestrian",
+                "platform",
+                "steps",
+            ],
         ) {
             return Self::Other;
         }

@@ -32,13 +32,21 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         }
         Element::Way {
             id,
-            node_ids,
+            mut node_ids,
             tags,
             version,
             ..
         } => {
             let tags: Tags = tags.into();
             if tags.has("highway") && !tags.is("area", "yes") {
+                // This sometimes happens from Overpass?
+                let num = node_ids.len();
+                node_ids.retain(|n| nodes.contains_key(n));
+                if node_ids.len() != num {
+                    warn!("{id} refers to nodes outside the imported area");
+                    return;
+                }
+
                 let mut pts = Vec::new();
                 for node in &node_ids {
                     used_nodes.insert(*node);
