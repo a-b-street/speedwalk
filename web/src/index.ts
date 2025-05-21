@@ -5,6 +5,7 @@ import { Speedwalk } from "backend";
 export interface NodeProps {
   id: number;
   tags?: Record<string, string>;
+  is_crossing: boolean;
 }
 
 export interface WayProps {

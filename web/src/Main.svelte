@@ -159,8 +159,8 @@
         manageHoverState
         paint={{
           "circle-radius": 7,
-          "circle-color": "grey",
-          "circle-opacity": hoverStateFilter(0, 0.5),
+          "circle-color": ["case", ["get", "is_crossing"], "yellow", "grey"],
+          "circle-opacity": ["case", ["boolean", ["get", "is_crossing"]], 1, 0],
           "circle-stroke-color": ["case", ["has", "tags"], "black", "grey"],
           "circle-stroke-width": 1,
         }}

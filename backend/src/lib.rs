@@ -76,6 +76,7 @@ impl Speedwalk {
             if !node.tags.0.is_empty() {
                 f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
             }
+            f.set_property("is_crossing", node.tags.is("highway", "crossing"));
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
