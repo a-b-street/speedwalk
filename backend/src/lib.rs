@@ -160,6 +160,29 @@ impl Speedwalk {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = editMakeAllSidewalks)]
+    pub fn edit_make_all_sidewalks(&mut self) -> Result<(), JsValue> {
+        let mut cmds = Vec::new();
+        for (id, way) in &self.derived_ways {
+            if way.tags.is("sidewalk", "both") {
+                cmds.push(UserCmd::MakeSidewalk(*id, 3.0, 3.0));
+            } else if way.tags.is("sidewalk", "left") {
+                cmds.push(UserCmd::MakeSidewalk(*id, 3.0, 0.0));
+            } else if way.tags.is("sidewalk", "right") {
+                cmds.push(UserCmd::MakeSidewalk(*id, 0.0, 3.0));
+            }
+        }
+
+        for cmd in cmds {
+            let mut edits = self.edits.take().unwrap();
+            // Some may fail; that's fine
+            let _ = edits.apply_cmd(cmd, self);
+            self.edits = Some(edits);
+            self.after_edit();
+        }
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = editApplyQuickfix)]
     pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
         let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;

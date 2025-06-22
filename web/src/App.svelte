@@ -154,7 +154,7 @@
         {#if $mode == "sidewalks"}
           <SidewalksMode {map} />
         {:else if $mode == "crossings"}
-          <CrossingsMode {map} />
+          <CrossingsMode />
         {/if}
       {:else}
         <PolygonToolLayer />

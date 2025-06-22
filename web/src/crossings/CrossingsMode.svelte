@@ -11,9 +11,6 @@
   } from "svelte-maplibre";
   import type { LineString, FeatureCollection, Point } from "geojson";
   import { constructMatchExpression, Popup } from "svelte-utils/map";
-  import type { Map } from "maplibre-gl";
-
-  export let map: Map;
 
   let onlyMainRoads = true;
 

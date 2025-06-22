@@ -61,6 +61,11 @@
     return features[0]?.properties?.tags;
   }
 
+  function makeAllSidewalks() {
+    $backend!.editMakeAllSidewalks();
+    $mutationCounter++;
+  }
+
   $: if (!pinnedWay) {
     $previewSidewalk = null;
   }
@@ -71,6 +76,10 @@
     {#if pinnedWay}
       <WayDetails {pinnedWay} />
     {/if}
+
+    <button class="secondary" on:click={makeAllSidewalks}>
+      Make all sidewalks
+    </button>
   </div>
 
   <div slot="map">

@@ -6,9 +6,9 @@
   export let pinnedWay: Feature<LineString, WayProps>;
 
   let makeLeft = false;
-  let distanceLeft = 1.0;
+  let distanceLeft = 3.0;
   let makeRight = false;
-  let distanceRight = 1.0;
+  let distanceRight = 3.0;
 
   function updateSidewalkPreview(
     makeLeft: boolean,
