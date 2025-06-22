@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
 use geo::{Euclidean, Length, LineString};
@@ -14,10 +14,11 @@ pub struct Edits {
 
     // Derived consequences below
     // TODO Or maybe ditch TagCmd and the equivalent for inserting nodes somewhere
-    pub change_way_tags: HashMap<WayID, Vec<TagCmd>>,
+    change_way_tags: HashMap<WayID, Vec<TagCmd>>,
+    change_way_nodes: HashMap<WayID, Vec<NodeID>>,
 
-    pub new_nodes: HashMap<NodeID, Node>,
-    pub new_ways: HashMap<WayID, Way>,
+    new_nodes: HashMap<NodeID, Node>,
+    new_ways: HashMap<WayID, Way>,
 
     id_counter: usize,
 }
@@ -63,26 +64,58 @@ impl Edits {
             UserCmd::MakeSidewalk(way, left_meters, right_meters) => {
                 let (left, right) = model.make_sidewalk(way, left_meters, right_meters)?;
 
-                let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
-                cmds.push(TagCmd::Remove("sidewalk"));
+                // Update tags on the road
+                {
+                    let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
+                    cmds.push(TagCmd::Remove("sidewalk"));
 
-                if left.is_some() && right.is_some() {
-                    cmds.push(TagCmd::Set("sidewalk:both", "separate"));
-                } else if left.is_some() {
-                    cmds.push(TagCmd::Set("sidewalk:left", "separate"));
-                    cmds.push(TagCmd::Set("sidewalk:right", "no"));
-                } else if right.is_some() {
-                    cmds.push(TagCmd::Set("sidewalk:left", "no"));
-                    cmds.push(TagCmd::Set("sidewalk:right", "separate"));
+                    if left.is_some() && right.is_some() {
+                        cmds.push(TagCmd::Set("sidewalk:both", "separate"));
+                    } else if left.is_some() {
+                        cmds.push(TagCmd::Set("sidewalk:left", "separate"));
+                        cmds.push(TagCmd::Set("sidewalk:right", "no"));
+                    } else if right.is_some() {
+                        cmds.push(TagCmd::Set("sidewalk:left", "no"));
+                        cmds.push(TagCmd::Set("sidewalk:right", "separate"));
+                    }
                 }
 
                 for new_sidewalk in vec![left, right].into_iter().flatten() {
-                    let way_id = self.new_way_id();
+                    let new_way_id = self.new_way_id();
 
+                    // First insert new crossing nodes in the existing roads
+                    for (existing_way, pt, idx) in new_sidewalk.crossing_points {
+                        let node_id = self.new_node_id();
+                        let mut tags = Tags::empty();
+                        // TODO Do this when we cross service roads or not?
+                        if !model.derived_ways[&existing_way]
+                            .tags
+                            .is("highway", "footway")
+                        {
+                            tags.insert("highway", "crossing");
+                        }
+                        self.new_nodes.insert(
+                            node_id,
+                            Node {
+                                pt,
+                                tags,
+                                version: 0,
+
+                                way_ids: vec![existing_way, new_way_id],
+                            },
+                        );
+
+                        let mut node_ids = model.derived_ways[&existing_way].node_ids.clone();
+                        node_ids.insert(idx, node_id);
+                        self.change_way_nodes.insert(existing_way, node_ids);
+                    }
+
+                    // Now make the new sidewalk way
                     let mut node_ids = Vec::new();
                     let mut distance_per_node = Vec::new();
                     let mut pts = Vec::new();
                     for pt in new_sidewalk.linestring.coords() {
+                        // TODO Use the existing crossing nodes we just made!
                         let id = self.new_node_id();
                         self.new_nodes.insert(
                             id,
@@ -91,7 +124,7 @@ impl Edits {
                                 tags: Tags::empty(),
                                 version: 0,
 
-                                way_ids: vec![way_id],
+                                way_ids: vec![new_way_id],
                             },
                         );
                         node_ids.push(id);
@@ -108,7 +141,7 @@ impl Edits {
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");
                     self.new_ways.insert(
-                        way_id,
+                        new_way_id,
                         Way {
                             node_ids,
                             linestring: new_sidewalk.linestring,
@@ -159,8 +192,8 @@ impl Edits {
         out.push("  </create>".to_string());
 
         out.push("  <modify>".to_string());
-        for id in self.change_way_tags.keys() {
-            let way = &model.derived_ways[id];
+        for id in union_keys(&self.change_way_tags, &self.change_way_nodes) {
+            let way = &model.derived_ways[&id];
 
             out.push(format!(
                 r#"    <way id="{}" version="{}">"#,
@@ -211,8 +244,8 @@ impl Edits {
             });
         }
 
-        for id in self.change_way_tags.keys() {
-            let way = &model.derived_ways[id];
+        for id in union_keys(&self.change_way_tags, &self.change_way_nodes) {
+            let way = &model.derived_ways[&id];
             out.modify.push(OsmElement {
                 r#type: "way",
                 id: id.0,
@@ -237,6 +270,14 @@ impl Speedwalk {
 
         let edits = self.edits.as_ref().unwrap();
 
+        // Order matters -- create new stuff, in case another command modifies it later
+        for (id, node) in &edits.new_nodes {
+            self.derived_nodes.insert(*id, node.clone());
+        }
+        for (id, way) in &edits.new_ways {
+            self.derived_ways.insert(*id, way.clone());
+        }
+
         for (way, cmds) in &edits.change_way_tags {
             let way = self.derived_ways.get_mut(way).unwrap();
             for cmd in cmds {
@@ -251,12 +292,11 @@ impl Speedwalk {
             }
             way.kind = Kind::classify(&way.tags);
         }
+        for (way, node_ids) in &edits.change_way_nodes {
+            let way = self.derived_ways.get_mut(way).unwrap();
+            way.node_ids = node_ids.clone();
 
-        for (id, node) in &edits.new_nodes {
-            self.derived_nodes.insert(*id, node.clone());
-        }
-        for (id, way) in &edits.new_ways {
-            self.derived_ways.insert(*id, way.clone());
+            // TODO Update Node.way_ids here?
         }
 
         // TODO Update num_crossings sometimes
@@ -286,4 +326,14 @@ struct OsmElement {
     // For ways
     #[serde(skip_serializing_if = "Vec::is_empty")]
     nodes: Vec<i64>,
+}
+
+fn union_keys<K: Clone + std::cmp::Eq + std::hash::Hash, V1, V2>(
+    x1: &HashMap<K, V1>,
+    x2: &HashMap<K, V2>,
+) -> HashSet<K> {
+    let mut keys = HashSet::new();
+    keys.extend(x1.keys().cloned());
+    keys.extend(x2.keys().cloned());
+    keys
 }

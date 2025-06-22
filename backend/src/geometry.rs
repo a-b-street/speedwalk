@@ -14,6 +14,8 @@ pub struct NewSidewalk {
 }
 
 impl Speedwalk {
+    // TODO Check crossing_points of each side don't involve the same ways. If so, the indices will
+    // be wrong
     pub fn make_sidewalk(
         &self,
         base: WayID,
@@ -23,10 +25,7 @@ impl Speedwalk {
         let mut left = None;
         let mut right = None;
 
-        for (result, offset) in vec![
-            (&mut left, -left_meters),
-            (&mut right, right_meters),
-        ] {
+        for (result, offset) in vec![(&mut left, -left_meters), (&mut right, right_meters)] {
             if offset != 0.0 {
                 if let Some(mut linestring) =
                     self.derived_ways[&base].linestring.offset_curve(offset)

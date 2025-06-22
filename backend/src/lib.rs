@@ -43,6 +43,7 @@ pub struct Node {
     pub tags: Tags,
     pub version: i32,
 
+    // TODO This is managed state, right?
     pub way_ids: Vec<WayID>,
 }
 
