@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Euclidean, Length, LineString};
+use geo::{Coord, Euclidean, Length, LineString};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -84,15 +84,20 @@ impl Edits {
                     let new_way_id = self.new_way_id();
 
                     // First insert new crossing nodes in the existing roads
+                    let mut new_crossing_nodes: HashMap<HashedPoint, NodeID> = HashMap::new();
+                    let mut num_crossings = 0;
                     for (existing_way, pt, idx) in new_sidewalk.crossing_points {
                         let node_id = self.new_node_id();
                         let mut tags = Tags::empty();
                         // TODO Do this when we cross service roads or not?
+                        // TODO This is wrong when a small new segment ends at a road (the new
+                        // sidewalk segment probably shouldn't exist at all)
                         if !model.derived_ways[&existing_way]
                             .tags
                             .is("highway", "footway")
                         {
                             tags.insert("highway", "crossing");
+                            num_crossings += 1;
                         }
                         self.new_nodes.insert(
                             node_id,
@@ -104,6 +109,7 @@ impl Edits {
                                 way_ids: vec![existing_way, new_way_id],
                             },
                         );
+                        new_crossing_nodes.insert(HashedPoint::new(pt), node_id);
 
                         let mut node_ids = model.derived_ways[&existing_way].node_ids.clone();
                         node_ids.insert(idx, node_id);
@@ -115,19 +121,22 @@ impl Edits {
                     let mut distance_per_node = Vec::new();
                     let mut pts = Vec::new();
                     for pt in new_sidewalk.linestring.coords() {
-                        // TODO Use the existing crossing nodes we just made!
-                        let id = self.new_node_id();
-                        self.new_nodes.insert(
-                            id,
-                            Node {
-                                pt: *pt,
-                                tags: Tags::empty(),
-                                version: 0,
+                        if let Some(id) = new_crossing_nodes.get(&HashedPoint::new(*pt)) {
+                            node_ids.push(*id);
+                        } else {
+                            let id = self.new_node_id();
+                            self.new_nodes.insert(
+                                id,
+                                Node {
+                                    pt: *pt,
+                                    tags: Tags::empty(),
+                                    version: 0,
 
-                                way_ids: vec![new_way_id],
-                            },
-                        );
-                        node_ids.push(id);
+                                    way_ids: vec![new_way_id],
+                                },
+                            );
+                            node_ids.push(id);
+                        }
 
                         pts.push(*pt);
                         if pts.len() == 1 {
@@ -149,8 +158,7 @@ impl Edits {
                             version: 0,
 
                             kind: Kind::Sidewalk,
-                            // TODO So far
-                            num_crossings: 0,
+                            num_crossings,
                             is_main_road: false,
                             distance_per_node,
                         },
@@ -336,4 +344,14 @@ fn union_keys<K: Clone + std::cmp::Eq + std::hash::Hash, V1, V2>(
     keys.extend(x1.keys().cloned());
     keys.extend(x2.keys().cloned());
     keys
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct HashedPoint(isize, isize);
+
+impl HashedPoint {
+    fn new(pt: Coord) -> Self {
+        // cm precision
+        Self((pt.x * 100.0) as isize, (pt.y * 100.0) as isize)
+    }
 }
