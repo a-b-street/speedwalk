@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
 use geo::{Coord, Euclidean, Length, LineString};
+use itertools::{Itertools, Position};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -120,8 +121,12 @@ impl Edits {
                     let mut node_ids = Vec::new();
                     let mut distance_per_node = Vec::new();
                     let mut pts = Vec::new();
-                    for pt in new_sidewalk.linestring.coords() {
-                        if let Some(id) = new_crossing_nodes.get(&HashedPoint::new(*pt)) {
+                    for (pos, pt) in new_sidewalk.linestring.coords().with_position() {
+                        if pos == Position::First && new_sidewalk.connect_start_node.is_some() {
+                            node_ids.push(new_sidewalk.connect_start_node.unwrap());
+                        } else if pos == Position::Last && new_sidewalk.connect_end_node.is_some() {
+                            node_ids.push(new_sidewalk.connect_end_node.unwrap());
+                        } else if let Some(id) = new_crossing_nodes.get(&HashedPoint::new(*pt)) {
                             node_ids.push(*id);
                         } else {
                             let id = self.new_node_id();
