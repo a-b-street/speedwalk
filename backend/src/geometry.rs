@@ -1,9 +1,9 @@
 use anyhow::Result;
 use geo::line_intersection::{line_intersection, LineIntersection};
-use geo::{Coord, LineString, Simplify};
+use geo::{Coord, Euclidean, Length, LineLocatePoint, LineString, Point, Simplify};
 use osm_reader::{NodeID, WayID};
 use rstar::{primitives::GeomWithData, RTree};
-use utils::OffsetCurve;
+use utils::{LineSplit, OffsetCurve};
 
 use crate::{Kind, Speedwalk};
 
@@ -19,12 +19,13 @@ pub struct NewSidewalk {
 impl Speedwalk {
     // TODO Check crossing_points of each side don't involve the same ways. If so, the indices will
     // be wrong
-    pub fn make_sidewalk(
+    pub fn make_sidewalks(
         &self,
         base: WayID,
         left_meters: f64,
         right_meters: f64,
-    ) -> Result<(Option<NewSidewalk>, Option<NewSidewalk>)> {
+        trim_back_from_crossings: Option<f64>,
+    ) -> Result<Vec<NewSidewalk>> {
         // TODO Maintain this all the time
         let closest_sidewalk_endpoints = RTree::bulk_load(
             self.derived_ways
@@ -44,53 +45,75 @@ impl Speedwalk {
                 .collect(),
         );
 
-        let mut left = None;
-        let mut right = None;
+        let mut lines_with_crossings = Vec::new();
 
-        for (result, offset) in vec![(&mut left, -left_meters), (&mut right, right_meters)] {
-            if offset != 0.0 {
-                if let Some(mut linestring) =
-                    self.derived_ways[&base].linestring.offset_curve(offset)
-                {
-                    // The original way might have excessive detail
-                    linestring = linestring.simplify(&1.0);
-                    let crossing_points = self.make_crossing_points(&mut linestring)?;
-
-                    // Connect the start or end point to another sidewalk?
-                    let mut connect_start_node = None;
-                    if let Some((obj, dist)) = closest_sidewalk_endpoints
-                        .nearest_neighbor_iter_with_distance_2(&linestring.0[0])
-                        .next()
-                    {
-                        if dist <= 1.0 {
-                            connect_start_node = Some(obj.data);
-                            linestring.0[0] = *obj.geom();
-                        }
-                    }
-
-                    let mut connect_end_node = None;
-                    if let Some((obj, dist)) = closest_sidewalk_endpoints
-                        .nearest_neighbor_iter_with_distance_2(linestring.0.last().unwrap())
-                        .next()
-                    {
-                        if dist <= 1.0 {
-                            connect_end_node = Some(obj.data);
-                            linestring.0.pop();
-                            linestring.0.push(*obj.geom());
-                        }
-                    }
-
-                    *result = Some(NewSidewalk {
-                        crossing_points,
-                        linestring,
-                        connect_start_node,
-                        connect_end_node,
-                    });
-                }
+        for offset in vec![-left_meters, right_meters] {
+            if offset == 0.0 {
+                continue;
             }
+            let Some(mut linestring) = self.derived_ways[&base].linestring.offset_curve(offset)
+            else {
+                continue;
+            };
+
+            // The original way might have excessive detail
+            linestring = linestring.simplify(&1.0);
+
+            // TODO If we're trimming back, we don't need to modify the linestring, but I guess it
+            // doesn't hurt
+            let crossing_points = self.make_crossing_points(&mut linestring)?;
+
+            lines_with_crossings.push((linestring, crossing_points));
         }
 
-        Ok((left, right))
+        if let Some(trim_meters) = trim_back_from_crossings {
+            let mut split = Vec::new();
+            for (linestring, crossing_points) in lines_with_crossings.drain(..) {
+                split.extend(split_at_crossings(
+                    self,
+                    linestring,
+                    crossing_points,
+                    trim_meters,
+                )?);
+            }
+            lines_with_crossings = split;
+        }
+
+        let mut results = Vec::new();
+        for (mut linestring, crossing_points) in lines_with_crossings {
+            // Connect the start or end point to another sidewalk?
+            let mut connect_start_node = None;
+            if let Some((obj, dist)) = closest_sidewalk_endpoints
+                .nearest_neighbor_iter_with_distance_2(&linestring.0[0])
+                .next()
+            {
+                if dist <= 1.0 {
+                    connect_start_node = Some(obj.data);
+                    linestring.0[0] = *obj.geom();
+                }
+            }
+
+            let mut connect_end_node = None;
+            if let Some((obj, dist)) = closest_sidewalk_endpoints
+                .nearest_neighbor_iter_with_distance_2(linestring.0.last().unwrap())
+                .next()
+            {
+                if dist <= 1.0 {
+                    connect_end_node = Some(obj.data);
+                    linestring.0.pop();
+                    linestring.0.push(*obj.geom());
+                }
+            }
+
+            results.push(NewSidewalk {
+                crossing_points,
+                linestring,
+                connect_start_node,
+                connect_end_node,
+            });
+        }
+
+        Ok(results)
     }
 
     fn make_crossing_points(
@@ -137,4 +160,49 @@ fn find_single_intersection(
         bail!("New sidewalk hits an existing way multiple times, not handled yet");
     }
     Ok(hits.pop())
+}
+
+fn split_at_crossings(
+    model: &Speedwalk,
+    input: LineString,
+    input_crossing_points: Vec<(WayID, Coord, usize)>,
+    trim_meters: f64,
+) -> Result<Vec<(LineString, Vec<(WayID, Coord, usize)>)>> {
+    // Split before and after every crossing
+    let input_length = Euclidean.length(&input);
+    let mut fractions = vec![0.0, 1.0];
+    for (way, pt, _) in input_crossing_points {
+        // Don't split when we cross other footways
+        if model.derived_ways[&way].tags.is("highway", "footway") {
+            continue;
+        }
+
+        if let Some(fraction) = input.line_locate_point(&Point::from(pt)) {
+            let base_distance = input_length * fraction;
+            fractions.push((base_distance - trim_meters) / input_length);
+            fractions.push((base_distance + trim_meters) / input_length);
+        }
+    }
+
+    let mut all_split_lines = Vec::new();
+    for ls in input.line_split_many(&fractions).unwrap_or_else(Vec::new) {
+        all_split_lines.extend(ls);
+    }
+
+    // Every other line is a crossing way; drop it
+    let mut sidewalk_lines = Vec::new();
+    for (idx, line) in all_split_lines.into_iter().enumerate() {
+        if idx % 2 == 0 {
+            sidewalk_lines.push(line);
+        }
+    }
+
+    // Then just recalculate crossing points for every split line, rather than try to maintain
+    // anything
+    let mut output = Vec::new();
+    for mut linestring in sidewalk_lines {
+        let crossing_points = model.make_crossing_points(&mut linestring)?;
+        output.push((linestring, crossing_points));
+    }
+    Ok(output)
 }

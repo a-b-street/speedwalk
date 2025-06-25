@@ -129,11 +129,18 @@ impl Speedwalk {
         left_meters: f64,
         right_meters: f64,
     ) -> Result<String, JsValue> {
-        let (left, right) = self
-            .make_sidewalk(WayID(base), left_meters, right_meters)
+        let trim_back_from_crossings = Some(3.0);
+        let sidewalks = self
+            .make_sidewalks(
+                WayID(base),
+                left_meters,
+                right_meters,
+                trim_back_from_crossings,
+            )
             .map_err(err_to_js)?;
+
         let mut features = Vec::new();
-        for new_sidewalk in vec![left, right].into_iter().flatten() {
+        for new_sidewalk in sidewalks {
             features.push(self.mercator.to_wgs84_gj(&new_sidewalk.linestring));
             for (_, new_node, _) in new_sidewalk.crossing_points {
                 features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));

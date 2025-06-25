@@ -63,25 +63,33 @@ impl Edits {
                 }
             }
             UserCmd::MakeSidewalk(way, left_meters, right_meters) => {
-                let (left, right) = model.make_sidewalk(way, left_meters, right_meters)?;
+                let trim_back_from_crossings = Some(3.0);
+                let sidewalks = model.make_sidewalks(
+                    way,
+                    left_meters,
+                    right_meters,
+                    trim_back_from_crossings,
+                )?;
 
                 // Update tags on the road
                 {
                     let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
                     cmds.push(TagCmd::Remove("sidewalk"));
 
-                    if left.is_some() && right.is_some() {
+                    // TODO What if we failed to make a left/right sidewalk on just part of it?
+                    // Need to split this way
+                    if left_meters > 0. && right_meters > 0. {
                         cmds.push(TagCmd::Set("sidewalk:both", "separate"));
-                    } else if left.is_some() {
+                    } else if left_meters > 0. {
                         cmds.push(TagCmd::Set("sidewalk:left", "separate"));
                         cmds.push(TagCmd::Set("sidewalk:right", "no"));
-                    } else if right.is_some() {
+                    } else if right_meters > 0. {
                         cmds.push(TagCmd::Set("sidewalk:left", "no"));
                         cmds.push(TagCmd::Set("sidewalk:right", "separate"));
                     }
                 }
 
-                for new_sidewalk in vec![left, right].into_iter().flatten() {
+                for new_sidewalk in sidewalks {
                     let new_way_id = self.new_way_id();
 
                     // First insert new crossing nodes in the existing roads
