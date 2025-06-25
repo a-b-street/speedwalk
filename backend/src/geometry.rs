@@ -179,14 +179,34 @@ fn split_at_crossings(
 
         if let Some(fraction) = input.line_locate_point(&Point::from(pt)) {
             let base_distance = input_length * fraction;
-            fractions.push((base_distance - trim_meters) / input_length);
-            fractions.push((base_distance + trim_meters) / input_length);
+
+            let split1 = (base_distance - trim_meters) / input_length;
+            let split2 = (base_distance + trim_meters) / input_length;
+
+            if base_distance < trim_meters {
+                // Override the first split
+                fractions[0] = split2;
+            } else if base_distance > input_length - trim_meters {
+                // Override the last split
+                fractions[1] = split1;
+            } else {
+                fractions.push(split1);
+                fractions.push(split2);
+            }
         }
     }
+    fractions.sort_by_key(|f| (*f * 10e6) as usize);
 
     let mut all_split_lines = Vec::new();
     for ls in input.line_split_many(&fractions).unwrap_or_else(Vec::new) {
         all_split_lines.extend(ls);
+    }
+    // LineSplit forces 0 and 1; remove if needed
+    if fractions[0] != 0.0 {
+        all_split_lines.remove(0);
+    }
+    if *fractions.last().unwrap() != 1.0 {
+        all_split_lines.pop();
     }
 
     // Every other line is a crossing way; drop it
