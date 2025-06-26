@@ -86,7 +86,9 @@ impl Kind {
             // No sidewalks implied
             return Self::GoodRoadway;
         }
-        if tags.is("highway", "service") && tags.is("service", "driveway") {
+        if tags.is("highway", "service")
+            && tags.is_any("service", vec!["alley", "driveway", "parking_aisle"])
+        {
             return Self::GoodRoadway;
         }
 
