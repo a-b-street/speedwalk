@@ -22,6 +22,7 @@
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
+  import ExtraContext from "./ExtraContext.svelte";
 
   export let map: Map;
 
@@ -189,6 +190,8 @@
         />
       </GeoJSON>
     </GeoJSON>
+
+    <ExtraContext />
 
     <Control position="top-right">
       <div style:background="white" style:width="200px" style:padding="8px">
