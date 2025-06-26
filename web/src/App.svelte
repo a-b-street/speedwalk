@@ -20,6 +20,7 @@
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import CrossingsMode from "./crossings/CrossingsMode.svelte";
   import Edits from "./Edits.svelte";
+  import Basemaps from "./Basemaps.svelte";
 
   let loading = "";
   let map: Map | undefined;
@@ -66,15 +67,8 @@
     $previewSidewalk = null;
   }
 
-  let basemap: "osm" | "satellite" = "osm";
-  let basemaps = {
-    osm: "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo",
-    satellite:
-      "https://api.maptiler.com/maps/hybrid/style.json?key=MZEJTanw3WpxRvt7qDfo",
-  };
-  function swapBasemap() {
-    basemap = basemap == "osm" ? "satellite" : "osm";
-  }
+  let basemap =
+    "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
 
   let sidebarDiv: HTMLDivElement;
   let mapDiv: HTMLDivElement;
@@ -139,7 +133,7 @@
 
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
-      style={basemaps[basemap]}
+      style={basemap}
       standardControls
       hash
       bind:map
@@ -161,10 +155,7 @@
       {/if}
 
       <Control position="bottom-left">
-        <button type="button" class="outline" on:click={swapBasemap}>
-          <i class="fa-solid fa-layer-group"></i>
-          Basemap
-        </button>
+        <Basemaps />
       </Control>
     </MapLibre>
   </div>
