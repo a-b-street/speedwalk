@@ -50,12 +50,13 @@
     $mutationCounter++;
   }
 
-  function markSeparateSidewalks() {
-    $backend!.editApplyQuickfix(
-      BigInt(pinnedWay.properties.id),
-      "OldSidewalkSeparate",
-    );
+  function doSpecificQuickfix(fix: string) {
+    $backend!.editApplyQuickfix(BigInt(pinnedWay.properties.id), fix);
     $mutationCounter++;
+  }
+
+  function capitalize(word: string) {
+    return word.charAt(0).toUpperCase() + word.slice(1);
   }
 </script>
 
@@ -74,9 +75,25 @@
 {/if}
 {#if pinnedWay.properties.problem}
   <p>{problems[pinnedWay.properties.problem]}</p>
-  <button on:click={markSeparateSidewalks}>
+  <button on:click={() => doSpecificQuickfix("OldSidewalkSeparate")}>
     This road already has separate sidewalks on both sides
   </button>
+{/if}
+
+{#if pinnedWay.properties.kind == "bad_roadway"}
+  <div style:background="grey" style:padding="4px">
+    <h3>Set old-style sidewalk tags</h3>
+    <div style="display: flex; justify-content: space-between">
+      {#each ["both", "left", "right", "no"] as value}
+        <button
+          on:click={() =>
+            doSpecificQuickfix(`SetOldSidewalk${capitalize(value)}`)}
+        >
+          {value}
+        </button>
+      {/each}
+    </div>
+  </div>
 {/if}
 
 {#if pinnedWay.properties.kind == "bad_roadway" || pinnedWay.properties.kind == "old_style_roadway"}

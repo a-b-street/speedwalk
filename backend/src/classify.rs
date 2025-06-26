@@ -20,6 +20,11 @@ pub enum Quickfix {
     OldSidewalkSeparate,
     OldSidewalkNo,
     OldSidewalkNone,
+
+    SetOldSidewalkBoth,
+    SetOldSidewalkLeft,
+    SetOldSidewalkRight,
+    SetOldSidewalkNo,
 }
 
 #[derive(Serialize, Clone, Debug, PartialEq)]

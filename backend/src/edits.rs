@@ -60,6 +60,18 @@ impl Edits {
                         cmds.push(TagCmd::Remove("sidewalk"));
                         cmds.push(TagCmd::Set("sidewalk:both", "no"));
                     }
+                    Quickfix::SetOldSidewalkBoth => {
+                        cmds.push(TagCmd::Set("sidewalk", "both"));
+                    }
+                    Quickfix::SetOldSidewalkLeft => {
+                        cmds.push(TagCmd::Set("sidewalk", "left"));
+                    }
+                    Quickfix::SetOldSidewalkRight => {
+                        cmds.push(TagCmd::Set("sidewalk", "right"));
+                    }
+                    Quickfix::SetOldSidewalkNo => {
+                        cmds.push(TagCmd::Set("sidewalk", "no"));
+                    }
                 }
             }
             UserCmd::MakeSidewalk(way, left_meters, right_meters) => {
