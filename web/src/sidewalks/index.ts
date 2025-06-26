@@ -14,6 +14,7 @@ export interface WayProps {
     | "sidewalk"
     | "good_roadway"
     | "quickfix_roadway"
+    | "old_style_roadway"
     | "bad_roadway"
     | "other";
   fix?: keyof typeof quickfixes;
@@ -25,6 +26,7 @@ export let colors = {
   sidewalk: "black",
   good_roadway: "green",
   quickfix_roadway: "pink",
+  old_style_roadway: "purple",
   bad_roadway: "red",
   other: "grey",
 };

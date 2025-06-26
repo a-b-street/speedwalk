@@ -97,6 +97,7 @@ impl Kind {
             Kind::Sidewalk => "sidewalk",
             Kind::GoodRoadway => "good_roadway",
             Kind::QuickfixRoadway(_) => "quickfix_roadway",
+            Kind::BadRoadway(Problem::OldStyleSidewalk) => "old_style_roadway",
             Kind::BadRoadway(_) => "bad_roadway",
             Kind::Other => "other",
         }

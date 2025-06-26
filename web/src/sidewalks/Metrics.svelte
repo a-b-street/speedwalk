@@ -7,6 +7,7 @@
       sidewalk: number;
       good_roadway: number;
       quickfix_roadway: number;
+      old_style_roadway: number;
       bad_roadway: number;
       other: number;
     };

@@ -79,7 +79,7 @@
   </button>
 {/if}
 
-{#if pinnedWay.properties.kind == "bad_roadway"}
+{#if pinnedWay.properties.kind == "bad_roadway" || pinnedWay.properties.kind == "old_style_roadway"}
   <div style:background="grey" style:padding="4px">
     <h3>Create a sidewalk</h3>
 

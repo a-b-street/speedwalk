@@ -45,6 +45,7 @@
     good_roadway: "red",
     quickfix_roadway: "red",
     bad_roadway: "red",
+    old_style_roadway: "purple",
     other: "grey",
   };
 </script>
