@@ -7,6 +7,7 @@
     CircleLayer,
     LineLayer,
     hoverStateFilter,
+    SymbolLayer,
     MapEvents,
     Control,
     Popup,
@@ -69,6 +70,10 @@
   $: if (!pinnedWay) {
     $previewSidewalk = null;
   }
+
+  $: pinnedWaySides = pinnedWay
+    ? JSON.parse($backend!.getSideLocations(BigInt(pinnedWay.properties.id)))
+    : emptyGeojson();
 </script>
 
 <SplitComponent>
@@ -167,6 +172,22 @@
           </table>
         </Popup>
       </CircleLayer>
+
+      <GeoJSON data={pinnedWaySides}>
+        <SymbolLayer
+          id="pinned-sides"
+          paint={{
+            "text-color": "black",
+            "text-halo-color": "cyan",
+            "text-halo-width": 4,
+          }}
+          layout={{
+            "text-field": ["get", "side"],
+            "text-size": 16,
+            "symbol-placement": "line",
+          }}
+        />
+      </GeoJSON>
     </GeoJSON>
 
     <Control position="top-right">

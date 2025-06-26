@@ -17,7 +17,7 @@ use geo::{Coord, Euclidean, Length, LineString, Point};
 use geojson::GeoJson;
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
-use utils::{Mercator, Tags};
+use utils::{Mercator, OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
 use crate::classify::{Kind, Quickfix};
@@ -146,6 +146,25 @@ impl Speedwalk {
                 features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));
             }
         }
+        Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
+    }
+
+    #[wasm_bindgen(js_name = getSideLocations)]
+    pub fn get_side_locations(&self, id: i64) -> Result<String, JsValue> {
+        let linestring = &self.derived_ways[&WayID(id)].linestring;
+        let mut features = Vec::new();
+
+        if let Some(ls) = linestring.offset_curve(20.0) {
+            let mut f = self.mercator.to_wgs84_gj(&ls);
+            f.set_property("side", "right");
+            features.push(f);
+        }
+        if let Some(ls) = linestring.offset_curve(-20.0) {
+            let mut f = self.mercator.to_wgs84_gj(&ls);
+            f.set_property("side", "left");
+            features.push(f);
+        }
+
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 

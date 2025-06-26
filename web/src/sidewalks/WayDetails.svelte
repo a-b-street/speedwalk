@@ -20,14 +20,17 @@
       $previewSidewalk = null;
       return;
     }
-    // TODO This can fail; handle it
-    $previewSidewalk = JSON.parse(
-      $backend!.previewSidewalk(
-        BigInt(pinnedWay.properties.id),
-        makeLeft ? distanceLeft : 0,
-        makeRight ? distanceRight : 0,
-      ),
-    );
+    try {
+      $previewSidewalk = JSON.parse(
+        $backend!.previewSidewalk(
+          BigInt(pinnedWay.properties.id),
+          makeLeft ? distanceLeft : 0,
+          makeRight ? distanceRight : 0,
+        ),
+      );
+    } catch (err) {
+      window.alert(err);
+    }
   }
   $: updateSidewalkPreview(makeLeft, distanceLeft, makeRight, distanceRight);
 
