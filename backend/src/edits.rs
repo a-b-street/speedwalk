@@ -28,6 +28,7 @@ pub struct Edits {
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
     MakeSidewalk(WayID, f64, f64, Option<f64>),
+    ConnectCrossing(NodeID),
 }
 
 pub enum TagCmd {
@@ -191,6 +192,62 @@ impl Edits {
                         },
                     );
                 }
+            }
+            UserCmd::ConnectCrossing(crossing_node) => {
+                let (new_linestring, sidewalk1, sidewalk2) =
+                    model.connect_crossing(crossing_node)?;
+
+                let new_way_id = self.new_way_id();
+
+                // Make new nodes for the endpoints
+                let new_node1 = self.new_node_id();
+                self.new_nodes.insert(
+                    new_node1,
+                    Node {
+                        pt: new_linestring.0[0],
+                        tags: Tags::empty(),
+                        version: 0,
+
+                        way_ids: vec![sidewalk1, new_way_id],
+                        modified: true,
+                    },
+                );
+
+                let new_node2 = self.new_node_id();
+                self.new_nodes.insert(
+                    new_node2,
+                    Node {
+                        pt: *new_linestring.0.last().unwrap(),
+                        tags: Tags::empty(),
+                        version: 0,
+
+                        way_ids: vec![sidewalk2, new_way_id],
+                        modified: true,
+                    },
+                );
+
+                // TODO Split sidewalk1 and sidewalk2 by these new nodes
+
+                // Make the new way
+                let mut tags = Tags::empty();
+                tags.insert("highway", "footway");
+                tags.insert("footway", "crossing");
+                self.new_ways.insert(
+                    new_way_id,
+                    Way {
+                        node_ids: vec![new_node1, crossing_node, new_node2],
+                        linestring: new_linestring,
+                        tags,
+                        version: 0,
+
+                        kind: Kind::Other,
+                        num_crossings: 0,
+                        is_main_road: false,
+                        // TODO We don't need this, right?
+                        distance_per_node: Vec::new(),
+                        modified: true,
+                    },
+                );
             }
         }
         Ok(())

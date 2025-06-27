@@ -78,6 +78,11 @@
     $mutationCounter++;
   }
 
+  function connectAllCrossings() {
+    $backend!.editConnectAllCrossings();
+    $mutationCounter++;
+  }
+
   $: if (!pinnedWay) {
     $previewSidewalk = null;
   }
@@ -119,6 +124,10 @@
 
       <button class="secondary" on:click={makeAllSidewalks}>
         Make all sidewalks
+      </button>
+
+      <button class="secondary" on:click={connectAllCrossings}>
+        Connect all crossings over severances
       </button>
     </details>
   </div>

@@ -206,7 +206,7 @@ impl Speedwalk {
     ) -> Result<(), JsValue> {
         let mut cmds = Vec::new();
         for (id, way) in &self.derived_ways {
-            if only_severances && way.tags.is("highway", "residential") {
+            if only_severances && !way.is_severance() {
                 continue;
             }
 
@@ -239,6 +239,23 @@ impl Speedwalk {
                     trim_back_from_crossings,
                 ));
             }
+        }
+
+        for cmd in cmds {
+            let mut edits = self.edits.take().unwrap();
+            // Some may fail; that's fine
+            let _ = edits.apply_cmd(cmd, self);
+            self.edits = Some(edits);
+            self.after_edit();
+        }
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editConnectAllCrossings)]
+    pub fn edit_connect_all_crossings(&mut self) -> Result<(), JsValue> {
+        let mut cmds = Vec::new();
+        for node in self.get_all_crossings_on_severances() {
+            cmds.push(UserCmd::ConnectCrossing(node));
         }
 
         for cmd in cmds {
@@ -317,5 +334,12 @@ impl Node {
         self.tags.is("highway", "crossing")
             || (self.tags.is("highway", "traffic_signals")
                 && self.tags.is("crossing", "traffic_signals"))
+    }
+}
+
+impl Way {
+    pub fn is_severance(&self) -> bool {
+        // TODO Improve
+        !self.tags.is("highway", "residential")
     }
 }
