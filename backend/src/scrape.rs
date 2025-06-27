@@ -29,6 +29,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                     version: version.expect("node missing version"),
 
                     way_ids: Vec::new(),
+                    modified: false,
                 },
             );
         }

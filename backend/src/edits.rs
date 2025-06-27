@@ -127,6 +127,7 @@ impl Edits {
                                 version: 0,
 
                                 way_ids: vec![existing_way, new_way_id],
+                                modified: true,
                             },
                         );
                         new_crossing_nodes.insert(HashedPoint::new(pt), node_id);
@@ -157,6 +158,7 @@ impl Edits {
                                     version: 0,
 
                                     way_ids: vec![new_way_id],
+                                    modified: true,
                                 },
                             );
                             node_ids.push(id);
@@ -330,6 +332,8 @@ impl Speedwalk {
             let way = self.derived_ways.get_mut(way).unwrap();
             way.node_ids = node_ids.clone();
             way.modified = true;
+
+            // Don't mark the way's nodes as modified
 
             // TODO Update Node.way_ids here?
         }

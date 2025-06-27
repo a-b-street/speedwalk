@@ -39,7 +39,7 @@
   let showExtraContext = false;
   let fadeUnmodified = false;
 
-  let trimBackFromCrossings = 3.0;
+  let trimBackFromCrossings = 0.0;
   let assumeBothForMissing = false;
   let onlySeverances = false;
 
@@ -151,7 +151,9 @@
             colors,
             "cyan",
           ),
-          "line-opacity": fadeUnmodified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
+          "line-opacity": fadeUnmodified
+            ? ["case", ["get", "modified"], 1.0, 0.5]
+            : 1.0,
         }}
       />
     </GeoJSON>
@@ -188,7 +190,12 @@
         paint={{
           "circle-radius": 7,
           "circle-color": ["case", ["get", "is_crossing"], "yellow", "grey"],
-          "circle-opacity": ["case", ["boolean", ["get", "is_crossing"]], 1, 0],
+          "circle-opacity": [
+            "case",
+            ["boolean", ["get", "is_crossing"]],
+            fadeUnmodified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
+            0,
+          ],
           "circle-stroke-color": ["case", ["has", "tags"], "black", "grey"],
           "circle-stroke-width": 1,
         }}

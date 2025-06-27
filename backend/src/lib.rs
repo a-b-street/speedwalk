@@ -45,6 +45,7 @@ pub struct Node {
 
     // TODO This is managed state, right?
     pub way_ids: Vec<WayID>,
+    pub modified: bool,
 }
 
 #[derive(Clone)]
@@ -88,6 +89,7 @@ impl Speedwalk {
                 f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
             }
             f.set_property("is_crossing", node.tags.is("highway", "crossing"));
+            f.set_property("modified", node.modified);
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
