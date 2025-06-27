@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { StyleSpecification } from "maplibre-gl";
   import booleanIntersects from "@turf/boolean-intersects";
   import { backend } from "./";
   import { onMount } from "svelte";
@@ -6,7 +7,9 @@
   import type { FeatureCollection, Polygon, MultiPolygon } from "geojson";
   import { Speedwalk } from "backend";
 
+  export let style: StyleSpecification | string;
   let expandPanel = false;
+  let currentBasemap = "";
 
   interface Props {
     name: string;
@@ -41,6 +44,36 @@
     }
     return result;
   }
+
+  $: updateStyle(currentBasemap);
+  function updateStyle(currentBasemap: string) {
+    if (currentBasemap == "") {
+      style =
+        "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
+      return;
+    }
+
+    let props = choices.find((props) => props.name == currentBasemap)!;
+
+    style = {
+      version: 8,
+      sources: {
+        "raster-tiles": {
+          type: "raster",
+          tiles: [props.url],
+          tileSize: 256,
+          attribution: props.attribution?.text || "",
+        },
+      },
+      layers: [
+        {
+          id: "raster-basemap",
+          type: "raster",
+          source: "raster-tiles",
+        },
+      ],
+    };
+  }
 </script>
 
 <div style="display: flex; background: white">
@@ -53,9 +86,10 @@
   </button>
 
   {#if expandPanel}
-    <select>
+    <select bind:value={currentBasemap}>
+      <option value="">Maptiler OSM</option>
       {#each choices as props}
-        <option>{props.name}</option>
+        <option value={props.name}>{props.name}</option>
       {/each}
     </select>
   {/if}

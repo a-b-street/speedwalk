@@ -7,7 +7,7 @@
   import { backend, mode } from "./";
   import { previewSidewalk } from "./sidewalks/";
   import "@picocss/pico/css/pico.jade.min.css";
-  import type { Map } from "maplibre-gl";
+  import type { Map, StyleSpecification } from "maplibre-gl";
   import { bbox } from "svelte-utils/map";
   import { OverpassSelector } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
@@ -24,6 +24,8 @@
 
   let loading = "";
   let map: Map | undefined;
+  let style: StyleSpecification | string =
+    "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
 
   onMount(async () => {
     await init();
@@ -66,9 +68,6 @@
     $backend = null;
     $previewSidewalk = null;
   }
-
-  let basemap =
-    "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
 
   let sidebarDiv: HTMLDivElement;
   let mapDiv: HTMLDivElement;
@@ -133,7 +132,7 @@
 
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
-      style={basemap}
+      {style}
       standardControls
       hash
       bind:map
@@ -155,7 +154,7 @@
       {/if}
 
       <Control position="bottom-left">
-        <Basemaps />
+        <Basemaps bind:style />
       </Control>
     </MapLibre>
   </div>
