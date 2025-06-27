@@ -207,7 +207,7 @@ impl Edits {
                 id.0, node.version, pt.x, pt.y
             ));
             for (k, v) in &node.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
             }
             out.push("    </node>".to_string());
         }
@@ -220,7 +220,7 @@ impl Edits {
                 out.push(format!(r#"      <nd ref="{}" />"#, node.0));
             }
             for (k, v) in &way.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
             }
             out.push("    </way>".to_string());
         }
@@ -238,7 +238,7 @@ impl Edits {
                 out.push(format!(r#"      <nd ref="{}" />"#, node.0));
             }
             for (k, v) in &way.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{v}" />"#));
+                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
             }
             out.push("    </way>".to_string());
         }
@@ -385,4 +385,8 @@ impl HashedPoint {
         // cm precision
         Self((pt.x * 100.0) as isize, (pt.y * 100.0) as isize)
     }
+}
+
+fn escape(v: &str) -> String {
+    v.replace("\"", "&quot;")
 }
