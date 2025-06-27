@@ -39,6 +39,8 @@
   let showExtraContext = false;
 
   let trimBackFromCrossings = 3.0;
+  let assumeBothForMissing = false;
+  let onlySeverances = false;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -69,6 +71,8 @@
   function makeAllSidewalks() {
     $backend!.editMakeAllSidewalks(
       trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
+      assumeBothForMissing,
+      onlySeverances,
     );
     $mutationCounter++;
   }
@@ -99,9 +103,23 @@
       />
     </label>
 
-    <button class="secondary" on:click={makeAllSidewalks}>
-      Make all sidewalks
-    </button>
+    <details>
+      <summary>Make all sidewalks</summary>
+
+      <label>
+        <input type="checkbox" bind:checked={assumeBothForMissing} />
+        When sidewalk tag missing, assume both?
+      </label>
+
+      <label>
+        <input type="checkbox" bind:checked={onlySeverances} />
+        Only generate along severances
+      </label>
+
+      <button class="secondary" on:click={makeAllSidewalks}>
+        Make all sidewalks
+      </button>
+    </details>
   </div>
 
   <div slot="map">

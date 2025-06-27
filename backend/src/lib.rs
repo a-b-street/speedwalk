@@ -197,9 +197,15 @@ impl Speedwalk {
     pub fn edit_make_all_sidewalks(
         &mut self,
         trim_back_from_crossings: Option<f64>,
+        assume_both_for_missing: bool,
+        only_severances: bool,
     ) -> Result<(), JsValue> {
         let mut cmds = Vec::new();
         for (id, way) in &self.derived_ways {
+            if only_severances && way.tags.is("highway", "residential") {
+                continue;
+            }
+
             if way.tags.is("sidewalk", "both") {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
@@ -218,6 +224,13 @@ impl Speedwalk {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
                     0.0,
+                    3.0,
+                    trim_back_from_crossings,
+                ));
+            } else if assume_both_for_missing && !way.tags.is_any("sidewalk", vec!["no", "none"]) {
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    3.0,
                     3.0,
                     trim_back_from_crossings,
                 ));
