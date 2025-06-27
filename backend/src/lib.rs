@@ -128,8 +128,8 @@ impl Speedwalk {
         base: i64,
         left_meters: f64,
         right_meters: f64,
+        trim_back_from_crossings: Option<f64>,
     ) -> Result<String, JsValue> {
-        let trim_back_from_crossings = Some(3.0);
         let sidewalks = self
             .make_sidewalks(
                 WayID(base),
@@ -174,11 +174,17 @@ impl Speedwalk {
         base: i64,
         left_meters: f64,
         right_meters: f64,
+        trim_back_from_crossings: Option<f64>,
     ) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
         edits
             .apply_cmd(
-                UserCmd::MakeSidewalk(WayID(base), left_meters, right_meters),
+                UserCmd::MakeSidewalk(
+                    WayID(base),
+                    left_meters,
+                    right_meters,
+                    trim_back_from_crossings,
+                ),
                 self,
             )
             .map_err(err_to_js)?;
@@ -188,15 +194,33 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = editMakeAllSidewalks)]
-    pub fn edit_make_all_sidewalks(&mut self) -> Result<(), JsValue> {
+    pub fn edit_make_all_sidewalks(
+        &mut self,
+        trim_back_from_crossings: Option<f64>,
+    ) -> Result<(), JsValue> {
         let mut cmds = Vec::new();
         for (id, way) in &self.derived_ways {
             if way.tags.is("sidewalk", "both") {
-                cmds.push(UserCmd::MakeSidewalk(*id, 3.0, 3.0));
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    3.0,
+                    3.0,
+                    trim_back_from_crossings,
+                ));
             } else if way.tags.is("sidewalk", "left") {
-                cmds.push(UserCmd::MakeSidewalk(*id, 3.0, 0.0));
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    3.0,
+                    0.0,
+                    trim_back_from_crossings,
+                ));
             } else if way.tags.is("sidewalk", "right") {
-                cmds.push(UserCmd::MakeSidewalk(*id, 0.0, 3.0));
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    0.0,
+                    3.0,
+                    trim_back_from_crossings,
+                ));
             }
         }
 

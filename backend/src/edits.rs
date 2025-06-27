@@ -27,7 +27,7 @@ pub struct Edits {
 #[derive(Clone, Copy, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
-    MakeSidewalk(WayID, f64, f64),
+    MakeSidewalk(WayID, f64, f64, Option<f64>),
 }
 
 pub enum TagCmd {
@@ -74,8 +74,7 @@ impl Edits {
                     }
                 }
             }
-            UserCmd::MakeSidewalk(way, left_meters, right_meters) => {
-                let trim_back_from_crossings = Some(3.0);
+            UserCmd::MakeSidewalk(way, left_meters, right_meters, trim_back_from_crossings) => {
                 let sidewalks = model.make_sidewalks(
                     way,
                     left_meters,

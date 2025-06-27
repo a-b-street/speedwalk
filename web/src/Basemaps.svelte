@@ -14,6 +14,9 @@
   interface Props {
     name: string;
     url: string;
+    attribution?: {
+      text: string;
+    };
   }
 
   let gj: FeatureCollection<Polygon | MultiPolygon, Props> = {

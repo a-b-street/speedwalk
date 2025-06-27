@@ -36,6 +36,9 @@
   };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
+  let showExtraContext = false;
+
+  let trimBackFromCrossings = 3.0;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -64,7 +67,9 @@
   }
 
   function makeAllSidewalks() {
-    $backend!.editMakeAllSidewalks();
+    $backend!.editMakeAllSidewalks(
+      trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
+    );
     $mutationCounter++;
   }
 
@@ -80,8 +85,19 @@
 <SplitComponent>
   <div slot="sidebar">
     {#if pinnedWay}
-      <WayDetails {pinnedWay} />
+      <WayDetails {pinnedWay} {trimBackFromCrossings} />
     {/if}
+
+    <label>
+      Trim back from crossings (0 means make new side road crossings)
+      <input
+        type="number"
+        bind:value={trimBackFromCrossings}
+        min="0"
+        max="5"
+        step="0.5"
+      />
+    </label>
 
     <button class="secondary" on:click={makeAllSidewalks}>
       Make all sidewalks
@@ -191,7 +207,7 @@
       </GeoJSON>
     </GeoJSON>
 
-    <ExtraContext />
+    <ExtraContext show={showExtraContext} />
 
     <Control position="top-right">
       <div style:background="white" style:width="200px" style:padding="8px">
@@ -199,6 +215,12 @@
           <input type="checkbox" bind:checked={showNodes} />
           Nodes
         </label>
+
+        <label>
+          <input type="checkbox" bind:checked={showExtraContext} />
+          Extra context
+        </label>
+
         <Metrics />
       </div>
     </Control>

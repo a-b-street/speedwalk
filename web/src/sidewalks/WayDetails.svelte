@@ -4,6 +4,7 @@
   import { type WayProps, problems, quickfixes, previewSidewalk } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
+  export let trimBackFromCrossings: number;
 
   let makeLeft = false;
   let distanceLeft = 3.0;
@@ -15,6 +16,7 @@
     distanceLeft: number,
     makeRight: boolean,
     distanceRight: number,
+    trimBackFromCrossings: number,
   ) {
     if (!makeLeft && !makeRight) {
       $previewSidewalk = null;
@@ -26,19 +28,27 @@
           BigInt(pinnedWay.properties.id),
           makeLeft ? distanceLeft : 0,
           makeRight ? distanceRight : 0,
+          trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
         ),
       );
     } catch (err) {
       window.alert(err);
     }
   }
-  $: updateSidewalkPreview(makeLeft, distanceLeft, makeRight, distanceRight);
+  $: updateSidewalkPreview(
+    makeLeft,
+    distanceLeft,
+    makeRight,
+    distanceRight,
+    trimBackFromCrossings,
+  );
 
   function makeSidewalk() {
     $backend!.editMakeSidewalk(
       BigInt(pinnedWay.properties.id),
       makeLeft ? distanceLeft : 0,
       makeRight ? distanceRight : 0,
+      trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
     );
     $mutationCounter++;
     makeLeft = false;
