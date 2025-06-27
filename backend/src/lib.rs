@@ -88,7 +88,7 @@ impl Speedwalk {
             if !node.tags.0.is_empty() {
                 f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
             }
-            f.set_property("is_crossing", node.tags.is("highway", "crossing"));
+            f.set_property("is_crossing", node.is_crossing());
             f.set_property("modified", node.modified);
             features.push(f);
         }
@@ -309,5 +309,13 @@ impl Metrics {
                 .or_insert(0.0) += Euclidean.length(&way.linestring);
         }
         metrics
+    }
+}
+
+impl Node {
+    pub fn is_crossing(&self) -> bool {
+        self.tags.is("highway", "crossing")
+            || (self.tags.is("highway", "traffic_signals")
+                && self.tags.is("crossing", "traffic_signals"))
     }
 }
