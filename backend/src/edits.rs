@@ -185,6 +185,7 @@ impl Edits {
                             num_crossings,
                             is_main_road: false,
                             distance_per_node,
+                            modified: true,
                         },
                     );
                 }
@@ -323,10 +324,12 @@ impl Speedwalk {
                 }
             }
             way.kind = Kind::classify(&way.tags);
+            way.modified = true;
         }
         for (way, node_ids) in &edits.change_way_nodes {
             let way = self.derived_ways.get_mut(way).unwrap();
             way.node_ids = node_ids.clone();
+            way.modified = true;
 
             // TODO Update Node.way_ids here?
         }

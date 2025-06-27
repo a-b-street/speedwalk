@@ -99,6 +99,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         num_crossings,
                         is_main_road,
                         distance_per_node,
+                        modified: false,
                     },
                 );
             }

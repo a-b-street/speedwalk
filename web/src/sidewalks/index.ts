@@ -20,6 +20,7 @@ export interface WayProps {
   fix?: keyof typeof quickfixes;
   problem?: keyof typeof problems;
   num_crossings: number;
+  modified: boolean;
 }
 
 export let colors = {

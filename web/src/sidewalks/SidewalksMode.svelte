@@ -37,6 +37,7 @@
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
   let showExtraContext = false;
+  let fadeUnmodified = false;
 
   let trimBackFromCrossings = 3.0;
   let assumeBothForMissing = false;
@@ -150,6 +151,7 @@
             colors,
             "cyan",
           ),
+          "line-opacity": fadeUnmodified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
         }}
       />
     </GeoJSON>
@@ -237,6 +239,11 @@
         <label>
           <input type="checkbox" bind:checked={showExtraContext} />
           Extra context
+        </label>
+
+        <label>
+          <input type="checkbox" bind:checked={fadeUnmodified} />
+          Fade unmodified ways
         </label>
 
         <Metrics />
