@@ -48,7 +48,10 @@ impl Speedwalk {
         crossings
     }
 
-    pub fn connect_crossing(&self, crossing_node: NodeID) -> Result<(LineString, WayID, WayID)> {
+    pub fn connect_crossing(
+        &self,
+        crossing_node: NodeID,
+    ) -> Result<(LineString, WayID, usize, WayID, usize)> {
         let project_away_meters = 10.0;
 
         let crossing_node = &self.derived_nodes[&crossing_node];
@@ -62,7 +65,7 @@ impl Speedwalk {
             crossing_pt,
             project_away(crossing_pt, angle + 90.0, project_away_meters),
         );
-        let Some((sidewalk1, endpt1)) = self.find_sidewalk_hit(test_line1) else {
+        let Some((sidewalk1, endpt1, insert_idx1)) = self.find_sidewalk_hit(test_line1) else {
             bail!("Couldn't find sidewalk on one side of crossing");
         };
 
@@ -70,23 +73,29 @@ impl Speedwalk {
             crossing_pt,
             project_away(crossing_pt, angle - 90.0, project_away_meters),
         );
-        let Some((sidewalk2, endpt2)) = self.find_sidewalk_hit(test_line2) else {
+        let Some((sidewalk2, endpt2, insert_idx2)) = self.find_sidewalk_hit(test_line2) else {
             bail!("Couldn't find sidewalk on one side of crossing");
         };
 
         let new_linestring = LineString::new(vec![endpt1, crossing_pt, endpt2]);
-        Ok((new_linestring, sidewalk1, sidewalk2))
+        Ok((
+            new_linestring,
+            sidewalk1,
+            insert_idx1,
+            sidewalk2,
+            insert_idx2,
+        ))
     }
 
-    fn find_sidewalk_hit(&self, line1: Line) -> Option<(WayID, Coord)> {
+    fn find_sidewalk_hit(&self, line1: Line) -> Option<(WayID, Coord, usize)> {
         // TODO rstar
         for (id, way) in &self.derived_ways {
             if way.kind == Kind::Sidewalk {
-                for line2 in way.linestring.lines() {
+                for (idx, line2) in way.linestring.lines().enumerate() {
                     if let Some(LineIntersection::SinglePoint { intersection, .. }) =
                         line_intersection(line1, line2)
                     {
-                        return Some((*id, intersection));
+                        return Some((*id, intersection, idx + 1));
                     }
                 }
             }

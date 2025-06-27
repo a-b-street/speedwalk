@@ -194,7 +194,7 @@ impl Edits {
                 }
             }
             UserCmd::ConnectCrossing(crossing_node) => {
-                let (new_linestring, sidewalk1, sidewalk2) =
+                let (new_linestring, sidewalk1, insert_idx1, sidewalk2, insert_idx2) =
                     model.connect_crossing(crossing_node)?;
 
                 let new_way_id = self.new_way_id();
@@ -226,7 +226,14 @@ impl Edits {
                     },
                 );
 
-                // TODO Split sidewalk1 and sidewalk2 by these new nodes
+                // Split the existing sidewalks by these new nodes
+                let mut node_ids1 = model.derived_ways[&sidewalk1].node_ids.clone();
+                node_ids1.insert(insert_idx1, new_node1);
+                self.change_way_nodes.insert(sidewalk1, node_ids1);
+
+                let mut node_ids2 = model.derived_ways[&sidewalk2].node_ids.clone();
+                node_ids2.insert(insert_idx2, new_node2);
+                self.change_way_nodes.insert(sidewalk2, node_ids2);
 
                 // Make the new way
                 let mut tags = Tags::empty();
