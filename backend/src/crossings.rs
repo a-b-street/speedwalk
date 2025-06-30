@@ -1,36 +1,9 @@
 use anyhow::Result;
 use geo::line_intersection::{line_intersection, LineIntersection};
-use geo::{Coord, Distance, Euclidean, Line, LineString, Point};
-use geojson::GeoJson;
+use geo::{Coord, Distance, Euclidean, Line, LineString};
 use osm_reader::{NodeID, WayID};
-use wasm_bindgen::prelude::*;
 
-use crate::{err_to_js, Kind, Speedwalk};
-
-#[wasm_bindgen]
-impl Speedwalk {
-    #[wasm_bindgen(js_name = getSideRoads)]
-    pub fn get_side_roads(&self, only_along_main: bool) -> Result<String, JsValue> {
-        let mut features = Vec::new();
-
-        for (_, way) in &self.derived_ways {
-            if only_along_main && !way.is_main_road {
-                continue;
-            }
-
-            for node_id in &way.node_ids {
-                if self.derived_nodes[node_id].way_ids.len() > 1 {
-                    features.push(
-                        self.mercator
-                            .to_wgs84_gj(&Point::from(self.derived_nodes[node_id].pt)),
-                    );
-                }
-            }
-        }
-
-        serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
-    }
-}
+use crate::{Kind, Speedwalk};
 
 impl Speedwalk {
     pub fn get_all_crossings_on_severances(&self) -> Vec<NodeID> {

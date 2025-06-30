@@ -125,7 +125,8 @@ impl Speedwalk {
         for (id, way) in &self.derived_ways {
             // TODO If the intersection is very close to an existing node on that way, ESPECIALLY a
             // crossing, snap to it?
-            if let Some((pt, idx1, idx2)) = find_single_intersection(new_sidewalk, &way.linestring)?
+            if let Some((pt, idx1, idx2)) =
+                find_single_intersection(*id, new_sidewalk, &way.linestring)?
             {
                 crossings.push((*id, pt, idx2));
 
@@ -140,6 +141,7 @@ impl Speedwalk {
 /// Returns the only point of intersection between ls1 and ls2, and the index to insert that point
 /// into ls1 and ls2. Bails if ls1 hits ls2 multiple times.
 fn find_single_intersection(
+    way: WayID,
     ls1: &LineString,
     ls2: &LineString,
 ) -> Result<Option<(Coord, usize, usize)>> {
@@ -157,7 +159,7 @@ fn find_single_intersection(
         }
     }
     if hits.len() > 1 {
-        bail!("New sidewalk hits an existing way multiple times, not handled yet");
+        bail!("New sidewalk hits the existing {way} multiple times, not handled yet");
     }
     Ok(hits.pop())
 }

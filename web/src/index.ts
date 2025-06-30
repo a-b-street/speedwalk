@@ -1,7 +1,7 @@
 import { type Writable, writable } from "svelte/store";
 import { Speedwalk } from "backend";
 
-export type Mode = "sidewalks" | "crossings";
+export type Mode = "sidewalks";
 
 export let backend: Writable<Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);

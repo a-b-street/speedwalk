@@ -57,10 +57,7 @@ pub struct Way {
 
     // TODO Manage derived state better
     pub kind: Kind,
-    pub num_crossings: usize,
     pub is_main_road: bool,
-    // From the start of the line. first entry is 0, last entry is linestring length
-    pub distance_per_node: Vec<f64>,
     pub modified: bool,
 }
 
@@ -105,7 +102,6 @@ impl Speedwalk {
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
             f.set_property("kind", way.kind.to_simple_string());
-            f.set_property("num_crossings", way.num_crossings);
             f.set_property("modified", way.modified);
             if let Kind::QuickfixRoadway(ref fix) = way.kind {
                 f.set_property("fix", serde_json::to_value(&fix).map_err(err_to_js)?);

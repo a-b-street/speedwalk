@@ -18,7 +18,6 @@
   } from "svelte-utils/two_column_layout";
   import init, { Speedwalk } from "backend";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
-  import CrossingsMode from "./crossings/CrossingsMode.svelte";
   import Edits from "./Edits.svelte";
   import Basemaps from "./Basemaps.svelte";
 
@@ -111,20 +110,6 @@
 
     {#if $backend}
       <Edits />
-      <div>
-        <button
-          on:click={() => ($mode = "sidewalks")}
-          disabled={$mode == "sidewalks"}
-        >
-          Sidewalks
-        </button>
-        <button
-          on:click={() => ($mode = "crossings")}
-          disabled={$mode == "crossings"}
-        >
-          Crossings
-        </button>
-      </div>
     {/if}
 
     <div bind:this={sidebarDiv} />
@@ -146,8 +131,6 @@
 
         {#if $mode == "sidewalks"}
           <SidewalksMode {map} />
-        {:else if $mode == "crossings"}
-          <CrossingsMode />
         {/if}
       {:else}
         <PolygonToolLayer />

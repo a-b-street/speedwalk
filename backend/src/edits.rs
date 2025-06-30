@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, Euclidean, Length, LineString};
+use geo::Coord;
 use itertools::{Itertools, Position};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
@@ -106,7 +106,6 @@ impl Edits {
 
                     // First insert new crossing nodes in the existing roads
                     let mut new_crossing_nodes: HashMap<HashedPoint, NodeID> = HashMap::new();
-                    let mut num_crossings = 0;
                     for (existing_way, pt, idx) in new_sidewalk.crossing_points {
                         let node_id = self.new_node_id();
                         let mut tags = Tags::empty();
@@ -118,7 +117,6 @@ impl Edits {
                             .is("highway", "footway")
                         {
                             tags.insert("highway", "crossing");
-                            num_crossings += 1;
                         }
                         self.new_nodes.insert(
                             node_id,
@@ -140,7 +138,6 @@ impl Edits {
 
                     // Now make the new sidewalk way
                     let mut node_ids = Vec::new();
-                    let mut distance_per_node = Vec::new();
                     let mut pts = Vec::new();
                     for (pos, pt) in new_sidewalk.linestring.coords().with_position() {
                         if pos == Position::First && new_sidewalk.connect_start_node.is_some() {
@@ -166,11 +163,6 @@ impl Edits {
                         }
 
                         pts.push(*pt);
-                        if pts.len() == 1 {
-                            distance_per_node.push(0.0);
-                        } else {
-                            distance_per_node.push(Euclidean.length(&LineString::new(pts.clone())));
-                        }
                     }
 
                     let mut tags = Tags::empty();
@@ -185,9 +177,7 @@ impl Edits {
                             version: 0,
 
                             kind: Kind::Sidewalk,
-                            num_crossings,
                             is_main_road: false,
-                            distance_per_node,
                             modified: true,
                         },
                     );
@@ -248,10 +238,7 @@ impl Edits {
                         version: 0,
 
                         kind: Kind::Other,
-                        num_crossings: 0,
                         is_main_road: false,
-                        // TODO We don't need this, right?
-                        distance_per_node: Vec::new(),
                         modified: true,
                     },
                 );
@@ -401,8 +388,6 @@ impl Speedwalk {
 
             // TODO Update Node.way_ids here?
         }
-
-        // TODO Update num_crossings sometimes
     }
 }
 

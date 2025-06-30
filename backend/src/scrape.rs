@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, Euclidean, GeometryCollection, Length, LineString};
+use geo::{Coord, GeometryCollection, LineString};
 use osm_reader::Element;
 use utils::{Mercator, Tags};
 
@@ -51,8 +51,6 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                 }
 
                 let mut pts = Vec::new();
-                let mut num_crossings = 0;
-                let mut distance_per_node = Vec::new();
                 for node_id in &node_ids {
                     used_nodes.insert(*node_id);
 
@@ -60,15 +58,6 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                     node.way_ids.push(id);
 
                     pts.push(node.pt);
-                    if node.tags.is("highway", "crossing") {
-                        num_crossings += 1;
-                    }
-
-                    if pts.len() == 1 {
-                        distance_per_node.push(0.0);
-                    } else {
-                        distance_per_node.push(Euclidean.length(&LineString::new(pts.clone())));
-                    }
                 }
 
                 let linestring = LineString::new(pts);
@@ -97,9 +86,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         version: version.expect("way missing version"),
 
                         kind,
-                        num_crossings,
                         is_main_road,
-                        distance_per_node,
                         modified: false,
                     },
                 );

@@ -70,16 +70,20 @@
   }
 
   function makeAllSidewalks() {
+    console.time("makeAllSidewalks");
     $backend!.editMakeAllSidewalks(
       trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
       assumeBothForMissing,
       onlySeverances,
     );
+    console.timeEnd("makeAllSidewalks");
     $mutationCounter++;
   }
 
   function connectAllCrossings() {
+    console.time("connectAllCrossings");
     $backend!.editConnectAllCrossings();
+    console.timeEnd("connectAllCrossings");
     $mutationCounter++;
   }
 
