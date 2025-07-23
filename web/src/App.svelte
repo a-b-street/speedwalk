@@ -1,7 +1,7 @@
 <script lang="ts">
   import favicon from "../assets/favicon.ico?url";
   import "@fortawesome/fontawesome-free/css/all.min.css";
-  import { MapLibre, Control } from "svelte-maplibre";
+  import { MapLibre } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
   import { backend, mode } from "./";
@@ -19,7 +19,6 @@
   import init, { Speedwalk } from "backend";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import Edits from "./Edits.svelte";
-  import Basemaps from "./Basemaps.svelte";
 
   let loading = "";
   let map: Map | undefined;
@@ -135,10 +134,6 @@
       {:else}
         <PolygonToolLayer />
       {/if}
-
-      <Control position="bottom-left">
-        <Basemaps bind:style />
-      </Control>
     </MapLibre>
   </div>
 </Layout>
