@@ -1,6 +1,5 @@
 <script lang="ts">
   import favicon from "../assets/favicon.ico?url";
-  import "@fortawesome/fontawesome-free/css/all.min.css";
   import { MapLibre } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
@@ -16,7 +15,7 @@
     sidebarContents,
     Layout,
   } from "svelte-utils/two_column_layout";
-  import init, { Speedwalk } from "backend";
+  import * as backendPkg from "../../backend/pkg";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import Edits from "./Edits.svelte";
 
@@ -26,7 +25,7 @@
     "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
 
   onMount(async () => {
-    await init();
+    await backendPkg.default();
   });
 
   let fileInput: HTMLInputElement;
@@ -34,7 +33,7 @@
     try {
       loading = "Loading from file";
       let bytes = await fileInput.files![0].arrayBuffer();
-      $backend = new Speedwalk(new Uint8Array(bytes));
+      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
@@ -46,7 +45,7 @@
   async function gotXml(e: CustomEvent<{ xml: string }>) {
     try {
       let bytes = new TextEncoder().encode(e.detail.xml);
-      $backend = new Speedwalk(new Uint8Array(bytes));
+      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
       zoomFit();
     } catch (err) {
       window.alert(`Couldn't import from Overpass: ${err}`);

@@ -1,9 +1,9 @@
 import { type Writable, writable } from "svelte/store";
-import { Speedwalk } from "backend";
+import * as backendPkg from "../../backend/pkg";
 
 export type Mode = "sidewalks";
 
-export let backend: Writable<Speedwalk | null> = writable(null);
+export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
 export let mode: Writable<Mode> = writable("sidewalks");
 

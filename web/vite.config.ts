@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
-import wasmPack from "vite-plugin-wasm-pack";
+import wasm from "vite-plugin-wasm";
 
 export default defineConfig({
   base: "/speedwalk/",
@@ -12,5 +12,10 @@ export default defineConfig({
       },
     },
   },
-  plugins: [svelte(), wasmPack(["../backend"], [])]
+  plugins: [svelte(), wasm()],
+  server: {
+    fs: {
+      allow: ["./", "../backend/pkg"]
+    }
+  }
 })
