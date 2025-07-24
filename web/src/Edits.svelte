@@ -66,16 +66,24 @@
 
 <h3>{cmds.length} {cmds.length == 1 ? "edit" : "edits"}</h3>
 {#if cmds.length > 0}
-  <button class="outline" on:click={clear}>Clear edits</button>
-  <button class="outline" on:click={downloadOsc}>Download .osc</button>
-  <button on:click={uploadOsc}>Upload changeset</button>
+  <button class="btn btn-danger" on:click={clear}>Clear edits</button>
+  <button class="btn btn-secondary" on:click={downloadOsc}>
+    Download .osc
+  </button>
+  <button class="btn btn-secondary" on:click={uploadOsc}>
+    Upload changeset
+  </button>
 
   <div style="display: flex; justify-content: space-between">
-    <button class="outline" on:click={prev} disabled={idx == 0}>
+    <button class="btn btn-secondary" on:click={prev} disabled={idx == 0}>
       Previous
     </button>
     <span>{idx + 1} / {cmds.length}</span>
-    <button class="outline" on:click={next} disabled={idx == cmds.length - 1}>
+    <button
+      class="btn btn-secondary"
+      on:click={next}
+      disabled={idx == cmds.length - 1}
+    >
       Next
     </button>
   </div>

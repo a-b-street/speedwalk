@@ -39,7 +39,7 @@
     <img src={loggedInUser.avatarUrl} alt="OSM avatar" />
   {/if}
 
-  <button on:click={logout}>Logout</button>
+  <button class="btn btn-danger" on:click={logout}>Logout</button>
 {:else}
-  <button on:click={login}>Login</button>
+  <button class="btn btn-primary" on:click={login}>Login</button>
 {/if}

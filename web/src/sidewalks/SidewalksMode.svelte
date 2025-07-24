@@ -19,6 +19,7 @@
     isLine,
     isPoint,
   } from "svelte-utils/map";
+  import { Checkbox } from "svelte-utils";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
@@ -102,9 +103,10 @@
       <WayDetails {pinnedWay} {trimBackFromCrossings} />
     {/if}
 
-    <label>
+    <label class="form-label">
       Trim back from crossings (0 means make new side road crossings)
       <input
+        class="form-control"
         type="number"
         bind:value={trimBackFromCrossings}
         min="0"
@@ -116,21 +118,19 @@
     <details>
       <summary>Make all sidewalks</summary>
 
-      <label>
-        <input type="checkbox" bind:checked={assumeBothForMissing} />
+      <Checkbox bind:checked={assumeBothForMissing}>
         When sidewalk tag missing, assume both?
-      </label>
+      </Checkbox>
 
-      <label>
-        <input type="checkbox" bind:checked={onlySeverances} />
+      <Checkbox bind:checked={onlySeverances}>
         Only generate along severances
-      </label>
+      </Checkbox>
 
-      <button class="secondary" on:click={makeAllSidewalks}>
+      <button class="btn btn-secondary" on:click={makeAllSidewalks}>
         Make all sidewalks
       </button>
 
-      <button class="secondary" on:click={connectAllCrossings}>
+      <button class="btn btn-secondary" on:click={connectAllCrossings}>
         Connect all crossings over severances
       </button>
     </details>
@@ -251,20 +251,11 @@
 
     <Control position="top-right">
       <div style:background="white" style:width="200px" style:padding="8px">
-        <label>
-          <input type="checkbox" bind:checked={showNodes} />
-          Nodes
-        </label>
+        <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
-        <label>
-          <input type="checkbox" bind:checked={showExtraContext} />
-          Extra context
-        </label>
+        <Checkbox bind:checked={showExtraContext}>Extra context</Checkbox>
 
-        <label>
-          <input type="checkbox" bind:checked={fadeUnmodified} />
-          Fade unmodified ways
-        </label>
+        <Checkbox bind:checked={fadeUnmodified}>Fade unmodified ways</Checkbox>
 
         <Metrics />
       </div>

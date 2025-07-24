@@ -28,7 +28,7 @@
     "vite-plugin-wasm": "3.5.0"
   },
   "dependencies": {
-    "@picocss/pico": "^2.0.6",
+    "bootstrap": "^5.3.7",
     "osm-api": "^2.6.1",
     "svelte-maplibre": "github:dabreegster/svelte-maplibre#svelte4_popups",
     "svelte-utils": "github:a-b-street/svelte-utils"

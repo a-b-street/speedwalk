@@ -5,9 +5,15 @@
   import { onMount } from "svelte";
   import { backend, mode } from "./";
   import { previewSidewalk } from "./sidewalks/";
-  import "@picocss/pico/css/pico.jade.min.css";
-  import type { Map, StyleSpecification } from "maplibre-gl";
-  import { bbox } from "svelte-utils/map";
+  import "bootstrap/dist/css/bootstrap.min.css";
+  import type { Map } from "maplibre-gl";
+  import {
+    bbox,
+    basemapStyles,
+    Basemaps,
+    StandardControls,
+    MapContextMenu,
+  } from "svelte-utils/map";
   import { OverpassSelector } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
   import {
@@ -21,8 +27,7 @@
 
   let loading = "";
   let map: Map | undefined;
-  let style: StyleSpecification | string =
-    "https://api.maptiler.com/maps/openstreetmap/style.json?key=MZEJTanw3WpxRvt7qDfo";
+  let style = basemapStyles["Maptiler OpenStreetMap"];
 
   onMount(async () => {
     await backendPkg.default();
@@ -89,14 +94,23 @@
     <h1>Speedwalk</h1>
 
     {#if $backend}
-      <button on:click={clear}>Load another area</button>
+      <button class="btn btn-secondary" on:click={clear}>
+        Load another area
+      </button>
     {:else if map}
-      <label>
-        Load an osm.pbf or osm.xml file
-        <input bind:this={fileInput} on:change={loadFile} type="file" />
-      </label>
+      <div>
+        <label class="form-label">
+          Load an osm.pbf or osm.xml file
+          <input
+            class="form-control"
+            bind:this={fileInput}
+            on:change={loadFile}
+            type="file"
+          />
+        </label>
+      </div>
 
-      <i>or...</i>
+      <p class="fst-italic my-3">or...</p>
 
       <OverpassSelector
         {map}
@@ -116,7 +130,6 @@
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
       {style}
-      standardControls
       hash
       bind:map
       on:error={(e) => {
@@ -124,6 +137,10 @@
         console.log(e.detail.error);
       }}
     >
+      <StandardControls {map} />
+      <MapContextMenu {map} />
+      <Basemaps bind:style choice="Maptiler OpenStreetMap" />
+
       {#if $backend && map}
         <div bind:this={mapDiv} />
 
