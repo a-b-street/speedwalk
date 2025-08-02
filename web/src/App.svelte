@@ -48,12 +48,15 @@
       return;
     }
     try {
+      loading = `Loading ${loadExample}`;
       let resp = await fetch(`example_osm/${loadExample}`);
       let bytes = await resp.arrayBuffer();
       $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
+    } finally {
+      loading = "";
     }
   }
 

@@ -73,7 +73,7 @@
   }
 </script>
 
-<div>
+<h5>
   <a
     href="https://www.openstreetmap.org/way/{pinnedWay.properties.id}"
     target="_blank"
@@ -81,26 +81,43 @@
     Way {pinnedWay.properties.id}
   </a>
   : {pinnedWay.properties.kind}
-</div>
+</h5>
 
 {#if pinnedWay.properties.fix}
-  <p>{quickfixes[pinnedWay.properties.fix]}</p>
-  <button on:click={applyQuickfix}>Apply this fix</button>
+  <div class="card mb-3">
+    <div class="card-header">{quickfixes[pinnedWay.properties.fix]}</div>
+    <div class="card-body">
+      <button class="btn btn-secondary" on:click={applyQuickfix}>
+        Apply this fix
+      </button>
+    </div>
+  </div>
 {/if}
 
 {#if pinnedWay.properties.problem}
-  <p>{problems[pinnedWay.properties.problem]}</p>
-  <button on:click={() => doSpecificQuickfix("OldSidewalkSeparate")}>
-    This road already has separate sidewalks on both sides
-  </button>
+  <div class="card mb-3">
+    <div class="card-header">{problems[pinnedWay.properties.problem]}</div>
+    <div class="card-body">
+      <button
+        class="btn btn-secondary"
+        on:click={() => doSpecificQuickfix("OldSidewalkSeparate")}
+      >
+        This road already has separate sidewalks on both sides
+      </button>
+    </div>
+  </div>
 {/if}
 
 {#if pinnedWay.properties.kind == "bad_roadway"}
-  <div style:background="grey" style:padding="4px">
-    <h3>Set old-style sidewalk tags</h3>
-    <div style="display: flex; justify-content: space-between">
+  <div class="card mb-3">
+    <div class="card-header">Set old-style sidewalk tags</div>
+    <div
+      class="card-body"
+      style="display: flex; justify-content: space-between"
+    >
       {#each ["both", "left", "right", "no"] as value}
         <button
+          class="btn btn-secondary"
           on:click={() =>
             doSpecificQuickfix(`SetOldSidewalk${capitalize(value)}`)}
         >
@@ -112,44 +129,55 @@
 {/if}
 
 {#if pinnedWay.properties.kind == "bad_roadway" || pinnedWay.properties.kind == "old_style_roadway"}
-  <div style:background="grey" style:padding="4px">
-    <h3>Create a sidewalk</h3>
+  <div class="card mb-3">
+    <div class="card-header">Create a sidewalk</div>
+    <div class="card-body">
+      <label>
+        <input type="checkbox" bind:checked={makeLeft} />
+        Left
+        <input
+          type="number"
+          bind:value={distanceLeft}
+          min="0.1"
+          max="10"
+          step="0.1"
+          disabled={!makeLeft}
+        />
+      </label>
 
-    <label>
-      <input type="checkbox" bind:checked={makeLeft} />
-      Left
-      <input
-        type="number"
-        bind:value={distanceLeft}
-        min="0.1"
-        max="10"
-        step="0.1"
-        disabled={!makeLeft}
-      />
-    </label>
+      <label>
+        <input type="checkbox" bind:checked={makeRight} />
+        Right
+        <input
+          type="number"
+          bind:value={distanceRight}
+          min="0.1"
+          max="10"
+          step="0.1"
+          disabled={!makeRight}
+        />
+      </label>
 
-    <label>
-      <input type="checkbox" bind:checked={makeRight} />
-      Right
-      <input
-        type="number"
-        bind:value={distanceRight}
-        min="0.1"
-        max="10"
-        step="0.1"
-        disabled={!makeRight}
-      />
-    </label>
-
-    <button on:click={makeSidewalk}>Confirm</button>
+      <button class="btn btn-secondary mt-3" on:click={makeSidewalk}>
+        Confirm
+      </button>
+    </div>
   </div>
 {/if}
 
-<table>
-  {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
+<table class="table">
+  <thead>
     <tr>
-      <td>{key}</td>
-      <td>{value}</td>
+      <th>Key</th>
+      <th>Value</th>
     </tr>
-  {/each}
+  </thead>
+  <tbody>
+    {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
+      <tr>
+        <td>{key}</td>
+        <td>{value}</td>
+      </tr>
+    {/each}
+  </tbody>
 </table>

@@ -103,6 +103,7 @@
       <WayDetails {pinnedWay} {trimBackFromCrossings} />
     {/if}
 
+    <!-- TODO Visually part of two sets of controls -->
     <label class="form-label">
       Trim back from crossings (0 means make new side road crossings)
       <input
@@ -115,25 +116,26 @@
       />
     </label>
 
-    <details>
-      <summary>Make all sidewalks</summary>
+    <div class="card">
+      <div class="card-header">Make all sidewalks</div>
+      <div class="card-body">
+        <Checkbox bind:checked={assumeBothForMissing}>
+          When sidewalk tag missing, assume both?
+        </Checkbox>
 
-      <Checkbox bind:checked={assumeBothForMissing}>
-        When sidewalk tag missing, assume both?
-      </Checkbox>
+        <Checkbox bind:checked={onlySeverances}>
+          Only generate along severances
+        </Checkbox>
 
-      <Checkbox bind:checked={onlySeverances}>
-        Only generate along severances
-      </Checkbox>
+        <button class="btn btn-secondary mb-3" on:click={makeAllSidewalks}>
+          Make all sidewalks
+        </button>
 
-      <button class="btn btn-secondary" on:click={makeAllSidewalks}>
-        Make all sidewalks
-      </button>
-
-      <button class="btn btn-secondary" on:click={connectAllCrossings}>
-        Connect all crossings over severances
-      </button>
-    </details>
+        <button class="btn btn-secondary" on:click={connectAllCrossings}>
+          Connect all crossings over severances
+        </button>
+      </div>
+    </div>
   </div>
 
   <div slot="map">
