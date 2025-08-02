@@ -82,10 +82,12 @@
   </a>
   : {pinnedWay.properties.kind}
 </div>
+
 {#if pinnedWay.properties.fix}
   <p>{quickfixes[pinnedWay.properties.fix]}</p>
   <button on:click={applyQuickfix}>Apply this fix</button>
 {/if}
+
 {#if pinnedWay.properties.problem}
   <p>{problems[pinnedWay.properties.problem]}</p>
   <button on:click={() => doSpecificQuickfix("OldSidewalkSeparate")}>

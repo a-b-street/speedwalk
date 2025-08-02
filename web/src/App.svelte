@@ -29,9 +29,33 @@
   let map: Map | undefined;
   let style = basemapStyles["Maptiler OpenStreetMap"];
 
+  let examples: string[] = [];
+  let loadExample = "";
+
   onMount(async () => {
     await backendPkg.default();
+
+    try {
+      let resp = await fetch("example_osm/list");
+      if (resp.ok) {
+        examples = await resp.json();
+      }
+    } catch (err) {}
   });
+
+  async function loadFromExample() {
+    if (loadExample.length == 0) {
+      return;
+    }
+    try {
+      let resp = await fetch(`example_osm/${loadExample}`);
+      let bytes = await resp.arrayBuffer();
+      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
+      zoomFit();
+    } catch (err) {
+      window.alert(`Bad input file: ${err}`);
+    }
+  }
 
   let fileInput: HTMLInputElement;
   async function loadFile(e: Event) {
@@ -98,6 +122,25 @@
         Load another area
       </button>
     {:else if map}
+      {#if examples.length}
+        <div>
+          <label>
+            Load an example
+            <select
+              class="form-select"
+              bind:value={loadExample}
+              on:change={loadFromExample}
+            >
+              {#each examples as x}
+                <option value={x}>{x}</option>
+              {/each}
+            </select>
+          </label>
+        </div>
+
+        <p class="fst-italic my-3">or...</p>
+      {/if}
+
       <div>
         <label class="form-label">
           Load an osm.pbf or osm.xml file
