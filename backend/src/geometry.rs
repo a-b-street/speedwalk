@@ -250,17 +250,17 @@ fn stop_at_sidewalks(
     let mut only_sidewalks = input_crossing_points.clone();
     only_sidewalks.retain(|(way, _, _)| model.derived_ways[way].tags.is("highway", "footway"));
 
-    if let Some((_, pt, _)) = only_sidewalks.get(0) {
-        if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
-            start = fraction;
-        }
-    }
-
-    if only_sidewalks.len() > 1
-        && let Some((_, pt, _)) = only_sidewalks.last()
-    {
-        if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
-            end = fraction;
+    for candidate in vec![only_sidewalks.get(0), only_sidewalks.last()] {
+        if let Some((_, pt, _)) = candidate {
+            if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
+                // Depending which end of the linestring it's on, assume it's start or end. Ignore
+                // in the middle -- do cross over it.
+                if fraction <= 0.2 {
+                    start = fraction;
+                } else if fraction >= 0.8 {
+                    end = fraction;
+                }
+            }
         }
     }
 
