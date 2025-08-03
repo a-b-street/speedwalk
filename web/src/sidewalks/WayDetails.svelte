@@ -128,42 +128,40 @@
   </div>
 {/if}
 
-{#if pinnedWay.properties.kind == "bad_roadway" || pinnedWay.properties.kind == "old_style_roadway"}
-  <div class="card mb-3">
-    <div class="card-header">Create a sidewalk</div>
-    <div class="card-body">
-      <label>
-        <input type="checkbox" bind:checked={makeLeft} />
-        Left
-        <input
-          type="number"
-          bind:value={distanceLeft}
-          min="0.1"
-          max="10"
-          step="0.1"
-          disabled={!makeLeft}
-        />
-      </label>
+<div class="card mb-3">
+  <div class="card-header">Create a sidewalk</div>
+  <div class="card-body">
+    <label>
+      <input type="checkbox" bind:checked={makeLeft} />
+      Left
+      <input
+        type="number"
+        bind:value={distanceLeft}
+        min="0.1"
+        max="10"
+        step="0.1"
+        disabled={!makeLeft}
+      />
+    </label>
 
-      <label>
-        <input type="checkbox" bind:checked={makeRight} />
-        Right
-        <input
-          type="number"
-          bind:value={distanceRight}
-          min="0.1"
-          max="10"
-          step="0.1"
-          disabled={!makeRight}
-        />
-      </label>
+    <label>
+      <input type="checkbox" bind:checked={makeRight} />
+      Right
+      <input
+        type="number"
+        bind:value={distanceRight}
+        min="0.1"
+        max="10"
+        step="0.1"
+        disabled={!makeRight}
+      />
+    </label>
 
-      <button class="btn btn-secondary mt-3" on:click={makeSidewalk}>
-        Confirm
-      </button>
-    </div>
+    <button class="btn btn-secondary mt-3" on:click={makeSidewalk}>
+      Confirm
+    </button>
   </div>
-{/if}
+</div>
 
 <table class="table">
   <thead>
