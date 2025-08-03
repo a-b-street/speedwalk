@@ -8,10 +8,14 @@ use utils::{Mercator, Tags};
 use crate::{Edits, Kind, Node, Speedwalk, Way};
 
 pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
+    let mut timestamp = None;
     let mut nodes = HashMap::new();
     let mut ways = HashMap::new();
     let mut used_nodes = HashSet::new();
     osm_reader::parse(input_bytes, |elem| match elem {
+        Element::Timestamp(ts) => {
+            timestamp = Some(ts);
+        }
         Element::Node {
             id,
             lon,
@@ -116,6 +120,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         original_nodes: nodes.clone(),
         original_ways: ways.clone(),
         mercator,
+        timestamp,
 
         edits: Some(Edits::default()),
 

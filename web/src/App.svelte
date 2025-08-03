@@ -23,7 +23,6 @@
   } from "svelte-utils/two_column_layout";
   import * as backendPkg from "../../backend/pkg";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
-  import Edits from "./Edits.svelte";
 
   let loading = "";
   let map: Map | undefined;
@@ -164,10 +163,6 @@
         on:loading={(e) => (loading = e.detail)}
         on:error={(e) => window.alert(e.detail)}
       />
-    {/if}
-
-    {#if $backend}
-      <Edits />
     {/if}
 
     <div bind:this={sidebarDiv} />

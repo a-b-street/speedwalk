@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Edits from "../Edits.svelte";
   import { backend, mutationCounter } from "../";
   import { previewSidewalk, colors, type NodeProps, type WayProps } from "./";
   import type { Map, MapMouseEvent } from "maplibre-gl";
@@ -88,6 +89,15 @@
     $mutationCounter++;
   }
 
+  function getOsmTimestamp(): string {
+    let t = $backend!.getOsmTimestamp();
+    if (t) {
+      let d = new Date(1000 * Number(t));
+      return d.toDateString();
+    }
+    return "unknown";
+  }
+
   $: if (!pinnedWay) {
     $previewSidewalk = null;
   }
@@ -99,6 +109,10 @@
 
 <SplitComponent>
   <div slot="sidebar">
+    <p>OSM data is from {getOsmTimestamp()}</p>
+
+    <Edits />
+
     {#if pinnedWay}
       <WayDetails {pinnedWay} {trimBackFromCrossings} />
     {/if}

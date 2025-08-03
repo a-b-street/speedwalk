@@ -30,6 +30,7 @@ pub struct Speedwalk {
     original_nodes: HashMap<NodeID, Node>,
     original_ways: HashMap<WayID, Way>,
     mercator: Mercator,
+    timestamp: Option<i64>,
 
     edits: Option<Edits>,
 
@@ -72,6 +73,11 @@ impl Speedwalk {
         });
 
         scrape::scrape_osm(input_bytes).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = getOsmTimestamp)]
+    pub fn get_osm_timestamp(&self) -> Option<i64> {
+        self.timestamp
     }
 
     #[wasm_bindgen(js_name = getNodes)]
