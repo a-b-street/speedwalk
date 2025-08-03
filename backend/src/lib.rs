@@ -233,7 +233,10 @@ impl Speedwalk {
                     3.0,
                     trim_back_from_crossings,
                 ));
-            } else if assume_both_for_missing && !way.tags.is_any("sidewalk", vec!["no", "none"]) {
+            } else if assume_both_for_missing
+                && way.kind != Kind::Other
+                && !way.tags.is_any("sidewalk", vec!["no", "none"])
+            {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
                     3.0,
