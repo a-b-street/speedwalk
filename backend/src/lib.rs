@@ -276,6 +276,23 @@ impl Speedwalk {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = editUndo)]
+    pub fn edit_undo(&mut self) -> Result<(), JsValue> {
+        let mut cmds = self.edits.take().unwrap().user_commands;
+        cmds.pop();
+        self.edits = Some(Edits::default());
+        self.after_edit();
+
+        // We have to start over and replay almost all the commands
+        for cmd in cmds {
+            let mut edits = self.edits.take().unwrap();
+            edits.apply_cmd(cmd, self).map_err(err_to_js)?;
+            self.edits = Some(edits);
+            self.after_edit();
+        }
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = editClear)]
     pub fn edit_clear(&mut self) {
         self.edits = Some(Edits::default());

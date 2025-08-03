@@ -26,6 +26,11 @@
     $mutationCounter++;
   }
 
+  function undo() {
+    $backend!.editUndo();
+    $mutationCounter++;
+  }
+
   function downloadOsc() {
     downloadGeneratedFile("changes.osc", $backend!.toOsc());
   }
@@ -67,6 +72,9 @@
 <h3>{cmds.length} {cmds.length == 1 ? "edit" : "edits"}</h3>
 {#if cmds.length > 0}
   <button class="btn btn-danger" on:click={clear}>Clear edits</button>
+  <button class="btn btn-danger" on:click={undo} disabled={cmds.length == 0}>
+    Undo ({cmds.length})
+  </button>
   <button class="btn btn-secondary" on:click={downloadOsc}>
     Download .osc
   </button>
