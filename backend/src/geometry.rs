@@ -1,8 +1,8 @@
 use anyhow::Result;
-use geo::line_intersection::{line_intersection, LineIntersection};
+use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{Coord, Euclidean, Length, LineLocatePoint, LineString, Point, Simplify};
 use osm_reader::{NodeID, WayID};
-use rstar::{primitives::GeomWithData, RTree};
+use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, OffsetCurve};
 
 use crate::{Kind, Speedwalk};
@@ -247,21 +247,20 @@ fn stop_at_sidewalks(
     let mut start = 0.0;
     let mut end = 1.0;
 
-    if let Some((way, pt, _)) = input_crossing_points.get(0) {
-        if model.derived_ways[&way].tags.is("highway", "footway") {
-            if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
-                start = fraction;
-            }
+    let mut only_sidewalks = input_crossing_points.clone();
+    only_sidewalks.retain(|(way, _, _)| model.derived_ways[way].tags.is("highway", "footway"));
+
+    if let Some((_, pt, _)) = only_sidewalks.get(0) {
+        if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
+            start = fraction;
         }
     }
 
-    if input_crossing_points.len() > 1
-        && let Some((way, pt, _)) = input_crossing_points.last()
+    if only_sidewalks.len() > 1
+        && let Some((_, pt, _)) = only_sidewalks.last()
     {
-        if model.derived_ways[&way].tags.is("highway", "footway") {
-            if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
-                end = fraction;
-            }
+        if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
+            end = fraction;
         }
     }
 

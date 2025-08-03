@@ -1,5 +1,5 @@
 use anyhow::Result;
-use geo::line_intersection::{line_intersection, LineIntersection};
+use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{Coord, Distance, Euclidean, Line, LineString};
 use osm_reader::{NodeID, WayID};
 

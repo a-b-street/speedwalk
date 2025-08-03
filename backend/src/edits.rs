@@ -7,7 +7,7 @@ use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
 
-use crate::{classify::Quickfix, Kind, Node, Speedwalk, Way};
+use crate::{Kind, Node, Speedwalk, Way, classify::Quickfix};
 
 #[derive(Default)]
 pub struct Edits {
