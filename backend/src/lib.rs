@@ -207,7 +207,14 @@ impl Speedwalk {
         only_severances: bool,
     ) -> Result<(), JsValue> {
         let mut cmds = Vec::new();
-        for (id, way) in &self.derived_ways {
+
+        // The heuristics for stopping sidewalks at the correct spot work better if side roads
+        // (tend to be smaller) are processed last. This is best effort.
+        let mut candidates: Vec<(&WayID, &Way)> = self.derived_ways.iter().collect();
+        candidates.sort_by_key(|(_, way)| (Euclidean.length(&way.linestring) * 100.0) as usize);
+        candidates.reverse();
+
+        for (id, way) in candidates {
             if only_severances && !way.is_severance() {
                 continue;
             }
