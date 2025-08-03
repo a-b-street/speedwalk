@@ -66,7 +66,16 @@ impl Speedwalk {
             lines_with_crossings.push((linestring, crossing_points));
         }
 
-        if let Some(trim_meters) = trim_back_from_crossings {
+        // TODO Plumb options, or rethink trim_back_from_crossings
+        let stop_at_other_sidewalks = true;
+
+        if stop_at_other_sidewalks {
+            let mut split = Vec::new();
+            for (linestring, crossing_points) in lines_with_crossings.drain(..) {
+                split.extend(stop_at_sidewalks(self, linestring, crossing_points)?);
+            }
+            lines_with_crossings = split;
+        } else if let Some(trim_meters) = trim_back_from_crossings {
             let mut split = Vec::new();
             for (linestring, crossing_points) in lines_with_crossings.drain(..) {
                 split.extend(split_at_crossings(
@@ -227,4 +236,48 @@ fn split_at_crossings(
         output.push((linestring, crossing_points));
     }
     Ok(output)
+}
+
+fn stop_at_sidewalks(
+    model: &Speedwalk,
+    input: LineString,
+    input_crossing_points: Vec<(WayID, Coord, usize)>,
+) -> Result<Vec<(LineString, Vec<(WayID, Coord, usize)>)>> {
+    // Just trim the start and end if we cross another sidewalk
+    let mut start = 0.0;
+    let mut end = 1.0;
+
+    if let Some((way, pt, _)) = input_crossing_points.get(0) {
+        if model.derived_ways[&way].tags.is("highway", "footway") {
+            if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
+                start = fraction;
+            }
+        }
+    }
+
+    if input_crossing_points.len() > 1
+        && let Some((way, pt, _)) = input_crossing_points.last()
+    {
+        if model.derived_ways[&way].tags.is("highway", "footway") {
+            if let Some(fraction) = input.line_locate_point(&Point::from(*pt)) {
+                end = fraction;
+            }
+        }
+    }
+
+    if start == 0.0 && end == 1.0 {
+        // Nothing to do
+        return Ok(vec![(input, input_crossing_points)]);
+    }
+
+    let Some(mut trimmed) = input
+        .line_split_twice(start, end)
+        .and_then(|r| r.into_second())
+    else {
+        bail!("Couldn't split from {start} to {end}");
+    };
+
+    // Then just recalculate crossing points
+    let crossing_points = model.make_crossing_points(&mut trimmed)?;
+    Ok(vec![(trimmed, crossing_points)])
 }
