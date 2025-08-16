@@ -103,8 +103,6 @@ impl Edits {
                 }
 
                 for new_sidewalk in sidewalks {
-                    let new_way_id = self.new_way_id();
-
                     // First insert new crossing nodes in the existing roads
                     let mut new_crossing_nodes: HashMap<HashedPoint, NodeID> = HashMap::new();
                     for (existing_way, pt, idx) in new_sidewalk.crossing_points {
@@ -126,7 +124,8 @@ impl Edits {
                                 tags,
                                 version: 0,
 
-                                way_ids: vec![existing_way, new_way_id],
+                                // Calculate later
+                                way_ids: Vec::new(),
                                 modified: true,
                             },
                         );
@@ -156,7 +155,8 @@ impl Edits {
                                     tags: Tags::empty(),
                                     version: 0,
 
-                                    way_ids: vec![new_way_id],
+                                    // Calculate later
+                                    way_ids: Vec::new(),
                                     modified: true,
                                 },
                             );
@@ -169,6 +169,7 @@ impl Edits {
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");
+                    let new_way_id = self.new_way_id();
                     self.new_ways.insert(
                         new_way_id,
                         Way {
@@ -188,33 +189,24 @@ impl Edits {
                 let changes = model.split_at_side_roads(way);
                 for way_id in changes.delete_new_sidewalks {
                     info!("Split: delete {way_id}");
-                    let way = self.new_ways.remove(&way_id).unwrap();
-                    // Remove the pointer to the deleted way from NEW nodes only
-                    for node_id in way.node_ids {
-                        if let Some(node) = self.new_nodes.get_mut(&node_id) {
-                            node.way_ids.retain(|w| *w != way_id);
-                        }
-                    }
-
-                    // TODO Might also be in here. Clean up node id refs again?
+                    // It could be in either, or even both?!
+                    self.new_ways.remove(&way_id);
                     self.change_way_nodes.remove(&way_id);
                 }
 
                 for node_ids in changes.create_new_sidewalks {
-                    let new_way_id = self.new_way_id();
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");
                     let mut pts = Vec::new();
                     for node_id in &node_ids {
-                        if let Some(node) = self.new_nodes.get_mut(&node_id) {
+                        if let Some(node) = self.new_nodes.get(&node_id) {
                             pts.push(node.pt);
-                            node.way_ids.push(new_way_id);
                         } else {
                             pts.push(model.derived_nodes[node_id].pt);
-                            // TODO Something needs to update way_ids there, right?
                         }
                     }
+                    let new_way_id = self.new_way_id();
                     self.new_ways.insert(
                         new_way_id,
                         Way {
@@ -234,8 +226,6 @@ impl Edits {
                 let (new_linestring, sidewalk1, insert_idx1, sidewalk2, insert_idx2) =
                     model.connect_crossing(crossing_node)?;
 
-                let new_way_id = self.new_way_id();
-
                 // Make new nodes for the endpoints
                 let new_node1 = self.new_node_id();
                 self.new_nodes.insert(
@@ -245,7 +235,8 @@ impl Edits {
                         tags: Tags::empty(),
                         version: 0,
 
-                        way_ids: vec![sidewalk1, new_way_id],
+                        // Calculate later
+                        way_ids: Vec::new(),
                         modified: true,
                     },
                 );
@@ -258,7 +249,8 @@ impl Edits {
                         tags: Tags::empty(),
                         version: 0,
 
-                        way_ids: vec![sidewalk2, new_way_id],
+                        // Calculate later
+                        way_ids: Vec::new(),
                         modified: true,
                     },
                 );
@@ -276,6 +268,7 @@ impl Edits {
                 let mut tags = Tags::empty();
                 tags.insert("highway", "footway");
                 tags.insert("footway", "crossing");
+                let new_way_id = self.new_way_id();
                 self.new_ways.insert(
                     new_way_id,
                     Way {
@@ -432,8 +425,20 @@ impl Speedwalk {
             way.modified = true;
 
             // Don't mark the way's nodes as modified
+        }
 
-            // TODO Update Node.way_ids here?
+        // Recalculate the mapping from node to way_ids
+        for node in self.derived_nodes.values_mut() {
+            node.way_ids.clear();
+        }
+        for (way_id, way) in &self.derived_ways {
+            for node_id in &way.node_ids {
+                self.derived_nodes
+                    .get_mut(node_id)
+                    .unwrap()
+                    .way_ids
+                    .push(*way_id);
+            }
         }
     }
 }

@@ -45,8 +45,9 @@ pub struct Node {
     pub tags: Tags,
     pub version: i32,
 
-    // TODO This is managed state, right?
+    // Derived state, recalculated
     pub way_ids: Vec<WayID>,
+    // Only used in the UI. TODO might be wrong.
     pub modified: bool,
 }
 
@@ -57,7 +58,7 @@ pub struct Way {
     pub tags: Tags,
     pub version: i32,
 
-    // TODO Manage derived state better
+    // TODO Manage derived state better. Everything below is suspect.
     pub kind: Kind,
     pub is_main_road: bool,
     pub modified: bool,
