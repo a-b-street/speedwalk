@@ -24,10 +24,16 @@ pub struct Edits {
     id_counter: usize,
 }
 
+#[derive(Clone, Copy, PartialEq, Serialize)]
+pub enum Side {
+    Left,
+    Right,
+}
+
 #[derive(Clone, Copy, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
-    MakeSidewalk(WayID, f64, f64, Option<f64>),
+    MakeSidewalk(WayID, Side, f64, Option<f64>),
     ConnectCrossing(NodeID),
     SplitAtSideRoads(WayID),
 }
@@ -76,27 +82,20 @@ impl Edits {
                     }
                 }
             }
-            UserCmd::MakeSidewalk(way, left_meters, right_meters, trim_back_from_crossings) => {
-                let sidewalks = model.make_sidewalks(
-                    way,
-                    left_meters,
-                    right_meters,
-                    trim_back_from_crossings,
-                )?;
+            UserCmd::MakeSidewalk(way, side, offset_meters, trim_back_from_crossings) => {
+                let sidewalks =
+                    model.make_sidewalks(way, side, offset_meters, trim_back_from_crossings)?;
 
                 // Update tags on the road
                 {
                     let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
                     cmds.push(TagCmd::Remove("sidewalk"));
 
-                    // TODO What if we failed to make a left/right sidewalk on just part of it?
-                    // Need to split this way
-                    if left_meters > 0. && right_meters > 0. {
-                        cmds.push(TagCmd::Set("sidewalk:both", "separate"));
-                    } else if left_meters > 0. {
+                    // TODO Wrong now
+                    if side == Side::Left {
                         cmds.push(TagCmd::Set("sidewalk:left", "separate"));
                         cmds.push(TagCmd::Set("sidewalk:right", "no"));
-                    } else if right_meters > 0. {
+                    } else {
                         cmds.push(TagCmd::Set("sidewalk:left", "no"));
                         cmds.push(TagCmd::Set("sidewalk:right", "separate"));
                     }

@@ -8,7 +8,7 @@ use osm_reader::{NodeID, WayID};
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, OffsetCurve};
 
-use crate::{Kind, Speedwalk};
+use crate::{Kind, Side, Speedwalk};
 
 pub struct NewSidewalk {
     pub linestring: LineString,
@@ -25,8 +25,8 @@ impl Speedwalk {
     pub fn make_sidewalks(
         &self,
         base: WayID,
-        left_meters: f64,
-        right_meters: f64,
+        side: Side,
+        offset_meters: f64,
         trim_back_from_crossings: Option<f64>,
     ) -> Result<Vec<NewSidewalk>> {
         // TODO Maintain this all the time
@@ -49,25 +49,26 @@ impl Speedwalk {
         );
 
         let mut lines_with_crossings = Vec::new();
-
-        for offset in vec![-left_meters, right_meters] {
-            if offset == 0.0 {
-                continue;
-            }
-            let Some(mut linestring) = self.derived_ways[&base].linestring.offset_curve(offset)
-            else {
-                continue;
-            };
-
-            // The original way might have excessive detail
-            linestring = linestring.simplify(&1.0);
-
-            // TODO If we're trimming back, we don't need to modify the linestring, but I guess it
-            // doesn't hurt
-            let crossing_points = self.make_crossing_points(&mut linestring)?;
-
-            lines_with_crossings.push((linestring, crossing_points));
+        let offset = if side == Side::Left {
+            -offset_meters
+        } else {
+            offset_meters
+        };
+        if offset == 0.0 {
+            return Ok(Vec::new());
         }
+        let Some(mut linestring) = self.derived_ways[&base].linestring.offset_curve(offset) else {
+            return Ok(Vec::new());
+        };
+
+        // The original way might have excessive detail
+        linestring = linestring.simplify(&1.0);
+
+        // TODO If we're trimming back, we don't need to modify the linestring, but I guess it
+        // doesn't hurt
+        let crossing_points = self.make_crossing_points(&mut linestring)?;
+
+        lines_with_crossings.push((linestring, crossing_points));
 
         // TODO Plumb options, or rethink trim_back_from_crossings
         let stop_at_other_sidewalks = true;

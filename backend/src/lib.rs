@@ -22,7 +22,7 @@ use utils::{Mercator, OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
 use crate::classify::{Kind, Quickfix};
-use crate::edits::{Edits, UserCmd};
+use crate::edits::{Edits, Side, UserCmd};
 
 static START: Once = Once::new();
 
@@ -146,20 +146,20 @@ impl Speedwalk {
         right_meters: f64,
         trim_back_from_crossings: Option<f64>,
     ) -> Result<String, JsValue> {
-        let sidewalks = self
-            .make_sidewalks(
-                WayID(base),
-                left_meters,
-                right_meters,
-                trim_back_from_crossings,
-            )
-            .map_err(err_to_js)?;
-
         let mut features = Vec::new();
-        for new_sidewalk in sidewalks {
-            features.push(self.mercator.to_wgs84_gj(&new_sidewalk.linestring));
-            for (_, new_node, _) in new_sidewalk.crossing_points {
-                features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));
+        for (side, meters) in [(Side::Left, left_meters), (Side::Right, right_meters)] {
+            if meters == 0.0 {
+                continue;
+            }
+            let sidewalks = self
+                .make_sidewalks(WayID(base), side, meters, trim_back_from_crossings)
+                .map_err(err_to_js)?;
+
+            for new_sidewalk in sidewalks {
+                features.push(self.mercator.to_wgs84_gj(&new_sidewalk.linestring));
+                for (_, new_node, _) in new_sidewalk.crossing_points {
+                    features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));
+                }
             }
         }
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
@@ -193,17 +193,32 @@ impl Speedwalk {
         trim_back_from_crossings: Option<f64>,
     ) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
-        edits
-            .apply_cmd(
-                UserCmd::MakeSidewalk(
-                    WayID(base),
-                    left_meters,
-                    right_meters,
-                    trim_back_from_crossings,
-                ),
-                self,
-            )
-            .map_err(err_to_js)?;
+        if left_meters > 0.0 {
+            edits
+                .apply_cmd(
+                    UserCmd::MakeSidewalk(
+                        WayID(base),
+                        Side::Left,
+                        left_meters,
+                        trim_back_from_crossings,
+                    ),
+                    self,
+                )
+                .map_err(err_to_js)?;
+        }
+        if right_meters > 0.0 {
+            edits
+                .apply_cmd(
+                    UserCmd::MakeSidewalk(
+                        WayID(base),
+                        Side::Right,
+                        right_meters,
+                        trim_back_from_crossings,
+                    ),
+                    self,
+                )
+                .map_err(err_to_js)?;
+        }
         self.edits = Some(edits);
         self.after_edit();
         Ok(())
@@ -232,21 +247,27 @@ impl Speedwalk {
             if way.tags.is("sidewalk", "both") {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
+                    Side::Left,
                     3.0,
+                    trim_back_from_crossings,
+                ));
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    Side::Right,
                     3.0,
                     trim_back_from_crossings,
                 ));
             } else if way.tags.is("sidewalk", "left") {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
+                    Side::Left,
                     3.0,
-                    0.0,
                     trim_back_from_crossings,
                 ));
             } else if way.tags.is("sidewalk", "right") {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
-                    0.0,
+                    Side::Right,
                     3.0,
                     trim_back_from_crossings,
                 ));
@@ -256,7 +277,13 @@ impl Speedwalk {
             {
                 cmds.push(UserCmd::MakeSidewalk(
                     *id,
+                    Side::Left,
                     3.0,
+                    trim_back_from_crossings,
+                ));
+                cmds.push(UserCmd::MakeSidewalk(
+                    *id,
+                    Side::Right,
                     3.0,
                     trim_back_from_crossings,
                 ));
