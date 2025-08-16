@@ -124,6 +124,10 @@ impl Speedwalk {
                     serde_json::to_value(&problem).map_err(err_to_js)?,
                 );
             }
+            f.set_property(
+                "node_ids",
+                way.node_ids.iter().map(|n| n.0).collect::<Vec<_>>(),
+            );
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)

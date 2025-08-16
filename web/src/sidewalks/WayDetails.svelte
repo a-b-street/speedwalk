@@ -188,3 +188,5 @@
     {/each}
   </tbody>
 </table>
+
+<p>Nodes: {pinnedWay.properties.node_ids}</p>

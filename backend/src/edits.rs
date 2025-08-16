@@ -171,6 +171,9 @@ impl Edits {
                         pts.push(*pt);
                     }
 
+                    // TODO Not sure why this is happening
+                    node_ids.dedup();
+
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
                     tags.insert("footway", "sidewalk");
