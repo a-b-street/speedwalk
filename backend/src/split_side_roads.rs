@@ -47,8 +47,14 @@ impl Speedwalk {
             }
         }
 
+        // Handle the last split
         if nodes_so_far.len() > 1 {
             create_new_sidewalks.push(std::mem::take(&mut nodes_so_far));
+        }
+
+        // If there's only one result, then no change happened!
+        if create_new_sidewalks.len() == 1 {
+            create_new_sidewalks.clear();
         }
 
         let mut delete_new_sidewalks = Vec::new();
