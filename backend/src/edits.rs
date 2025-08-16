@@ -440,6 +440,11 @@ impl Speedwalk {
                     .push(*way_id);
             }
         }
+        // TODO Not entirely sure why this happens, but...
+        for node in self.derived_nodes.values_mut() {
+            node.way_ids.sort();
+            node.way_ids.dedup();
+        }
     }
 }
 

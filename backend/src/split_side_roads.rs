@@ -23,6 +23,16 @@ impl Speedwalk {
                 continue;
             }
 
+            info!(
+                "we got {:?}, {:?}, {:?} for {:?}, {:?}, {:?}",
+                intersects(self, triple[0], way),
+                intersects(self, triple[1], way),
+                intersects(self, triple[2], way),
+                triple[0],
+                triple[1],
+                triple[2]
+            );
+
             if let (Intersects::NewSidewalk(s1), Intersects::Road, Intersects::NewSidewalk(s2)) = (
                 intersects(self, triple[0], way),
                 intersects(self, triple[1], way),
@@ -69,6 +79,7 @@ impl Speedwalk {
     }
 }
 
+#[derive(Debug)]
 enum Intersects {
     NewSidewalk(WayID),
     Road,
@@ -88,6 +99,9 @@ fn intersects(model: &Speedwalk, at: NodeID, base_sidewalk: WayID) -> Intersects
             roads += 1;
         }
     }
+
+    info!("at {at:?}, we have new_sidewalks {new_sidewalks:?} and {roads} roads");
+    info!("... raw is {:?}", model.derived_nodes[&at].way_ids);
 
     if new_sidewalks.len() == 1 && roads == 0 {
         Intersects::NewSidewalk(new_sidewalks[0])

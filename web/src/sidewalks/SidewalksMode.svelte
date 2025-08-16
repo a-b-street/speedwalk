@@ -67,10 +67,6 @@
     }
   }
 
-  function hasTags(features: Feature[]): boolean {
-    return features[0]?.properties?.tags;
-  }
-
   function makeAllSidewalks() {
     console.time("makeAllSidewalks");
     $backend!.editMakeAllSidewalks(
@@ -243,7 +239,7 @@
           visibility: showNodes ? "visible" : "none",
         }}
       >
-        <Popup openOn="hover" let:data canOpen={hasTags}>
+        <Popup openOn="hover" let:data>
           {@const props = data?.properties ?? {}}
           <h4>Node {props.id}</h4>
           <table>

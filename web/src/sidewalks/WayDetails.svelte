@@ -68,6 +68,11 @@
     $mutationCounter++;
   }
 
+  function splitForSideroads() {
+    $backend!.editSplitOneForSideRoads(BigInt(pinnedWay.properties.id));
+    $mutationCounter++;
+  }
+
   function capitalize(word: string) {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
@@ -127,6 +132,10 @@
     </div>
   </div>
 {/if}
+
+<button class="btn btn-secondary" on:click={() => splitForSideroads()}>
+  Split at side roads
+</button>
 
 <div class="card mb-3">
   <div class="card-header">Create a sidewalk</div>

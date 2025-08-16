@@ -303,6 +303,17 @@ impl Speedwalk {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = editSplitOneForSideRoads)]
+    pub fn edit_split_one_for_side_roads(&mut self, base: i64) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        edits
+            .apply_cmd(UserCmd::SplitAtSideRoads(WayID(base)), self)
+            .map_err(err_to_js)?;
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = editApplyQuickfix)]
     pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
         let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;
