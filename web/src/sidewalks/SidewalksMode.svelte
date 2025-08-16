@@ -42,7 +42,7 @@
   let fadeUnmodified = false;
 
   let trimBackFromCrossings = 0.0;
-  let assumeBothForMissing = false;
+  let assumeBothForMissing = true;
   let onlySeverances = false;
 
   $: updateModel($mutationCounter);
@@ -79,6 +79,13 @@
       onlySeverances,
     );
     console.timeEnd("makeAllSidewalks");
+    $mutationCounter++;
+  }
+
+  function splitForSideRoads() {
+    console.time("splitForSideRoads");
+    $backend!.editSplitForSideRoads();
+    console.timeEnd("splitForSideRoads");
     $mutationCounter++;
   }
 
@@ -143,6 +150,10 @@
 
         <button class="btn btn-secondary mb-3" on:click={makeAllSidewalks}>
           Make all sidewalks
+        </button>
+
+        <button class="btn btn-secondary" on:click={splitForSideRoads}>
+          Second pass, split for side roads
         </button>
 
         <button class="btn btn-secondary" on:click={connectAllCrossings}>

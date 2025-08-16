@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::Coord;
+use geo::{Coord, LineString};
 use itertools::{Itertools, Position};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
@@ -29,6 +29,7 @@ pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
     MakeSidewalk(WayID, f64, f64, Option<f64>),
     ConnectCrossing(NodeID),
+    SplitAtSideRoads(WayID),
 }
 
 pub enum TagCmd {
@@ -173,6 +174,52 @@ impl Edits {
                         Way {
                             node_ids,
                             linestring: new_sidewalk.linestring,
+                            tags,
+                            version: 0,
+
+                            kind: Kind::Sidewalk,
+                            is_main_road: false,
+                            modified: true,
+                        },
+                    );
+                }
+            }
+            UserCmd::SplitAtSideRoads(way) => {
+                let changes = model.split_at_side_roads(way);
+                for way_id in changes.delete_new_sidewalks {
+                    info!("Split: delete {way_id}");
+                    let way = self.new_ways.remove(&way_id).unwrap();
+                    // Remove the pointer to the deleted way from NEW nodes only
+                    for node_id in way.node_ids {
+                        if let Some(node) = self.new_nodes.get_mut(&node_id) {
+                            node.way_ids.retain(|w| *w != way_id);
+                        }
+                    }
+
+                    // TODO Might also be in here. Clean up node id refs again?
+                    self.change_way_nodes.remove(&way_id);
+                }
+
+                for node_ids in changes.create_new_sidewalks {
+                    let new_way_id = self.new_way_id();
+                    let mut tags = Tags::empty();
+                    tags.insert("highway", "footway");
+                    tags.insert("footway", "sidewalk");
+                    let mut pts = Vec::new();
+                    for node_id in &node_ids {
+                        if let Some(node) = self.new_nodes.get_mut(&node_id) {
+                            pts.push(node.pt);
+                            node.way_ids.push(new_way_id);
+                        } else {
+                            pts.push(model.derived_nodes[node_id].pt);
+                            // TODO Something needs to update way_ids there, right?
+                        }
+                    }
+                    self.new_ways.insert(
+                        new_way_id,
+                        Way {
+                            node_ids,
+                            linestring: LineString::new(pts),
                             tags,
                             version: 0,
 

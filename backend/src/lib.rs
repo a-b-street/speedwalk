@@ -8,6 +8,7 @@ mod crossings;
 mod edits;
 mod geometry;
 mod scrape;
+mod split_side_roads;
 
 use std::collections::HashMap;
 use std::sync::Once;
@@ -250,6 +251,27 @@ impl Speedwalk {
                     3.0,
                     trim_back_from_crossings,
                 ));
+            }
+        }
+
+        for cmd in cmds {
+            let mut edits = self.edits.take().unwrap();
+            // Some may fail; that's fine
+            let _ = edits.apply_cmd(cmd, self);
+            self.edits = Some(edits);
+            self.after_edit();
+        }
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editSplitForSideRoads)]
+    pub fn edit_split_for_side_roads(&mut self) -> Result<(), JsValue> {
+        // Any generated sidewalk could be a candidate to split
+        // TODO Doesn't this need to become a fixpoint? Some derived ways could totally vanish
+        let mut cmds = Vec::new();
+        for id in self.derived_ways.keys() {
+            if id.0 < 0 {
+                cmds.push(UserCmd::SplitAtSideRoads(*id));
             }
         }
 
