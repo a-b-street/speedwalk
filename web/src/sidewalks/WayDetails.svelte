@@ -76,7 +76,21 @@
   function capitalize(word: string) {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
+
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key == "b") {
+      $backend!.editMakeSidewalk(
+        BigInt(pinnedWay.properties.id),
+        distanceLeft,
+        distanceRight,
+        trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
+      );
+      $mutationCounter++;
+    }
+  }
 </script>
+
+<svelte:window on:keydown={onKeyDown} />
 
 <h5>
   <a

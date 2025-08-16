@@ -57,11 +57,16 @@ impl Speedwalk {
             }
         }
 
-        // Handle the last split
-        // TODO Check this carefully
-        let last_node = *self.derived_ways[&way].node_ids.last().unwrap();
-        if nodes_so_far.len() == 1 && nodes_so_far[0] != last_node {
-            nodes_so_far.push(last_node);
+        // Because of the windowing, we don't process the last 2 nodes
+        {
+            let all_nodes= &self.derived_ways[&way].node_ids;
+            if all_nodes.len() >= 3 {
+                let penultimate = all_nodes[all_nodes.len() - 2];
+                let last = all_nodes[all_nodes.len() - 1];
+                nodes_so_far.push(penultimate);
+                nodes_so_far.push(last);
+                nodes_so_far.dedup();
+            }
         }
 
         if nodes_so_far.len() > 1 {
