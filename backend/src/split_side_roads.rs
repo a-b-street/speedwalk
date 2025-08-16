@@ -58,6 +58,12 @@ impl Speedwalk {
         }
 
         // Handle the last split
+        // TODO Check this carefully
+        let last_node = *self.derived_ways[&way].node_ids.last().unwrap();
+        if nodes_so_far.len() == 1 && nodes_so_far[0] != last_node {
+            nodes_so_far.push(last_node);
+        }
+
         if nodes_so_far.len() > 1 {
             create_new_sidewalks.push(std::mem::take(&mut nodes_so_far));
         }
