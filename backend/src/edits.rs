@@ -131,7 +131,12 @@ impl Edits {
                         );
                         new_crossing_nodes.insert(HashedPoint::new(pt), node_id);
 
-                        let mut node_ids = model.derived_ways[&existing_way].node_ids.clone();
+                        // If we're doing this twice in the same round, use change_way_nodes!
+                        let mut node_ids = self
+                            .change_way_nodes
+                            .get(&existing_way)
+                            .cloned()
+                            .unwrap_or_else(|| model.derived_ways[&existing_way].node_ids.clone());
                         node_ids.insert(idx, node_id);
                         self.change_way_nodes.insert(existing_way, node_ids);
                     }
