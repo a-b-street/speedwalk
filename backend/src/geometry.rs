@@ -1,6 +1,9 @@
 use anyhow::Result;
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{Coord, Euclidean, Length, LineLocatePoint, LineString, Point, Simplify};
+use geo::{
+    Closest, ClosestPoint, Coord, Distance, Euclidean, Length, LineLocatePoint, LineString, Point,
+    Simplify,
+};
 use osm_reader::{NodeID, WayID};
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, OffsetCurve};
@@ -141,9 +144,50 @@ impl Speedwalk {
 
                 // Modify the new_sidewalk geometry
                 new_sidewalk.0.insert(idx1, pt);
+            } else {
+                // For the very first and last point in new_sidewalk, see if it's VERY CLOSE to
+                // something else
+                if let Some((pt, idx)) =
+                    find_almost_intersection(new_sidewalk.0[0], &way.linestring)
+                {
+                    crossings.push((*id, pt, idx));
+                } else if let Some((pt, idx)) =
+                    find_almost_intersection(*new_sidewalk.0.last().unwrap(), &way.linestring)
+                {
+                    crossings.push((*id, pt, idx));
+                }
             }
         }
         Ok(crossings)
+    }
+}
+
+fn find_almost_intersection(endpt: Coord, ls: &LineString) -> Option<(Coord, usize)> {
+    match ls.closest_point(&endpt.into()) {
+        Closest::Intersection(pt) | Closest::SinglePoint(pt) => {
+            if Euclidean.distance(endpt.into(), pt) < 1.0 {
+                // Find the line containing this point. Unfortunately have to be fuzzy.
+                let (idx, _) = ls
+                    .lines()
+                    .enumerate()
+                    .flat_map(|(idx, line)| {
+                        match line.closest_point(&pt) {
+                            Closest::Intersection(x) | Closest::SinglePoint(x) => {
+                                // Normally this distance should be practically 0 for the line
+                                // "containing" pt
+                                Some((idx, Euclidean.distance(x, pt)))
+                            }
+                            Closest::Indeterminate => None,
+                        }
+                    })
+                    .min_by_key(|(_, dist)| (*dist * 10e5) as usize)
+                    .unwrap();
+                Some((pt.into(), idx + 1))
+            } else {
+                None
+            }
+        }
+        Closest::Indeterminate => None,
     }
 }
 
