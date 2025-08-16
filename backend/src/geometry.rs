@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{
@@ -20,8 +22,6 @@ pub struct NewSidewalk {
 }
 
 impl Speedwalk {
-    // TODO Check crossing_points of each side don't involve the same ways. If so, the indices will
-    // be wrong
     pub fn make_sidewalks(
         &self,
         base: WayID,
@@ -124,6 +124,20 @@ impl Speedwalk {
                 connect_start_node,
                 connect_end_node,
             });
+        }
+
+        // TODO Check crossing_points of each side don't involve the same ways. If so, the indices will
+        // be wrong
+        // ... shouldnt be relevant now, but still seeing some kind of bug like this
+        let mut ways_crossed = HashSet::new();
+        for sidewalk in &results {
+            for (way, _, _) in &sidewalk.crossing_points {
+                if ways_crossed.contains(way) {
+                    error!("One new sidewalk has multiple crossings of {way}");
+                    return Ok(Vec::new());
+                }
+                ways_crossed.insert(*way);
+            }
         }
 
         Ok(results)

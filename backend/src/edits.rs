@@ -101,6 +101,27 @@ impl Edits {
                     }
                 }
 
+                // TODO Check upfront for a weird bug and skip.
+                let mut ok = true;
+                for new_sidewalk in &sidewalks {
+                    for (existing_way, _, idx) in &new_sidewalk.crossing_points {
+                        let node_ids = self
+                            .change_way_nodes
+                            .get(&existing_way)
+                            .unwrap_or_else(|| &model.derived_ways[existing_way].node_ids);
+                        if *idx > node_ids.len() {
+                            error!(
+                                "Unknown bug, crossing_points for {existing_way} are very broken"
+                            );
+                            ok = false;
+                        }
+                    }
+                }
+
+                if !ok {
+                    return Ok(());
+                }
+
                 for new_sidewalk in sidewalks {
                     // First insert new crossing nodes in the existing roads
                     let mut new_crossing_nodes: HashMap<HashedPoint, NodeID> = HashMap::new();
@@ -131,6 +152,7 @@ impl Edits {
                         new_crossing_nodes.insert(HashedPoint::new(pt), node_id);
 
                         // If we're doing this twice in the same round, use change_way_nodes!
+                        // TODO Still relevant?
                         let mut node_ids = self
                             .change_way_nodes
                             .get(&existing_way)
