@@ -192,8 +192,8 @@ impl Speedwalk {
         right_meters: f64,
         trim_back_from_crossings: Option<f64>,
     ) -> Result<(), JsValue> {
-        let mut edits = self.edits.take().unwrap();
         if left_meters > 0.0 {
+            let mut edits = self.edits.take().unwrap();
             edits
                 .apply_cmd(
                     UserCmd::MakeSidewalk(
@@ -205,8 +205,11 @@ impl Speedwalk {
                     self,
                 )
                 .map_err(err_to_js)?;
+            self.edits = Some(edits);
+            self.after_edit();
         }
         if right_meters > 0.0 {
+            let mut edits = self.edits.take().unwrap();
             edits
                 .apply_cmd(
                     UserCmd::MakeSidewalk(
@@ -218,9 +221,9 @@ impl Speedwalk {
                     self,
                 )
                 .map_err(err_to_js)?;
+            self.edits = Some(edits);
+            self.after_edit();
         }
-        self.edits = Some(edits);
-        self.after_edit();
         Ok(())
     }
 

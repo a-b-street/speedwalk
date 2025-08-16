@@ -453,6 +453,14 @@ impl Speedwalk {
             way.node_ids = node_ids.clone();
             way.modified = true;
 
+            // Need to recalculate geometry!
+            way.linestring = LineString::new(
+                way.node_ids
+                    .iter()
+                    .map(|n| self.derived_nodes[n].pt)
+                    .collect(),
+            );
+
             // Don't mark the way's nodes as modified
         }
 

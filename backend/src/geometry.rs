@@ -166,10 +166,14 @@ impl Speedwalk {
                     find_almost_intersection(new_sidewalk.0[0], &way.linestring)
                 {
                     crossings.push((*id, pt, idx));
+
+                    // We shouldnt have to modify new_sidewalk's geometry...
                 } else if let Some((pt, idx)) =
                     find_almost_intersection(*new_sidewalk.0.last().unwrap(), &way.linestring)
                 {
                     crossings.push((*id, pt, idx));
+
+                    // We shouldnt have to modify new_sidewalk's geometry...
                 }
             }
         }
