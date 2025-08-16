@@ -100,8 +100,8 @@ fn intersects(model: &Speedwalk, at: NodeID, base_sidewalk: WayID) -> Intersects
         }
     }
 
-    info!("at {at:?}, we have new_sidewalks {new_sidewalks:?} and {roads} roads");
-    info!("... raw is {:?}", model.derived_nodes[&at].way_ids);
+    //info!("at {at:?}, we have new_sidewalks {new_sidewalks:?} and {roads} roads");
+    //info!("... raw is {:?}", model.derived_nodes[&at].way_ids);
 
     if new_sidewalks.len() == 1 && roads == 0 {
         Intersects::NewSidewalk(new_sidewalks[0])

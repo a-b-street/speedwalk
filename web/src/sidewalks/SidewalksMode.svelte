@@ -242,6 +242,7 @@
         <Popup openOn="hover" let:data>
           {@const props = data?.properties ?? {}}
           <h4>Node {props.id}</h4>
+          <p>Ways: {props.way_ids}</p>
           <table>
             {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
               <tr>

@@ -6,6 +6,7 @@ export interface NodeProps {
   tags?: Record<string, string>;
   is_crossing: boolean;
   modified: boolean;
+  way_ids: number[];
 }
 
 export interface WayProps {

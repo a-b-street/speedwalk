@@ -95,6 +95,10 @@ impl Speedwalk {
             }
             f.set_property("is_crossing", node.is_crossing());
             f.set_property("modified", node.modified);
+            f.set_property(
+                "way_ids",
+                node.way_ids.iter().map(|w| w.0).collect::<Vec<_>>(),
+            );
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
