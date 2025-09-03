@@ -62,7 +62,7 @@ impl Speedwalk {
         };
 
         // The original way might have excessive detail
-        linestring = linestring.simplify(&1.0);
+        linestring = linestring.simplify(1.0);
 
         // TODO If we're trimming back, we don't need to modify the linestring, but I guess it
         // doesn't hurt
