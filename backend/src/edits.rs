@@ -343,7 +343,7 @@ impl Edits {
 
                     let mut tags = Tags::empty();
                     tags.insert("highway", "footway");
-                    tags.insert("footway", "crossing");
+                    tags.insert("footway", "sidewalk");
                     let new_way_id = self.new_way_id();
                     self.new_ways.insert(
                         new_way_id,
