@@ -33,7 +33,7 @@ impl Speedwalk {
                 triple[2]
             );
 
-            if let (Intersects::NewSidewalk(s1), Intersects::Road, Intersects::NewSidewalk(s2)) = (
+            if let (Intersects::NewSidewalk(_s1), Intersects::Road, Intersects::NewSidewalk(_s2)) = (
                 intersects(self, triple[0], way),
                 intersects(self, triple[1], way),
                 intersects(self, triple[2], way),
@@ -59,7 +59,7 @@ impl Speedwalk {
 
         // Because of the windowing, we don't process the last 2 nodes
         {
-            let all_nodes= &self.derived_ways[&way].node_ids;
+            let all_nodes = &self.derived_ways[&way].node_ids;
             if all_nodes.len() >= 3 {
                 let penultimate = all_nodes[all_nodes.len() - 2];
                 let last = all_nodes[all_nodes.len() - 1];

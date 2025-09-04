@@ -845,13 +845,14 @@ checksum = "5a5f39404a5da50712a4c1eecf25e90dd62b613502b7e925fd4e4d19b5c96512"
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/a-b-street/utils#1c52f4e0dad1eeaa69b08850b5de404b72b8542b"
+source = "git+https://github.com/a-b-street/utils#ce2e8b4faa70ca7a38622a5b4c3c84f2f54361fa"
 dependencies = [
  "anyhow",
  "fast_paths",
  "geo",
  "geo-types",
  "geojson",
+ "i_overlay",
  "log",
  "osm-reader",
  "serde",

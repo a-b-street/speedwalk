@@ -78,6 +78,13 @@
     $mutationCounter++;
   }
 
+  function makeAllSidewalksV2() {
+    console.time("makeAllSidewalksV2");
+    $backend!.editMakeAllSidewalksV2(assumeBothForMissing);
+    console.timeEnd("makeAllSidewalksV2");
+    $mutationCounter++;
+  }
+
   function splitForSideRoads() {
     console.time("splitForSideRoads");
     $backend!.editSplitForSideRoads();
@@ -146,6 +153,9 @@
 
         <button class="btn btn-secondary mb-3" on:click={makeAllSidewalks}>
           Make all sidewalks
+        </button>
+        <button class="btn btn-secondary mb-3" on:click={makeAllSidewalksV2}>
+          Make all sidewalks v2
         </button>
 
         <button class="btn btn-secondary" on:click={splitForSideRoads}>

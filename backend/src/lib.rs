@@ -7,6 +7,7 @@ mod classify;
 mod crossings;
 mod edits;
 mod geometry;
+mod make_sidewalks_v2;
 mod scrape;
 mod split_side_roads;
 
@@ -300,6 +301,19 @@ impl Speedwalk {
             self.edits = Some(edits);
             self.after_edit();
         }
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editMakeAllSidewalksV2)]
+    pub fn edit_make_all_sidewalks_v2(
+        &mut self,
+        assume_both_for_missing: bool,
+    ) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        // Ignore failure?
+        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2(assume_both_for_missing), self);
+        self.edits = Some(edits);
+        self.after_edit();
         Ok(())
     }
 

@@ -36,6 +36,8 @@ pub enum UserCmd {
     MakeSidewalk(WayID, Side, f64, Option<f64>),
     ConnectCrossing(NodeID),
     SplitAtSideRoads(WayID),
+    // assume both for missing
+    MakeAllSidewalksV2(bool),
 }
 
 pub enum TagCmd {
@@ -312,6 +314,52 @@ impl Edits {
                     },
                 );
             }
+            UserCmd::MakeAllSidewalksV2(assume_both_for_missing) => {
+                let new_linestrings = model.make_all_sidewalks_v2(assume_both_for_missing);
+
+                // Assume no involvement with anything existing; just make totally new geometry
+                let mut node_mapping: HashMap<(isize, isize), NodeID> = HashMap::new();
+                for linestring in new_linestrings {
+                    let mut node_ids = Vec::new();
+                    for pt in linestring.coords() {
+                        let id = node_mapping.entry(hashify_point(*pt)).or_insert_with(|| {
+                            let node_id = self.new_node_id();
+                            self.new_nodes.insert(
+                                node_id,
+                                Node {
+                                    pt: *pt,
+                                    tags: Tags::empty(),
+                                    version: 0,
+
+                                    // Calculate later
+                                    way_ids: Vec::new(),
+                                    modified: true,
+                                },
+                            );
+                            node_id
+                        });
+                        node_ids.push(*id);
+                    }
+
+                    let mut tags = Tags::empty();
+                    tags.insert("highway", "footway");
+                    tags.insert("footway", "crossing");
+                    let new_way_id = self.new_way_id();
+                    self.new_ways.insert(
+                        new_way_id,
+                        Way {
+                            node_ids,
+                            linestring,
+                            tags,
+                            version: 0,
+
+                            kind: Kind::Sidewalk,
+                            is_main_road: false,
+                            modified: true,
+                        },
+                    );
+                }
+            }
         }
         Ok(())
     }
@@ -532,4 +580,8 @@ impl HashedPoint {
 
 fn escape(v: &str) -> String {
     v.replace("\"", "&quot;")
+}
+
+fn hashify_point(pt: Coord) -> (isize, isize) {
+    ((pt.x * 10_000.0) as isize, (pt.y * 10_000.0) as isize)
 }
