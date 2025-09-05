@@ -29,6 +29,10 @@ impl Speedwalk {
             if way.kind == Kind::GoodRoadway {
                 continue;
             }
+            // Even if the lack of sidewalks is tagged in the old style, skip
+            if way.tags.is("sidewalk", "no") {
+                continue;
+            }
 
             splitters.push(way.linestring.clone());
         }
