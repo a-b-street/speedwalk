@@ -2,10 +2,9 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{BooleanOps, BoundingRect, Buffer, Coord, LineString, MultiLineString, Point, Rect};
+use geo::{BoundingRect, Buffer, Coord, LineString, MultiLineString, Point, Rect};
 use osm_reader::WayID;
 use rstar::{AABB, RTree, primitives::GeomWithData};
-use utils::split_polygon;
 
 use crate::{Kind, Speedwalk};
 
@@ -40,21 +39,11 @@ impl Speedwalk {
         let subtract_polygons = splitters_mls
             .buffer_with_style(BufferStyle::new(width).line_join(LineJoin::Round(width)));
 
-        info!("Splitting {} edges into faces", splitters_mls.0.len());
-        let study_area_bbox = self
-            .mercator
-            .to_mercator(&self.mercator.wgs84_bounds.to_polygon());
-        let faces = split_polygon(&study_area_bbox, splitters_mls.iter());
-
-        info!("Creating sidewalks for {} faces", faces.len());
         let mut new_sidewalks = Vec::new();
-        for face in faces {
-            // TODO Faster to find just the relevant edges and buffer repeatedly? Or prepare
-            // subtract_polygons?
-            let combo = face.difference(&subtract_polygons);
-            for polygon in combo {
-                new_sidewalks.push(polygon.into_inner().0);
-            }
+        for polygon in subtract_polygons {
+            let (exterior, holes) = polygon.into_inner();
+            new_sidewalks.push(exterior);
+            new_sidewalks.extend(holes);
         }
 
         info!(
