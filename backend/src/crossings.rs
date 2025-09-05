@@ -9,11 +9,12 @@ impl Speedwalk {
     pub fn get_all_crossings_on_severances(&self) -> Vec<NodeID> {
         let mut crossings = Vec::new();
         for (id, node) in &self.derived_nodes {
+            // If the road is already explicitly tagged, don't generate double crossings
             if node.is_crossing()
-                && node
-                    .way_ids
-                    .iter()
-                    .all(|way| self.derived_ways[way].is_severance())
+                && node.way_ids.iter().all(|way_id| {
+                    let way = &self.derived_ways[way_id];
+                    way.is_severance() && way.kind != Kind::GoodRoadway
+                })
             {
                 crossings.push(*id);
             }

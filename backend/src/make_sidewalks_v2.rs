@@ -25,6 +25,10 @@ impl Speedwalk {
             if !way.is_severance() {
                 continue;
             }
+            // There are already separate sidewalks here
+            if way.kind == Kind::GoodRoadway {
+                continue;
+            }
 
             splitters.push(way.linestring.clone());
         }
