@@ -22,9 +22,6 @@ impl Speedwalk {
             if way.kind == Kind::Sidewalk || way.kind == Kind::Other {
                 continue;
             }
-            if way.tags.is("highway", "service") {
-                continue;
-            }
             if !way.is_severance() {
                 continue;
             }
