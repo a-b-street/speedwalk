@@ -8,10 +8,14 @@ impl Speedwalk {
     pub fn make_all_sidewalks_v2(&self, _assume_both_for_missing: bool) -> Vec<LineString> {
         let mut splitters = Vec::new();
         for way in self.derived_ways.values() {
-            if way.kind != Kind::Sidewalk && way.kind != Kind::Other {
-                // TODO More granular, not every single road
-                splitters.push(way.linestring.clone());
+            if way.kind == Kind::Sidewalk || way.kind == Kind::Other {
+                continue;
             }
+            if way.tags.is("highway", "service") {
+                continue;
+            }
+
+            splitters.push(way.linestring.clone());
         }
         let splitters_mls = MultiLineString(splitters);
 
