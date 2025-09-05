@@ -623,8 +623,13 @@ impl HashedPoint {
     }
 }
 
+// TODO Use a library, if there's a lightweight one
 fn escape(v: &str) -> String {
     v.replace("\"", "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("&", "&amp;")
+        .replace("'", "&apos;")
 }
 
 fn hashify_point(pt: Coord) -> (isize, isize) {
