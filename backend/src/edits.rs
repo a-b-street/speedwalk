@@ -321,30 +321,32 @@ impl Edits {
                 let mut node_mapping: HashMap<(isize, isize), NodeID> = HashMap::new();
 
                 // Modify existing ways first
-                for (way_id, insert_points) in results.modify_existing {
-                    // TODO Handle this more carefully
-                    if insert_points.len() > 1 {
-                        continue;
-                    }
-                    let (pt, idx) = insert_points[0];
-
-                    let node_id = self.new_node_id();
-                    self.new_nodes.insert(
-                        node_id,
-                        Node {
-                            pt,
-                            tags: Tags::empty(),
-                            version: 0,
-
-                            // Calculate later
-                            way_ids: Vec::new(),
-                            modified: true,
-                        },
-                    );
-                    node_mapping.insert(hashify_point(pt), node_id);
+                for (way_id, mut insert_points) in results.modify_existing {
+                    // When there are multiple points, insert the highest indices first, so nothing
+                    // messes up
+                    insert_points.sort_by(|a, b| b.1.cmp(&a.1));
 
                     let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
-                    node_ids.insert(idx, node_id);
+
+                    for (pt, idx) in insert_points {
+                        let node_id = self.new_node_id();
+                        self.new_nodes.insert(
+                            node_id,
+                            Node {
+                                pt,
+                                tags: Tags::empty(),
+                                version: 0,
+
+                                // Calculate later
+                                way_ids: Vec::new(),
+                                modified: true,
+                            },
+                        );
+                        node_mapping.insert(hashify_point(pt), node_id);
+
+                        node_ids.insert(idx, node_id);
+                    }
+
                     self.change_way_nodes.insert(way_id, node_ids);
                 }
 

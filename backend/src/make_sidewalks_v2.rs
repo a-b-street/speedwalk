@@ -64,9 +64,7 @@ impl Speedwalk {
         // TODO Could rstar and prune for sure
         for (way_id, way) in &self.derived_ways {
             for new_sidewalk in &mut new_sidewalks {
-                if let Some((pt, idx1, idx2)) =
-                    find_single_intersection(new_sidewalk, &way.linestring)
-                {
+                for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, &way.linestring) {
                     // Modify the new sidewalk immediately
                     new_sidewalk.0.insert(idx1, pt);
 
@@ -86,11 +84,11 @@ impl Speedwalk {
     }
 }
 
-/// Returns the only point of intersection between ls1 and ls2, and the index to insert that point
-/// into ls1 and ls2. Bails if ls1 hits ls2 multiple times.
+/// Returns all points of intersection between ls1 and ls2, and the index to insert those points
+/// into ls1 and ls2. Returns highest idx1's first, so inserting repeatedly is safe.
 // TODO If the intersection is very close to an existing node on that way, ESPECIALLY a
 // crossing, snap to it
-fn find_single_intersection(ls1: &LineString, ls2: &LineString) -> Option<(Coord, usize, usize)> {
+fn find_all_intersections(ls1: &LineString, ls2: &LineString) -> Vec<(Coord, usize, usize)> {
     // TODO Consider https://docs.rs/geo/latest/geo/algorithm/sweep/struct.Intersections.html, but
     // handle the endpoint thing better
     let mut hits = Vec::new();
@@ -104,8 +102,7 @@ fn find_single_intersection(ls1: &LineString, ls2: &LineString) -> Option<(Coord
             }
         }
     }
-    if hits.len() != 1 {
-        return None;
-    }
-    hits.pop()
+    // Put idx1's highest first
+    hits.reverse();
+    hits
 }
