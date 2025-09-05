@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{BooleanOps, Buffer, Coord, LineString, MultiLineString};
+use geo::{BooleanOps, BoundingRect, Buffer, Coord, LineString, MultiLineString, Point, Rect};
 use osm_reader::WayID;
+use rstar::{AABB, RTree, primitives::GeomWithData};
 use utils::split_polygon;
 
 use crate::{Kind, Speedwalk};
@@ -57,20 +58,34 @@ impl Speedwalk {
         }
 
         info!(
+            "Building rtree for {} existing ways",
+            self.derived_ways.len()
+        );
+        let closest_way = RTree::bulk_load(
+            self.derived_ways
+                .iter()
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+
+        info!(
             "Finding existing roads these {} new sidewalks cross",
             new_sidewalks.len()
         );
         let mut modify_existing = HashMap::new();
-        // TODO Could rstar and prune for sure
-        for (way_id, way) in &self.derived_ways {
-            for new_sidewalk in &mut new_sidewalks {
-                for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, &way.linestring) {
+        for new_sidewalk in &mut new_sidewalks {
+            // TODO Since new_sidewalk usually covers a very big block, its bbox is huge. rstar
+            // pruning will help much more if we can split the new linestring into meaningful
+            // chunks first.
+            let bbox = aabb(new_sidewalk);
+            for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
+                for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, obj.geom()) {
                     // Modify the new sidewalk immediately
                     new_sidewalk.0.insert(idx1, pt);
 
                     // Remember to modify the existing way
                     modify_existing
-                        .entry(*way_id)
+                        .entry(obj.data)
                         .or_insert_with(Vec::new)
                         .push((pt, idx2));
                 }
@@ -105,4 +120,13 @@ fn find_all_intersections(ls1: &LineString, ls2: &LineString) -> Vec<(Coord, usi
     // Put idx1's highest first
     hits.reverse();
     hits
+}
+
+// TODO Upstream
+fn aabb<G: BoundingRect<f64, Output = Option<Rect<f64>>>>(geom: &G) -> AABB<Point> {
+    let bbox: Rect = geom.bounding_rect().unwrap().into();
+    AABB::from_corners(
+        Point::new(bbox.min().x, bbox.min().y),
+        Point::new(bbox.max().x, bbox.max().y),
+    )
 }
