@@ -287,13 +287,26 @@ impl Edits {
                 );
 
                 // Split the existing sidewalks by these new nodes
-                let mut node_ids1 = model.derived_ways[&sidewalk1].node_ids.clone();
-                node_ids1.insert(insert_idx1, new_node1);
-                self.change_way_nodes.insert(sidewalk1, node_ids1);
+                if sidewalk1 == sidewalk2 {
+                    // Special case if it's the same sidewalk twice!
+                    let mut node_ids = model.derived_ways[&sidewalk1].node_ids.clone();
+                    if insert_idx1 > insert_idx2 {
+                        node_ids.insert(insert_idx1, new_node1);
+                        node_ids.insert(insert_idx2, new_node2);
+                    } else {
+                        node_ids.insert(insert_idx2, new_node2);
+                        node_ids.insert(insert_idx1, new_node1);
+                    }
+                    self.change_way_nodes.insert(sidewalk1, node_ids);
+                } else {
+                    let mut node_ids1 = model.derived_ways[&sidewalk1].node_ids.clone();
+                    node_ids1.insert(insert_idx1, new_node1);
+                    self.change_way_nodes.insert(sidewalk1, node_ids1);
 
-                let mut node_ids2 = model.derived_ways[&sidewalk2].node_ids.clone();
-                node_ids2.insert(insert_idx2, new_node2);
-                self.change_way_nodes.insert(sidewalk2, node_ids2);
+                    let mut node_ids2 = model.derived_ways[&sidewalk2].node_ids.clone();
+                    node_ids2.insert(insert_idx2, new_node2);
+                    self.change_way_nodes.insert(sidewalk2, node_ids2);
+                }
 
                 // Make the new way
                 let mut tags = Tags::empty();

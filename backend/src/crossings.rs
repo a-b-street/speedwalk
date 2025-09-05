@@ -21,6 +21,7 @@ impl Speedwalk {
         crossings
     }
 
+    // TODO Explain return type
     pub fn connect_crossing(
         &self,
         crossing_node: NodeID,
