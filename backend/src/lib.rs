@@ -6,10 +6,8 @@ extern crate log;
 mod classify;
 mod crossings;
 mod edits;
-mod geometry;
 mod make_sidewalks_v2;
 mod scrape;
-mod split_side_roads;
 
 use std::collections::HashMap;
 use std::sync::Once;
@@ -23,7 +21,7 @@ use utils::{Mercator, OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
 use crate::classify::{Kind, Quickfix};
-use crate::edits::{Edits, Side, UserCmd};
+use crate::edits::{Edits, UserCmd};
 
 static START: Once = Once::new();
 
@@ -139,33 +137,6 @@ impl Speedwalk {
         serde_json::to_string(&Metrics::new(self)).map_err(err_to_js)
     }
 
-    #[wasm_bindgen(js_name = previewSidewalk)]
-    pub fn preview_sidewalk(
-        &self,
-        base: i64,
-        left_meters: f64,
-        right_meters: f64,
-        trim_back_from_crossings: Option<f64>,
-    ) -> Result<String, JsValue> {
-        let mut features = Vec::new();
-        for (side, meters) in [(Side::Left, left_meters), (Side::Right, right_meters)] {
-            if meters == 0.0 {
-                continue;
-            }
-            let sidewalks = self
-                .make_sidewalks(WayID(base), side, meters, trim_back_from_crossings)
-                .map_err(err_to_js)?;
-
-            for new_sidewalk in sidewalks {
-                features.push(self.mercator.to_wgs84_gj(&new_sidewalk.linestring));
-                for (_, new_node, _) in new_sidewalk.crossing_points {
-                    features.push(self.mercator.to_wgs84_gj(&Point::from(new_node)));
-                }
-            }
-        }
-        Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
-    }
-
     #[wasm_bindgen(js_name = getSideLocations)]
     pub fn get_side_locations(&self, id: i64) -> Result<String, JsValue> {
         let linestring = &self.derived_ways[&WayID(id)].linestring;
@@ -185,156 +156,13 @@ impl Speedwalk {
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 
-    #[wasm_bindgen(js_name = editMakeSidewalk)]
-    pub fn edit_make_sidewalk(
-        &mut self,
-        base: i64,
-        left_meters: f64,
-        right_meters: f64,
-        trim_back_from_crossings: Option<f64>,
-    ) -> Result<(), JsValue> {
-        if left_meters > 0.0 {
-            let mut edits = self.edits.take().unwrap();
-            edits
-                .apply_cmd(
-                    UserCmd::MakeSidewalk(
-                        WayID(base),
-                        Side::Left,
-                        left_meters,
-                        trim_back_from_crossings,
-                    ),
-                    self,
-                )
-                .map_err(err_to_js)?;
-            self.edits = Some(edits);
-            self.after_edit();
-        }
-        if right_meters > 0.0 {
-            let mut edits = self.edits.take().unwrap();
-            edits
-                .apply_cmd(
-                    UserCmd::MakeSidewalk(
-                        WayID(base),
-                        Side::Right,
-                        right_meters,
-                        trim_back_from_crossings,
-                    ),
-                    self,
-                )
-                .map_err(err_to_js)?;
-            self.edits = Some(edits);
-            self.after_edit();
-        }
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = editMakeAllSidewalks)]
-    pub fn edit_make_all_sidewalks(
-        &mut self,
-        trim_back_from_crossings: Option<f64>,
-        assume_both_for_missing: bool,
-        only_severances: bool,
-    ) -> Result<(), JsValue> {
-        let mut cmds = Vec::new();
-
-        // The heuristics for stopping sidewalks at the correct spot work better if side roads
-        // (tend to be smaller) are processed last. This is best effort.
-        let mut candidates: Vec<(&WayID, &Way)> = self.derived_ways.iter().collect();
-        candidates.sort_by_key(|(_, way)| (Euclidean.length(&way.linestring) * 100.0) as usize);
-        candidates.reverse();
-
-        for (id, way) in candidates {
-            if only_severances && !way.is_severance() {
-                continue;
-            }
-
-            if way.tags.is("sidewalk", "both") {
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Left,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Right,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-            } else if way.tags.is("sidewalk", "left") {
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Left,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-            } else if way.tags.is("sidewalk", "right") {
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Right,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-            } else if assume_both_for_missing
-                && way.kind != Kind::Other
-                && !way.tags.is_any("sidewalk", vec!["no", "none"])
-            {
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Left,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-                cmds.push(UserCmd::MakeSidewalk(
-                    *id,
-                    Side::Right,
-                    3.0,
-                    trim_back_from_crossings,
-                ));
-            }
-        }
-
-        for cmd in cmds {
-            let mut edits = self.edits.take().unwrap();
-            // Some may fail; that's fine
-            let _ = edits.apply_cmd(cmd, self);
-            self.edits = Some(edits);
-            self.after_edit();
-        }
-        Ok(())
-    }
-
     #[wasm_bindgen(js_name = editMakeAllSidewalksV2)]
-    pub fn edit_make_all_sidewalks_v2(
-        &mut self,
-        assume_both_for_missing: bool,
-    ) -> Result<(), JsValue> {
+    pub fn edit_make_all_sidewalks_v2(&mut self) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
         // Ignore failure?
-        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2(assume_both_for_missing), self);
+        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2, self);
         self.edits = Some(edits);
         self.after_edit();
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = editSplitForSideRoads)]
-    pub fn edit_split_for_side_roads(&mut self) -> Result<(), JsValue> {
-        // Any generated sidewalk could be a candidate to split
-        // TODO Doesn't this need to become a fixpoint? Some derived ways could totally vanish
-        let mut cmds = Vec::new();
-        for id in self.derived_ways.keys() {
-            if id.0 < 0 {
-                cmds.push(UserCmd::SplitAtSideRoads(*id));
-            }
-        }
-
-        for cmd in cmds {
-            let mut edits = self.edits.take().unwrap();
-            // Some may fail; that's fine
-            let _ = edits.apply_cmd(cmd, self);
-            self.edits = Some(edits);
-            self.after_edit();
-        }
         Ok(())
     }
 
@@ -352,17 +180,6 @@ impl Speedwalk {
             self.edits = Some(edits);
             self.after_edit();
         }
-        Ok(())
-    }
-
-    #[wasm_bindgen(js_name = editSplitOneForSideRoads)]
-    pub fn edit_split_one_for_side_roads(&mut self, base: i64) -> Result<(), JsValue> {
-        let mut edits = self.edits.take().unwrap();
-        edits
-            .apply_cmd(UserCmd::SplitAtSideRoads(WayID(base)), self)
-            .map_err(err_to_js)?;
-        self.edits = Some(edits);
-        self.after_edit();
         Ok(())
     }
 

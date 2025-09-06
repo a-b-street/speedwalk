@@ -1,59 +1,9 @@
 <script lang="ts">
   import type { Feature, LineString } from "geojson";
   import { backend, mutationCounter } from "../";
-  import { type WayProps, problems, quickfixes, previewSidewalk } from "./";
+  import { type WayProps, problems, quickfixes } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
-  export let trimBackFromCrossings: number;
-
-  let makeLeft = false;
-  let distanceLeft = 3.0;
-  let makeRight = false;
-  let distanceRight = 3.0;
-
-  function updateSidewalkPreview(
-    makeLeft: boolean,
-    distanceLeft: number,
-    makeRight: boolean,
-    distanceRight: number,
-    trimBackFromCrossings: number,
-  ) {
-    if (!makeLeft && !makeRight) {
-      $previewSidewalk = null;
-      return;
-    }
-    try {
-      $previewSidewalk = JSON.parse(
-        $backend!.previewSidewalk(
-          BigInt(pinnedWay.properties.id),
-          makeLeft ? distanceLeft : 0,
-          makeRight ? distanceRight : 0,
-          trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
-        ),
-      );
-    } catch (err) {
-      window.alert(err);
-    }
-  }
-  $: updateSidewalkPreview(
-    makeLeft,
-    distanceLeft,
-    makeRight,
-    distanceRight,
-    trimBackFromCrossings,
-  );
-
-  function makeSidewalk() {
-    $backend!.editMakeSidewalk(
-      BigInt(pinnedWay.properties.id),
-      makeLeft ? distanceLeft : 0,
-      makeRight ? distanceRight : 0,
-      trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
-    );
-    $mutationCounter++;
-    makeLeft = false;
-    makeRight = false;
-  }
 
   function applyQuickfix() {
     $backend!.editApplyQuickfix(
@@ -68,29 +18,10 @@
     $mutationCounter++;
   }
 
-  function splitForSideroads() {
-    $backend!.editSplitOneForSideRoads(BigInt(pinnedWay.properties.id));
-    $mutationCounter++;
-  }
-
   function capitalize(word: string) {
     return word.charAt(0).toUpperCase() + word.slice(1);
   }
-
-  function onKeyDown(e: KeyboardEvent) {
-    if (e.key == "b") {
-      $backend!.editMakeSidewalk(
-        BigInt(pinnedWay.properties.id),
-        distanceLeft,
-        distanceRight,
-        trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
-      );
-      $mutationCounter++;
-    }
-  }
 </script>
-
-<svelte:window on:keydown={onKeyDown} />
 
 <h5>
   <a
@@ -146,45 +77,6 @@
     </div>
   </div>
 {/if}
-
-<button class="btn btn-secondary" on:click={() => splitForSideroads()}>
-  Split at side roads
-</button>
-
-<div class="card mb-3">
-  <div class="card-header">Create a sidewalk</div>
-  <div class="card-body">
-    <label>
-      <input type="checkbox" bind:checked={makeLeft} />
-      Left
-      <input
-        type="number"
-        bind:value={distanceLeft}
-        min="0.1"
-        max="10"
-        step="0.1"
-        disabled={!makeLeft}
-      />
-    </label>
-
-    <label>
-      <input type="checkbox" bind:checked={makeRight} />
-      Right
-      <input
-        type="number"
-        bind:value={distanceRight}
-        min="0.1"
-        max="10"
-        step="0.1"
-        disabled={!makeRight}
-      />
-    </label>
-
-    <button class="btn btn-secondary mt-3" on:click={makeSidewalk}>
-      Confirm
-    </button>
-  </div>
-</div>
 
 <table class="table">
   <thead>

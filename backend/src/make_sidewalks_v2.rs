@@ -16,7 +16,7 @@ pub struct NewSidewalkResults {
 }
 
 impl Speedwalk {
-    pub fn make_all_sidewalks_v2(&self, _assume_both_for_missing: bool) -> NewSidewalkResults {
+    pub fn make_all_sidewalks_v2(&self) -> NewSidewalkResults {
         let mut splitters = Vec::new();
         for way in self.derived_ways.values() {
             if way.kind == Kind::Sidewalk || way.kind == Kind::Other {

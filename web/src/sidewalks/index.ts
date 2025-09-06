@@ -1,6 +1,3 @@
-import { type Writable, writable } from "svelte/store";
-import type { FeatureCollection, LineString, Point } from "geojson";
-
 export interface NodeProps {
   id: number;
   tags?: Record<string, string>;
@@ -22,6 +19,7 @@ export interface WayProps {
   fix?: keyof typeof quickfixes;
   problem?: keyof typeof problems;
   modified: boolean;
+  node_ids: number[];
 }
 
 export let colors = {
@@ -45,7 +43,3 @@ export let problems = {
   OldStyleSidewalk: "Old-style sidewalk tag included",
   MissingNewStyle: "New-style tags missing on one or both sides",
 };
-
-export let previewSidewalk: Writable<FeatureCollection<
-  LineString | Point
-> | null> = writable(null);

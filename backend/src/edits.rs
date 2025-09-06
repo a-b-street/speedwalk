@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
 use geo::{Coord, LineString};
-use itertools::{Itertools, Position};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -24,20 +23,11 @@ pub struct Edits {
     id_counter: usize,
 }
 
-#[derive(Clone, Copy, PartialEq, Serialize)]
-pub enum Side {
-    Left,
-    Right,
-}
-
 #[derive(Clone, Copy, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
-    MakeSidewalk(WayID, Side, f64, Option<f64>),
     ConnectCrossing(NodeID),
-    SplitAtSideRoads(WayID),
-    // assume both for missing
-    MakeAllSidewalksV2(bool),
+    MakeAllSidewalksV2,
 }
 
 pub enum TagCmd {
@@ -82,175 +72,6 @@ impl Edits {
                     Quickfix::SetOldSidewalkNo => {
                         cmds.push(TagCmd::Set("sidewalk", "no"));
                     }
-                }
-            }
-            UserCmd::MakeSidewalk(way, side, offset_meters, trim_back_from_crossings) => {
-                let sidewalks =
-                    model.make_sidewalks(way, side, offset_meters, trim_back_from_crossings)?;
-
-                // Update tags on the road
-                {
-                    let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
-                    cmds.push(TagCmd::Remove("sidewalk"));
-
-                    // TODO Wrong now
-                    if side == Side::Left {
-                        cmds.push(TagCmd::Set("sidewalk:left", "separate"));
-                        cmds.push(TagCmd::Set("sidewalk:right", "no"));
-                    } else {
-                        cmds.push(TagCmd::Set("sidewalk:left", "no"));
-                        cmds.push(TagCmd::Set("sidewalk:right", "separate"));
-                    }
-                }
-
-                // TODO Check upfront for a weird bug and skip.
-                let mut ok = true;
-                for new_sidewalk in &sidewalks {
-                    for (existing_way, _, idx) in &new_sidewalk.crossing_points {
-                        let node_ids = self
-                            .change_way_nodes
-                            .get(&existing_way)
-                            .unwrap_or_else(|| &model.derived_ways[existing_way].node_ids);
-                        if *idx > node_ids.len() {
-                            error!(
-                                "Unknown bug, crossing_points for {existing_way} are very broken"
-                            );
-                            ok = false;
-                        }
-                    }
-                }
-
-                if !ok {
-                    return Ok(());
-                }
-
-                for new_sidewalk in sidewalks {
-                    // First insert new crossing nodes in the existing roads
-                    let mut new_crossing_nodes: HashMap<HashedPoint, NodeID> = HashMap::new();
-                    for (existing_way, pt, idx) in new_sidewalk.crossing_points {
-                        let node_id = self.new_node_id();
-                        let mut tags = Tags::empty();
-                        // TODO Do this when we cross service roads or not?
-                        // TODO This is wrong when a small new segment ends at a road (the new
-                        // sidewalk segment probably shouldn't exist at all)
-                        if !model.derived_ways[&existing_way]
-                            .tags
-                            .is("highway", "footway")
-                        {
-                            tags.insert("highway", "crossing");
-                        }
-                        self.new_nodes.insert(
-                            node_id,
-                            Node {
-                                pt,
-                                tags,
-                                version: 0,
-
-                                // Calculate later
-                                way_ids: Vec::new(),
-                                modified: true,
-                            },
-                        );
-                        new_crossing_nodes.insert(HashedPoint::new(pt), node_id);
-
-                        // If we're doing this twice in the same round, use change_way_nodes!
-                        // TODO Still relevant?
-                        let mut node_ids = self
-                            .change_way_nodes
-                            .get(&existing_way)
-                            .cloned()
-                            .unwrap_or_else(|| model.derived_ways[&existing_way].node_ids.clone());
-                        node_ids.insert(idx, node_id);
-                        self.change_way_nodes.insert(existing_way, node_ids);
-                    }
-
-                    // Now make the new sidewalk way
-                    let mut node_ids = Vec::new();
-                    let mut pts = Vec::new();
-                    for (pos, pt) in new_sidewalk.linestring.coords().with_position() {
-                        if pos == Position::First && new_sidewalk.connect_start_node.is_some() {
-                            node_ids.push(new_sidewalk.connect_start_node.unwrap());
-                        } else if pos == Position::Last && new_sidewalk.connect_end_node.is_some() {
-                            node_ids.push(new_sidewalk.connect_end_node.unwrap());
-                        } else if let Some(id) = new_crossing_nodes.get(&HashedPoint::new(*pt)) {
-                            node_ids.push(*id);
-                        } else {
-                            let id = self.new_node_id();
-                            self.new_nodes.insert(
-                                id,
-                                Node {
-                                    pt: *pt,
-                                    tags: Tags::empty(),
-                                    version: 0,
-
-                                    // Calculate later
-                                    way_ids: Vec::new(),
-                                    modified: true,
-                                },
-                            );
-                            node_ids.push(id);
-                        }
-
-                        pts.push(*pt);
-                    }
-
-                    // TODO Not sure why this is happening
-                    node_ids.dedup();
-
-                    let mut tags = Tags::empty();
-                    tags.insert("highway", "footway");
-                    tags.insert("footway", "sidewalk");
-                    let new_way_id = self.new_way_id();
-                    self.new_ways.insert(
-                        new_way_id,
-                        Way {
-                            node_ids,
-                            linestring: new_sidewalk.linestring,
-                            tags,
-                            version: 0,
-
-                            kind: Kind::Sidewalk,
-                            is_main_road: false,
-                            modified: true,
-                        },
-                    );
-                }
-            }
-            UserCmd::SplitAtSideRoads(way) => {
-                let changes = model.split_at_side_roads(way);
-                for way_id in changes.delete_new_sidewalks {
-                    info!("Split: delete {way_id}");
-                    // It could be in either, or even both?!
-                    self.new_ways.remove(&way_id);
-                    self.change_way_nodes.remove(&way_id);
-                }
-
-                for node_ids in changes.create_new_sidewalks {
-                    let mut tags = Tags::empty();
-                    tags.insert("highway", "footway");
-                    tags.insert("footway", "sidewalk");
-                    let mut pts = Vec::new();
-                    for node_id in &node_ids {
-                        if let Some(node) = self.new_nodes.get(&node_id) {
-                            pts.push(node.pt);
-                        } else {
-                            pts.push(model.derived_nodes[node_id].pt);
-                        }
-                    }
-                    let new_way_id = self.new_way_id();
-                    self.new_ways.insert(
-                        new_way_id,
-                        Way {
-                            node_ids,
-                            linestring: LineString::new(pts),
-                            tags,
-                            version: 0,
-
-                            kind: Kind::Sidewalk,
-                            is_main_road: false,
-                            modified: true,
-                        },
-                    );
                 }
             }
             UserCmd::ConnectCrossing(crossing_node) => {
@@ -327,11 +148,11 @@ impl Edits {
                     },
                 );
             }
-            UserCmd::MakeAllSidewalksV2(assume_both_for_missing) => {
-                let results = model.make_all_sidewalks_v2(assume_both_for_missing);
+            UserCmd::MakeAllSidewalksV2 => {
+                let results = model.make_all_sidewalks_v2();
 
                 // TODO Or use+modify new_nodes immediately or something?
-                let mut node_mapping: HashMap<(isize, isize), NodeID> = HashMap::new();
+                let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
 
                 // Modify existing ways first
                 for (way_id, mut insert_points) in results.modify_existing {
@@ -355,7 +176,7 @@ impl Edits {
                                 modified: true,
                             },
                         );
-                        node_mapping.insert(hashify_point(pt), node_id);
+                        node_mapping.insert(HashedPoint::new(pt), node_id);
 
                         node_ids.insert(idx, node_id);
                     }
@@ -367,22 +188,24 @@ impl Edits {
                 for linestring in results.new_sidewalks {
                     let mut node_ids = Vec::new();
                     for pt in linestring.coords() {
-                        let id = node_mapping.entry(hashify_point(*pt)).or_insert_with(|| {
-                            let node_id = self.new_node_id();
-                            self.new_nodes.insert(
-                                node_id,
-                                Node {
-                                    pt: *pt,
-                                    tags: Tags::empty(),
-                                    version: 0,
+                        let id = node_mapping
+                            .entry(HashedPoint::new(*pt))
+                            .or_insert_with(|| {
+                                let node_id = self.new_node_id();
+                                self.new_nodes.insert(
+                                    node_id,
+                                    Node {
+                                        pt: *pt,
+                                        tags: Tags::empty(),
+                                        version: 0,
 
-                                    // Calculate later
-                                    way_ids: Vec::new(),
-                                    modified: true,
-                                },
-                            );
-                            node_id
-                        });
+                                        // Calculate later
+                                        way_ids: Vec::new(),
+                                        modified: true,
+                                    },
+                                );
+                                node_id
+                            });
                         node_ids.push(*id);
                     }
 
@@ -618,8 +441,7 @@ struct HashedPoint(isize, isize);
 
 impl HashedPoint {
     fn new(pt: Coord) -> Self {
-        // cm precision
-        Self((pt.x * 100.0) as isize, (pt.y * 100.0) as isize)
+        Self((pt.x * 10_000.0) as isize, (pt.y * 10_000.0) as isize)
     }
 }
 
@@ -630,8 +452,4 @@ fn escape(v: &str) -> String {
         .replace(">", "&gt;")
         .replace("&", "&amp;")
         .replace("'", "&apos;")
-}
-
-fn hashify_point(pt: Coord) -> (isize, isize) {
-    ((pt.x * 10_000.0) as isize, (pt.y * 10_000.0) as isize)
 }

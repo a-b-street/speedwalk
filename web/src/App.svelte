@@ -4,7 +4,6 @@
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { onMount } from "svelte";
   import { backend, mode } from "./";
-  import { previewSidewalk } from "./sidewalks/";
   import "bootstrap/dist/css/bootstrap.min.css";
   import type { Map } from "maplibre-gl";
   import {
@@ -94,7 +93,6 @@
 
   function clear() {
     $backend = null;
-    $previewSidewalk = null;
   }
 
   let sidebarDiv: HTMLDivElement;

@@ -1,7 +1,7 @@
 <script lang="ts">
   import Edits from "../Edits.svelte";
   import { backend, mutationCounter } from "../";
-  import { previewSidewalk, colors, type NodeProps, type WayProps } from "./";
+  import { colors, type NodeProps, type WayProps } from "./";
   import type { Map, MapMouseEvent } from "maplibre-gl";
   import {
     GeoJSON,
@@ -17,8 +17,6 @@
   import {
     emptyGeojson,
     constructMatchExpression,
-    isLine,
-    isPoint,
   } from "svelte-utils/map";
   import { Checkbox } from "svelte-utils";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
@@ -40,10 +38,6 @@
   let showNodes = false;
   let showExtraContext = false;
   let fadeUnmodified = false;
-
-  let trimBackFromCrossings = 0.0;
-  let assumeBothForMissing = true;
-  let onlySeverances = false;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -67,28 +61,10 @@
     }
   }
 
-  function makeAllSidewalks() {
-    console.time("makeAllSidewalks");
-    $backend!.editMakeAllSidewalks(
-      trimBackFromCrossings > 0 ? trimBackFromCrossings : null,
-      assumeBothForMissing,
-      onlySeverances,
-    );
-    console.timeEnd("makeAllSidewalks");
-    $mutationCounter++;
-  }
-
   function makeAllSidewalksV2() {
     console.time("makeAllSidewalksV2");
-    $backend!.editMakeAllSidewalksV2(assumeBothForMissing);
+    $backend!.editMakeAllSidewalksV2();
     console.timeEnd("makeAllSidewalksV2");
-    $mutationCounter++;
-  }
-
-  function splitForSideRoads() {
-    console.time("splitForSideRoads");
-    $backend!.editSplitForSideRoads();
-    console.timeEnd("splitForSideRoads");
     $mutationCounter++;
   }
 
@@ -108,10 +84,6 @@
     return "unknown";
   }
 
-  $: if (!pinnedWay) {
-    $previewSidewalk = null;
-  }
-
   $: pinnedWaySides = pinnedWay
     ? JSON.parse($backend!.getSideLocations(BigInt(pinnedWay.properties.id)))
     : emptyGeojson();
@@ -124,42 +96,14 @@
     <Edits />
 
     {#if pinnedWay}
-      <WayDetails {pinnedWay} {trimBackFromCrossings} />
+      <WayDetails {pinnedWay} />
     {/if}
-
-    <!-- TODO Visually part of two sets of controls -->
-    <label class="form-label">
-      Trim back from crossings (0 means make new side road crossings)
-      <input
-        class="form-control"
-        type="number"
-        bind:value={trimBackFromCrossings}
-        min="0"
-        max="5"
-        step="0.5"
-      />
-    </label>
 
     <div class="card">
       <div class="card-header">Make all sidewalks</div>
       <div class="card-body">
-        <Checkbox bind:checked={assumeBothForMissing}>
-          When sidewalk tag missing, assume both?
-        </Checkbox>
-
-        <Checkbox bind:checked={onlySeverances}>
-          Only generate along severances
-        </Checkbox>
-
-        <button class="btn btn-secondary mb-3" on:click={makeAllSidewalks}>
-          Make all sidewalks
-        </button>
         <button class="btn btn-secondary mb-3" on:click={makeAllSidewalksV2}>
           Make all sidewalks v2
-        </button>
-
-        <button class="btn btn-secondary" on:click={splitForSideRoads}>
-          Second pass, split for side roads
         </button>
 
         <button class="btn btn-secondary" on:click={connectAllCrossings}>
@@ -200,30 +144,6 @@
           "line-opacity": fadeUnmodified
             ? ["case", ["get", "modified"], 1.0, 0.5]
             : 1.0,
-        }}
-      />
-    </GeoJSON>
-
-    <GeoJSON data={$previewSidewalk || emptyGeojson()}>
-      <LineLayer
-        filter={isLine}
-        id="preview-sidewalk"
-        beforeId="Road labels"
-        paint={{
-          "line-width": 5,
-          "line-color": "purple",
-        }}
-      />
-
-      <CircleLayer
-        filter={isPoint}
-        id="preview-sidewalk-new-nodes"
-        beforeId="Road labels"
-        paint={{
-          "circle-radius": 7,
-          "circle-color": "yellow",
-          "circle-stroke-color": "black",
-          "circle-stroke-width": 1,
         }}
       />
     </GeoJSON>
