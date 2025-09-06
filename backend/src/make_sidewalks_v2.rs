@@ -16,8 +16,12 @@ pub struct NewSidewalkResults {
 }
 
 impl Speedwalk {
+    // TODO Plumb through options:
+    // - retain disconnected islands
+    // - all roads, not just severances
     pub fn make_all_sidewalks_v2(&self) -> NewSidewalkResults {
         let mut splitters = Vec::new();
+        let mut splitters_with_names = Vec::new();
         for way in self.derived_ways.values() {
             if way.kind == Kind::Sidewalk || way.kind == Kind::Other {
                 continue;
@@ -35,6 +39,14 @@ impl Speedwalk {
             }
 
             splitters.push(way.linestring.clone());
+
+            splitters_with_names.push(GeomWithData::new(
+                way.linestring.clone(),
+                way.tags
+                    .get("name")
+                    .cloned()
+                    .unwrap_or_else(|| "unnamed".to_string()),
+            ));
         }
         let splitters_mls = MultiLineString(splitters);
 
@@ -44,11 +56,21 @@ impl Speedwalk {
         let subtract_polygons = splitters_mls
             .buffer_with_style(BufferStyle::new(width).line_join(LineJoin::Round(width)));
 
-        let mut new_sidewalks = Vec::new();
+        let mut raw_new_sidewalks = Vec::new();
         for polygon in subtract_polygons {
             let (exterior, holes) = polygon.into_inner();
-            new_sidewalks.push(exterior);
-            new_sidewalks.extend(holes);
+            raw_new_sidewalks.push(exterior);
+            raw_new_sidewalks.extend(holes);
+        }
+
+        info!(
+            "Splitting {} new sidewalks into smaller chunks aligned to roads",
+            raw_new_sidewalks.len()
+        );
+        let closest_splitter = RTree::bulk_load(splitters_with_names);
+        let mut new_sidewalks = Vec::new();
+        for sidewalk in raw_new_sidewalks {
+            new_sidewalks.extend(split_new_sidewalks(sidewalk, &closest_splitter));
         }
 
         info!(
@@ -68,9 +90,6 @@ impl Speedwalk {
         );
         let mut modify_existing = HashMap::new();
         for new_sidewalk in &mut new_sidewalks {
-            // TODO Since new_sidewalk usually covers a very big block, its bbox is huge. rstar
-            // pruning will help much more if we can split the new linestring into meaningful
-            // chunks first.
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
                 for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, obj.geom()) {
@@ -123,4 +142,33 @@ fn aabb<G: BoundingRect<f64, Output = Option<Rect<f64>>>>(geom: &G) -> AABB<Poin
         Point::new(bbox.min().x, bbox.min().y),
         Point::new(bbox.max().x, bbox.max().y),
     )
+}
+
+// For each point, find the closest splitter road that contributed to it. Chunk by name.
+fn split_new_sidewalks(
+    full: LineString,
+    rtree: &RTree<GeomWithData<LineString, String>>,
+) -> Vec<LineString> {
+    let mut output = Vec::new();
+    let mut pts = Vec::new();
+    for chunk in full.0.chunk_by(|a, b| {
+        rtree
+            .nearest_neighbor(&Point::from(*a))
+            .map(|obj| &obj.data)
+            == rtree
+                .nearest_neighbor(&Point::from(*b))
+                .map(|obj| &obj.data)
+    }) {
+        pts.extend(chunk);
+        if pts.len() >= 2 {
+            let last = *pts.last().unwrap();
+            output.push(LineString::new(std::mem::take(&mut pts)));
+            pts = vec![last];
+        }
+    }
+    // If there's a last point, add it to the last line
+    if pts.len() == 1 {
+        output.last_mut().unwrap().0.push(pts[0]);
+    }
+    output
 }
