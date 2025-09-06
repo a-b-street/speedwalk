@@ -272,8 +272,9 @@ impl Node {
 impl Way {
     pub fn is_severance(&self) -> bool {
         // TODO Improve
-        !self
-            .tags
-            .is_any("highway", vec!["residential", "service", "unclassified"])
+        !self.tags.is_any(
+            "highway",
+            vec!["construction", "residential", "service", "unclassified"],
+        )
     }
 }
