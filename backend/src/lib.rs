@@ -1,3 +1,4 @@
+#[allow(unused)]
 #[macro_use]
 extern crate anyhow;
 #[macro_use]
@@ -168,18 +169,11 @@ impl Speedwalk {
 
     #[wasm_bindgen(js_name = editConnectAllCrossings)]
     pub fn edit_connect_all_crossings(&mut self) -> Result<(), JsValue> {
-        let mut cmds = Vec::new();
-        for node in self.get_all_crossings_on_severances() {
-            cmds.push(UserCmd::ConnectCrossing(node));
-        }
-
-        for cmd in cmds {
-            let mut edits = self.edits.take().unwrap();
-            // Some may fail; that's fine
-            let _ = edits.apply_cmd(cmd, self);
-            self.edits = Some(edits);
-            self.after_edit();
-        }
+        let mut edits = self.edits.take().unwrap();
+        // Ignore failure?
+        let _ = edits.apply_cmd(UserCmd::ConnectAllCrossings, self);
+        self.edits = Some(edits);
+        self.after_edit();
         Ok(())
     }
 

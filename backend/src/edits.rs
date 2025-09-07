@@ -26,8 +26,8 @@ pub struct Edits {
 #[derive(Clone, Copy, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
-    ConnectCrossing(NodeID),
     MakeAllSidewalksV2,
+    ConnectAllCrossings,
 }
 
 pub enum TagCmd {
@@ -74,100 +74,64 @@ impl Edits {
                     }
                 }
             }
-            UserCmd::ConnectCrossing(crossing_node) => {
-                let (new_linestring, sidewalk1, insert_idx1, sidewalk2, insert_idx2) =
-                    model.connect_crossing(crossing_node)?;
-
-                // Make new nodes for the endpoints
-                let new_node1 = self.new_node_id();
-                self.new_nodes.insert(
-                    new_node1,
-                    Node {
-                        pt: new_linestring.0[0],
-                        tags: Tags::empty(),
-                        version: 0,
-
-                        // Calculate later
-                        way_ids: Vec::new(),
-                        modified: true,
-                    },
-                );
-
-                let new_node2 = self.new_node_id();
-                self.new_nodes.insert(
-                    new_node2,
-                    Node {
-                        pt: *new_linestring.0.last().unwrap(),
-                        tags: Tags::empty(),
-                        version: 0,
-
-                        // Calculate later
-                        way_ids: Vec::new(),
-                        modified: true,
-                    },
-                );
-
-                // Split the existing sidewalks by these new nodes
-                if sidewalk1 == sidewalk2 {
-                    // Special case if it's the same sidewalk twice!
-                    let mut node_ids = model.derived_ways[&sidewalk1].node_ids.clone();
-                    if insert_idx1 > insert_idx2 {
-                        node_ids.insert(insert_idx1, new_node1);
-                        node_ids.insert(insert_idx2, new_node2);
-                    } else {
-                        node_ids.insert(insert_idx2, new_node2);
-                        node_ids.insert(insert_idx1, new_node1);
-                    }
-                    self.change_way_nodes.insert(sidewalk1, node_ids);
-                } else {
-                    let mut node_ids1 = model.derived_ways[&sidewalk1].node_ids.clone();
-                    node_ids1.insert(insert_idx1, new_node1);
-                    self.change_way_nodes.insert(sidewalk1, node_ids1);
-
-                    let mut node_ids2 = model.derived_ways[&sidewalk2].node_ids.clone();
-                    node_ids2.insert(insert_idx2, new_node2);
-                    self.change_way_nodes.insert(sidewalk2, node_ids2);
-                }
-
-                // Make the new way
-                let mut tags = Tags::empty();
-                tags.insert("highway", "footway");
-                tags.insert("footway", "crossing");
-                let new_way_id = self.new_way_id();
-                self.new_ways.insert(
-                    new_way_id,
-                    Way {
-                        node_ids: vec![new_node1, crossing_node, new_node2],
-                        linestring: new_linestring,
-                        tags,
-                        version: 0,
-
-                        kind: Kind::Other,
-                        is_main_road: false,
-                        modified: true,
-                    },
-                );
-            }
             UserCmd::MakeAllSidewalksV2 => {
                 let results = model.make_all_sidewalks_v2();
+                self.create_new_geometry(results, model);
+            }
+            UserCmd::ConnectAllCrossings => {
+                let results = model.connect_all_crossings();
+                self.create_new_geometry(results, model);
+            }
+        }
+        Ok(())
+    }
 
-                // TODO Or use+modify new_nodes immediately or something?
-                let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
+    fn create_new_geometry(&mut self, results: CreateNewGeometry, model: &Speedwalk) {
+        // TODO Or use+modify new_nodes immediately or something?
+        let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
 
-                // Modify existing ways first
-                for (way_id, mut insert_points) in results.modify_existing {
-                    // When there are multiple points, insert the highest indices first, so nothing
-                    // messes up
-                    insert_points.sort_by(|a, b| b.1.cmp(&a.1));
+        // Modify existing ways first
+        for (way_id, mut insert_points) in results.modify_existing {
+            // When there are multiple points, insert the highest indices first, so nothing
+            // messes up
+            insert_points.sort_by(|a, b| b.1.cmp(&a.1));
 
-                    let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
+            let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
 
-                    for (pt, idx) in insert_points {
+            for (pt, idx) in insert_points {
+                let node_id = self.new_node_id();
+                self.new_nodes.insert(
+                    node_id,
+                    Node {
+                        pt,
+                        tags: Tags::empty(),
+                        version: 0,
+
+                        // Calculate later
+                        way_ids: Vec::new(),
+                        modified: true,
+                    },
+                );
+                node_mapping.insert(HashedPoint::new(pt), node_id);
+
+                node_ids.insert(idx, node_id);
+            }
+
+            self.change_way_nodes.insert(way_id, node_ids);
+        }
+
+        // Create new geometry
+        for linestring in results.new_objects {
+            let mut node_ids = Vec::new();
+            for pt in linestring.coords() {
+                let id = node_mapping
+                    .entry(HashedPoint::new(*pt))
+                    .or_insert_with(|| {
                         let node_id = self.new_node_id();
                         self.new_nodes.insert(
                             node_id,
                             Node {
-                                pt,
+                                pt: *pt,
                                 tags: Tags::empty(),
                                 version: 0,
 
@@ -176,60 +140,26 @@ impl Edits {
                                 modified: true,
                             },
                         );
-                        node_mapping.insert(HashedPoint::new(pt), node_id);
-
-                        node_ids.insert(idx, node_id);
-                    }
-
-                    self.change_way_nodes.insert(way_id, node_ids);
-                }
-
-                // Create new geometry
-                for linestring in results.new_sidewalks {
-                    let mut node_ids = Vec::new();
-                    for pt in linestring.coords() {
-                        let id = node_mapping
-                            .entry(HashedPoint::new(*pt))
-                            .or_insert_with(|| {
-                                let node_id = self.new_node_id();
-                                self.new_nodes.insert(
-                                    node_id,
-                                    Node {
-                                        pt: *pt,
-                                        tags: Tags::empty(),
-                                        version: 0,
-
-                                        // Calculate later
-                                        way_ids: Vec::new(),
-                                        modified: true,
-                                    },
-                                );
-                                node_id
-                            });
-                        node_ids.push(*id);
-                    }
-
-                    let mut tags = Tags::empty();
-                    tags.insert("highway", "footway");
-                    tags.insert("footway", "sidewalk");
-                    let new_way_id = self.new_way_id();
-                    self.new_ways.insert(
-                        new_way_id,
-                        Way {
-                            node_ids,
-                            linestring,
-                            tags,
-                            version: 0,
-
-                            kind: Kind::Sidewalk,
-                            is_main_road: false,
-                            modified: true,
-                        },
-                    );
-                }
+                        node_id
+                    });
+                node_ids.push(*id);
             }
+
+            let new_way_id = self.new_way_id();
+            self.new_ways.insert(
+                new_way_id,
+                Way {
+                    node_ids,
+                    linestring,
+                    tags: results.new_tags.clone(),
+                    version: 0,
+
+                    kind: results.new_kind.clone(),
+                    is_main_road: false,
+                    modified: true,
+                },
+            );
         }
-        Ok(())
     }
 
     pub fn to_osc(&self, model: &Speedwalk) -> String {
@@ -452,4 +382,13 @@ fn escape(v: &str) -> String {
         .replace(">", "&gt;")
         .replace("&", "&amp;")
         .replace("'", "&apos;")
+}
+
+pub struct CreateNewGeometry {
+    pub new_objects: Vec<LineString>,
+    pub new_tags: Tags,
+    pub new_kind: Kind,
+    // Everywhere existing some new object crosses, find the index in the existing way where this
+    // crossed point needs to be inserted
+    pub modify_existing: HashMap<WayID, Vec<(Coord, usize)>>,
 }

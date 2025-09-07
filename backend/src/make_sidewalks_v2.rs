@@ -2,24 +2,17 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{BoundingRect, Buffer, Coord, LineString, MultiLineString, Point, Rect};
-use osm_reader::WayID;
-use rstar::{AABB, RTree, primitives::GeomWithData};
+use geo::{Buffer, Coord, LineString, MultiLineString, Point};
+use rstar::{RTree, primitives::GeomWithData};
+use utils::{Tags, aabb};
 
-use crate::{Kind, Speedwalk};
-
-pub struct NewSidewalkResults {
-    pub new_sidewalks: Vec<LineString>,
-    // Everywhere existing some new sidewalk crosses, find the index in the existing way where this
-    // crossed point needs to be inserted
-    pub modify_existing: HashMap<WayID, Vec<(Coord, usize)>>,
-}
+use crate::{Kind, Speedwalk, edits::CreateNewGeometry};
 
 impl Speedwalk {
     // TODO Plumb through options:
     // - retain disconnected islands
     // - all roads, not just severances
-    pub fn make_all_sidewalks_v2(&self) -> NewSidewalkResults {
+    pub fn make_all_sidewalks_v2(&self) -> CreateNewGeometry {
         let mut splitters = Vec::new();
         let mut splitters_with_names = Vec::new();
         for way in self.derived_ways.values() {
@@ -105,8 +98,13 @@ impl Speedwalk {
             }
         }
 
-        NewSidewalkResults {
-            new_sidewalks,
+        let mut new_tags = Tags::empty();
+        new_tags.insert("highway", "footway");
+        new_tags.insert("footway", "sidewalk");
+        CreateNewGeometry {
+            new_objects: new_sidewalks,
+            new_tags,
+            new_kind: Kind::Sidewalk,
             modify_existing,
         }
     }
@@ -133,15 +131,6 @@ fn find_all_intersections(ls1: &LineString, ls2: &LineString) -> Vec<(Coord, usi
     // Put idx1's highest first
     hits.reverse();
     hits
-}
-
-// TODO Upstream
-fn aabb<G: BoundingRect<f64, Output = Option<Rect<f64>>>>(geom: &G) -> AABB<Point> {
-    let bbox: Rect = geom.bounding_rect().unwrap().into();
-    AABB::from_corners(
-        Point::new(bbox.min().x, bbox.min().y),
-        Point::new(bbox.max().x, bbox.max().y),
-    )
 }
 
 // For each point, find the closest splitter road that contributed to it. Chunk by name.
