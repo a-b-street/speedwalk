@@ -8,6 +8,7 @@ mod classify;
 mod crossings;
 mod edits;
 mod make_sidewalks_v2;
+mod problems;
 mod scrape;
 
 use std::collections::HashMap;
@@ -230,6 +231,11 @@ impl Speedwalk {
             .unwrap()
             .to_osmchange_json(self)
             .map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = findProblems)]
+    pub fn find_problems_wasm(&self) -> Result<String, JsValue> {
+        self.find_problems().map_err(err_to_js)
     }
 }
 

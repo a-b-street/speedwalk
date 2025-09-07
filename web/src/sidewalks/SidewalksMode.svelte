@@ -14,15 +14,13 @@
     Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/two_column_layout";
-  import {
-    emptyGeojson,
-    constructMatchExpression,
-  } from "svelte-utils/map";
+  import { emptyGeojson, constructMatchExpression } from "svelte-utils/map";
   import { Checkbox } from "svelte-utils";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
   //import ExtraContext from "./ExtraContext.svelte";
+  import Problems from "./Problems.svelte";
 
   export let map: Map;
 
@@ -111,6 +109,8 @@
         </button>
       </div>
     </div>
+
+    <Problems />
   </div>
 
   <div slot="map">
