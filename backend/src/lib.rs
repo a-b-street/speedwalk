@@ -30,7 +30,7 @@ pub struct Speedwalk {
     mercator: Mercator,
     timestamp: Option<i64>,
 
-    pub edits: Option<Edits>,
+    edits: Option<Edits>,
 
     derived_nodes: HashMap<NodeID, Node>,
     derived_ways: HashMap<WayID, Way>,
@@ -39,6 +39,15 @@ pub struct Speedwalk {
 impl Speedwalk {
     pub fn new_from_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         crate::scrape::scrape_osm(input_bytes)
+    }
+
+    // TODO Workaround wasm stuff
+    pub fn take_edits(&mut self) -> Edits {
+        self.edits.take().unwrap()
+    }
+
+    pub fn set_edits(&mut self, edits: Edits) {
+        self.edits = Some(edits);
     }
 }
 
