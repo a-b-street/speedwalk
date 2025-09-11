@@ -30,7 +30,7 @@ pub struct Speedwalk {
     mercator: Mercator,
     timestamp: Option<i64>,
 
-    edits: Option<Edits>,
+    pub edits: Option<Edits>,
 
     derived_nodes: HashMap<NodeID, Node>,
     derived_ways: HashMap<WayID, Way>,
