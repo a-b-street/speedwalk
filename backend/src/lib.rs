@@ -14,6 +14,7 @@ mod wasm;
 
 use std::collections::HashMap;
 
+use anyhow::Result;
 use geo::{Coord, LineString};
 use osm_reader::{NodeID, WayID};
 use utils::{Mercator, Tags};
@@ -33,6 +34,12 @@ pub struct Speedwalk {
 
     derived_nodes: HashMap<NodeID, Node>,
     derived_ways: HashMap<WayID, Way>,
+}
+
+impl Speedwalk {
+    pub fn new_from_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
+        crate::scrape::scrape_osm(input_bytes)
+    }
 }
 
 #[derive(Clone)]

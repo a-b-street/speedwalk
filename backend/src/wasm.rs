@@ -23,7 +23,7 @@ impl Speedwalk {
             console_log::init_with_level(log::Level::Info).unwrap();
         });
 
-        crate::scrape::scrape_osm(input_bytes).map_err(err_to_js)
+        Speedwalk::new_from_osm(input_bytes).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = getOsmTimestamp)]
