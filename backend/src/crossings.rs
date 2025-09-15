@@ -90,6 +90,30 @@ impl Speedwalk {
             modify_existing,
         }
     }
+
+    // Find the one road this crossing should be on
+    pub fn add_one_crossing(&self, pt: Point) -> Option<(WayID, usize)> {
+        info!(
+            "Building rtree for up to {} existing sidewalks",
+            self.derived_ways.len()
+        );
+        let closest_road = RTree::bulk_load(
+            self.derived_ways
+                .iter()
+                .filter(|(_, way)| way.kind != Kind::Sidewalk)
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+
+        let obj = closest_road.nearest_neighbor(&pt)?;
+
+        let (idx, _) = obj
+            .geom()
+            .lines()
+            .enumerate()
+            .min_by_key(|(_, line)| (Euclidean.distance(line, &pt) * 10e6) as usize)?;
+        Some((obj.data, idx + 1))
+    }
 }
 
 fn find_sidewalk_hit(

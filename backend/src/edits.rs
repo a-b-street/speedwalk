@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, LineString};
+use geo::{Coord, LineString, Point};
 use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
@@ -23,11 +23,12 @@ pub struct Edits {
     id_counter: usize,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
     MakeAllSidewalksV2,
     ConnectAllCrossings,
+    AddCrossing(Point, Tags),
 }
 
 pub enum TagCmd {
@@ -47,7 +48,7 @@ impl Edits {
     }
 
     pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) -> Result<()> {
-        self.user_commands.push(cmd);
+        self.user_commands.push(cmd.clone());
         match cmd {
             UserCmd::ApplyQuickfix(way, quickfix) => {
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
@@ -81,6 +82,32 @@ impl Edits {
             UserCmd::ConnectAllCrossings => {
                 let results = model.connect_all_crossings();
                 self.create_new_geometry(results, model);
+            }
+            UserCmd::AddCrossing(pt_wgs84, tags) => {
+                let pt = model.mercator.to_mercator(&pt_wgs84);
+
+                let new_node_id = self.new_node_id();
+                self.new_nodes.insert(
+                    new_node_id,
+                    Node {
+                        pt: pt.into(),
+                        tags,
+                        version: 0,
+
+                        // Calculate later
+                        way_ids: Vec::new(),
+                        modified: true,
+                    },
+                );
+
+                // Find the one road this crossing should be on
+                let Some((way_id, idx)) = model.add_one_crossing(pt) else {
+                    bail!("Couldn't find the road to insert the crossing");
+                };
+
+                let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
+                node_ids.insert(idx, new_node_id);
+                self.change_way_nodes.insert(way_id, node_ids);
             }
         }
         Ok(())
