@@ -93,6 +93,23 @@
   $: pinnedWaySides = pinnedWay
     ? JSON.parse($backend!.getSideLocations(BigInt(pinnedWay.properties.id)))
     : emptyGeojson();
+
+  function showNodeOrder(
+    pinnedWay: Feature<LineString, WayProps> | null,
+  ): FeatureCollection {
+    let gj = emptyGeojson();
+    if (pinnedWay) {
+      for (let [idx, node] of pinnedWay.properties.node_ids.entries()) {
+        let f = nodes.features.find((f) => f.properties.id == node)!;
+        gj.features.push({
+          type: "Feature",
+          geometry: f.geometry,
+          properties: { idx },
+        });
+      }
+    }
+    return gj;
+  }
 </script>
 
 <SplitComponent>
@@ -191,22 +208,37 @@
           </table>
         </Popup>
       </CircleLayer>
+    </GeoJSON>
 
-      <GeoJSON data={pinnedWaySides}>
-        <SymbolLayer
-          id="pinned-sides"
-          paint={{
-            "text-color": "black",
-            "text-halo-color": "cyan",
-            "text-halo-width": 4,
-          }}
-          layout={{
-            "text-field": ["get", "side"],
-            "text-size": 16,
-            "symbol-placement": "line",
-          }}
-        />
-      </GeoJSON>
+    <GeoJSON data={pinnedWaySides}>
+      <SymbolLayer
+        id="pinned-sides"
+        paint={{
+          "text-color": "black",
+          "text-halo-color": "cyan",
+          "text-halo-width": 4,
+        }}
+        layout={{
+          "text-field": ["get", "side"],
+          "text-size": 16,
+          "symbol-placement": "line",
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={showNodeOrder(pinnedWay)}>
+      <SymbolLayer
+        id="pinned-node-order"
+        paint={{
+          "text-color": "black",
+          "text-halo-color": "red",
+          "text-halo-width": 4,
+        }}
+        layout={{
+          "text-field": ["get", "idx"],
+          "text-size": 16,
+        }}
+      />
     </GeoJSON>
 
     <!--<ExtraContext show={showExtraContext} />-->

@@ -95,4 +95,4 @@
   </tbody>
 </table>
 
-<p>Nodes: {pinnedWay.properties.node_ids}</p>
+<p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
