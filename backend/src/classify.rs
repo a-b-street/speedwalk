@@ -52,6 +52,7 @@ impl Kind {
                 "pedestrian",
                 "platform",
                 "steps",
+                "track",
             ],
         ) {
             return Self::Other;
