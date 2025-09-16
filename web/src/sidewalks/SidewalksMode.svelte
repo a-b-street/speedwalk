@@ -59,6 +59,14 @@
     }
   }
 
+  // TODO Move to MapContextMenu after svelte 5 upgrade
+  function onRightClick(e: CustomEvent<MapMouseEvent>) {
+    console.time("makeAllSidewalksV2");
+    $backend!.editAddNewCrossing(e.detail.lngLat.lng, e.detail.lngLat.lat);
+    console.timeEnd("makeAllSidewalksV2");
+    $mutationCounter++;
+  }
+
   function makeAllSidewalksV2() {
     console.time("makeAllSidewalksV2");
     $backend!.editMakeAllSidewalksV2();
@@ -114,7 +122,7 @@
   </div>
 
   <div slot="map">
-    <MapEvents on:click={onMapClick} />
+    <MapEvents on:click={onMapClick} on:contextmenu={onRightClick} />
 
     <GeoJSON data={pinnedWay || emptyGeojson()}>
       <LineLayer

@@ -11,7 +11,7 @@
     basemapStyles,
     Basemaps,
     StandardControls,
-    MapContextMenu,
+    //MapContextMenu,
   } from "svelte-utils/map";
   import { OverpassSelector } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
@@ -177,7 +177,7 @@
       }}
     >
       <StandardControls {map} />
-      <MapContextMenu {map} />
+      <!--<MapContextMenu {map} />-->
       <Basemaps bind:style choice="Maptiler OpenStreetMap" />
 
       {#if $backend && map}

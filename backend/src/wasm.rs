@@ -6,7 +6,7 @@ use geo::{Euclidean, Length, Point};
 use geojson::GeoJson;
 use osm_reader::WayID;
 use serde::Serialize;
-use utils::OffsetCurve;
+use utils::{OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
 use crate::{Edits, Kind, Quickfix, Speedwalk, UserCmd};
@@ -132,6 +132,20 @@ impl Speedwalk {
         let mut edits = self.edits.take().unwrap();
         edits
             .apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self)
+            .map_err(err_to_js)?;
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editAddNewCrossing)]
+    pub fn edit_add_new_crossing(&mut self, x: f64, y: f64) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        let mut tags = Tags::empty();
+        tags.insert("highway", "crossing");
+        tags.insert("crossing", "traffic_signals");
+        edits
+            .apply_cmd(UserCmd::AddCrossing(Point::new(x, y), tags), self)
             .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
