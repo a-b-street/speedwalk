@@ -23,20 +23,7 @@ impl Speedwalk {
             console_log::init_with_level(log::Level::Info).unwrap();
         });
 
-        let mut model = Speedwalk::new_from_osm(input_bytes).map_err(err_to_js)?;
-
-        let mut edits = model.edits.take().unwrap();
-        let mut tags = utils::Tags::empty();
-        tags.insert("highway", "crossing");
-        tags.insert("crossing", "traffic_signals");
-        let _ = edits.apply_cmd(
-            UserCmd::AddCrossing(Point::new(-0.09733338, 51.49091087), tags),
-            &mut model,
-        );
-        model.edits = Some(edits);
-        model.after_edit();
-
-        Ok(model)
+        Speedwalk::new_from_osm(input_bytes).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = getOsmTimestamp)]

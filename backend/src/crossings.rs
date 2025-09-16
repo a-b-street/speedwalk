@@ -13,11 +13,11 @@ impl Speedwalk {
         info!("Finding crossings to connect");
         let mut crossings = Vec::new();
         for (id, node) in &self.derived_nodes {
-            // If the road is already explicitly tagged, don't generate double crossings
+            // If the crossing node is already part of a crossing way, don't generate anything new
             if node.is_crossing()
-                && node.way_ids.iter().all(|way_id| {
+                && !node.way_ids.iter().any(|way_id| {
                     let way = &self.derived_ways[way_id];
-                    way.is_severance() && way.kind != Kind::GoodRoadway
+                    way.tags.is("footway", "crossing")
                 })
             {
                 crossings.push(*id);
