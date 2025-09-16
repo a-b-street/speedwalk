@@ -13,14 +13,30 @@ impl Speedwalk {
         info!("Finding crossings to connect");
         let mut crossings = Vec::new();
         for (id, node) in &self.derived_nodes {
-            // If the crossing node is already part of a crossing way, don't generate anything new
-            if node.is_crossing()
-                && !node.way_ids.iter().any(|way_id| {
-                    let way = &self.derived_ways[way_id];
-                    way.tags.is("footway", "crossing")
-                })
-            {
-                crossings.push(*id);
+            // When do we generate a crossing way from a node? Have tried a few heuristics here:
+            //
+            // - when it's not part of a crossing way already (but then nodes on driveways are
+            //   falsely included)
+            // - when the road it's on has newly generated sidewalks (but then crossing nodes on
+            //   roads with existing sidewalks but no crossing way are skipped)
+            //
+            // Simpler:
+            //
+            // - if the node is only attached to one way (in the middle), it needs a crossing
+            // - if the node is attached to two ways AND those ways are nearly
+            //   parallel/anti-parallel, then it needs a crossing
+            if node.is_crossing() {
+                if node.way_ids.len() == 1 {
+                    crossings.push(*id);
+                } else if node.way_ids.len() == 2
+                    && nearly_parallel(
+                        &self.derived_ways[&node.way_ids[0]].linestring,
+                        &self.derived_ways[&node.way_ids[1]].linestring,
+                        10.0,
+                    )
+                {
+                    crossings.push(*id);
+                }
             }
         }
 
@@ -160,4 +176,19 @@ fn angle_of_pt_on_line(linestring: &LineString, pt: Coord) -> f64 {
 
 fn angle_of_line(line: Line) -> f64 {
     line.dy().atan2(line.dx()).to_degrees()
+}
+
+fn average_angle(linestring: &LineString) -> f64 {
+    let angles: Vec<f64> = linestring.lines().map(angle_of_line).collect();
+    angles.iter().sum::<f64>() / (angles.len() as f64)
+}
+
+/// Degrees for input/output. Returns [-180, 180]. See  //
+/// https://math.stackexchange.com/questions/110080/shortest-way-to-achieve-target-angle
+fn shortest_rotation(angle1: f64, angle2: f64) -> f64 {
+    ((angle1 - angle2 + 540.0) % 360.0) - 180.0
+}
+
+fn nearly_parallel(ls1: &LineString, ls2: &LineString, epsilon_degrees: f64) -> bool {
+    shortest_rotation(average_angle(ls1), average_angle(ls2)).abs() < epsilon_degrees
 }
