@@ -85,7 +85,16 @@ impl Speedwalk {
                 continue;
             };
 
-            new_crossings.push(LineString::new(vec![endpt1, crossing_pt, endpt2]));
+            let mut new_tags = Tags::empty();
+            new_tags.insert("highway", "footway");
+            new_tags.insert("footway", "crossing");
+            // Copy one tag from the crossing node to the new crossing way
+            if let Some(value) = crossing_node.tags.get("crossing") {
+                new_tags.insert("crossing", value);
+            }
+
+            new_crossings.push((LineString::new(vec![endpt1, crossing_pt, endpt2]), new_tags));
+
             modify_existing
                 .entry(sidewalk1)
                 .or_insert_with(Vec::new)
@@ -96,12 +105,8 @@ impl Speedwalk {
                 .push((endpt2, insert_idx2));
         }
 
-        let mut new_tags = Tags::empty();
-        new_tags.insert("highway", "footway");
-        new_tags.insert("footway", "crossing");
         CreateNewGeometry {
             new_objects: new_crossings,
-            new_tags,
             new_kind: Kind::Other,
             modify_existing,
         }

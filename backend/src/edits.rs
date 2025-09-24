@@ -148,7 +148,7 @@ impl Edits {
         }
 
         // Create new geometry
-        for linestring in results.new_objects {
+        for (linestring, new_tags) in results.new_objects {
             let mut node_ids = Vec::new();
             for pt in linestring.coords() {
                 let id = node_mapping
@@ -178,7 +178,7 @@ impl Edits {
                 Way {
                     node_ids,
                     linestring,
-                    tags: results.new_tags.clone(),
+                    tags: new_tags,
                     version: 0,
 
                     kind: results.new_kind.clone(),
@@ -412,8 +412,8 @@ fn escape(v: &str) -> String {
 }
 
 pub struct CreateNewGeometry {
-    pub new_objects: Vec<LineString>,
-    pub new_tags: Tags,
+    pub new_objects: Vec<(LineString, Tags)>,
+    /// All of the new objects have the same Kind
     pub new_kind: Kind,
     // Everywhere existing some new object crosses, find the index in the existing way where this
     // crossed point needs to be inserted

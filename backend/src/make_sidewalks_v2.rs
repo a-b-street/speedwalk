@@ -56,6 +56,10 @@ impl Speedwalk {
             raw_new_sidewalks.extend(holes);
         }
 
+        let mut new_tags = Tags::empty();
+        new_tags.insert("highway", "footway");
+        new_tags.insert("footway", "sidewalk");
+
         info!(
             "Splitting {} new sidewalks into smaller chunks aligned to roads",
             raw_new_sidewalks.len()
@@ -63,7 +67,9 @@ impl Speedwalk {
         let closest_splitter = RTree::bulk_load(splitters_with_names);
         let mut new_sidewalks = Vec::new();
         for sidewalk in raw_new_sidewalks {
-            new_sidewalks.extend(split_new_sidewalks(sidewalk, &closest_splitter));
+            for ls in split_new_sidewalks(sidewalk, &closest_splitter) {
+                new_sidewalks.push((ls, new_tags.clone()));
+            }
         }
 
         info!(
@@ -82,7 +88,7 @@ impl Speedwalk {
             new_sidewalks.len()
         );
         let mut modify_existing = HashMap::new();
-        for new_sidewalk in &mut new_sidewalks {
+        for (new_sidewalk, _) in &mut new_sidewalks {
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
                 for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, obj.geom()) {
@@ -98,12 +104,8 @@ impl Speedwalk {
             }
         }
 
-        let mut new_tags = Tags::empty();
-        new_tags.insert("highway", "footway");
-        new_tags.insert("footway", "sidewalk");
         CreateNewGeometry {
             new_objects: new_sidewalks,
-            new_tags,
             new_kind: Kind::Sidewalk,
             modify_existing,
         }
