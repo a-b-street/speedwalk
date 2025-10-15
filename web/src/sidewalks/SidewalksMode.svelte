@@ -110,6 +110,28 @@
     }
     return gj;
   }
+
+  function snappedRoad(
+    pinnedWay: Feature<LineString, WayProps> | null,
+  ): FeatureCollection {
+    if (!pinnedWay) {
+      return emptyGeojson();
+    }
+    let find = pinnedWay.properties.tags["tmp:closest_way"];
+    if (!find) {
+      return emptyGeojson();
+    }
+
+    for (let way of ways.features) {
+      if (way.properties.id == find) {
+        return {
+          type: "FeatureCollection",
+          features: [way],
+        };
+      }
+    }
+    return emptyGeojson();
+  }
 </script>
 
 <SplitComponent>
@@ -148,6 +170,18 @@
         paint={{
           "line-width": 12,
           "line-color": "cyan",
+          "line-opacity": 0.5,
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={snappedRoad(pinnedWay)}>
+      <LineLayer
+        id="snapped-to-pinned"
+        beforeId="Road labels"
+        paint={{
+          "line-width": 15,
+          "line-color": "blue",
           "line-opacity": 0.5,
         }}
       />

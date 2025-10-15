@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{Buffer, Coord, LineString, MultiLineString, Point};
+use geo::{Buffer, Coord, Euclidean, InterpolatableLine, LineString, MultiLineString, Point};
+use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{Tags, aabb};
 
@@ -14,8 +15,8 @@ impl Speedwalk {
     // - all roads, not just severances
     pub fn make_all_sidewalks_v2(&self) -> CreateNewGeometry {
         let mut splitters = Vec::new();
-        let mut splitters_with_names = Vec::new();
-        for way in self.derived_ways.values() {
+        let mut splitters_with_ways = Vec::new();
+        for (id, way) in &self.derived_ways {
             if way.kind == Kind::Sidewalk || way.kind == Kind::Other {
                 continue;
             }
@@ -33,12 +34,9 @@ impl Speedwalk {
 
             splitters.push(way.linestring.clone());
 
-            splitters_with_names.push(GeomWithData::new(
+            splitters_with_ways.push(GeomWithData::new(
                 way.linestring.clone(),
-                way.tags
-                    .get("name")
-                    .cloned()
-                    .unwrap_or_else(|| "unnamed".to_string()),
+                *id
             ));
         }
         let splitters_mls = MultiLineString(splitters);
@@ -51,7 +49,7 @@ impl Speedwalk {
 
         // Debugging
         #[cfg(target_arch = "wasm32")]
-        if true {
+        if false {
             utils::download_string(
                 &serde_json::to_string(&self.mercator.to_wgs84_gj(&subtract_polygons)).unwrap(),
                 "buffered.geojson",
@@ -74,11 +72,13 @@ impl Speedwalk {
             "Splitting {} new sidewalks into smaller chunks aligned to roads",
             raw_new_sidewalks.len()
         );
-        let closest_splitter = RTree::bulk_load(splitters_with_names);
+        let closest_splitter = RTree::bulk_load(splitters_with_ways);
         let mut new_sidewalks = Vec::new();
         for sidewalk in raw_new_sidewalks {
-            for ls in split_new_sidewalks(sidewalk, &closest_splitter) {
-                new_sidewalks.push((ls, new_tags.clone()));
+            for (ls, way) in split_new_sidewalks(sidewalk, &closest_splitter) {
+                let mut tags = new_tags.clone();
+                tags.insert("tmp:closest_way", way.0.to_string());
+                new_sidewalks.push((ls, tags));
             }
         }
 
@@ -145,11 +145,11 @@ fn find_all_intersections(ls1: &LineString, ls2: &LineString) -> Vec<(Coord, usi
     hits
 }
 
-// For each point, find the closest splitter road that contributed to it. Chunk by name.
+// For each point, find the closest splitter road that contributed to it. Chunk by that.
 fn split_new_sidewalks(
     full: LineString,
-    rtree: &RTree<GeomWithData<LineString, String>>,
-) -> Vec<LineString> {
+    rtree: &RTree<GeomWithData<LineString, WayID>>,
+) -> Vec<(LineString, WayID)> {
     let mut output = Vec::new();
     let mut pts = Vec::new();
     for chunk in full.0.chunk_by(|a, b| {
@@ -163,13 +163,19 @@ fn split_new_sidewalks(
         pts.extend(chunk);
         if pts.len() >= 2 {
             let last = *pts.last().unwrap();
-            output.push(LineString::new(std::mem::take(&mut pts)));
+            // To decide the closest road, use the midpoint of the entire line. Funny stuff happens
+            // near the ends.
+            let new_line = LineString::new(std::mem::take(&mut pts));
+            let midpt = new_line.point_at_ratio_from_start(&Euclidean, 0.5).expect("new sidewalk has no midpt");
+            let road = rtree.nearest_neighbor(&midpt).expect("no closest road to a new sidewalk").data;
+            output.push((new_line, road));
             pts = vec![last];
         }
     }
     // If there's a last point, add it to the last line
     if pts.len() == 1 {
-        output.last_mut().unwrap().0.push(pts[0]);
+        output.last_mut().unwrap().0.0.push(pts[0]);
+        // TODO But dedupe in the case there was just one?
     }
     output
 }
