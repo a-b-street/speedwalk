@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{Buffer, Coord, Euclidean, InterpolatableLine, LineString, MultiLineString, Point};
+use geo::{Buffer, Coord, Euclidean, InterpolatableLine, Line, LineString, MultiLineString};
 use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{Tags, aabb};
@@ -34,10 +34,7 @@ impl Speedwalk {
 
             splitters.push(way.linestring.clone());
 
-            splitters_with_ways.push(GeomWithData::new(
-                way.linestring.clone(),
-                *id
-            ));
+            splitters_with_ways.push(GeomWithData::new(way.linestring.clone(), *id));
         }
         let splitters_mls = MultiLineString(splitters);
 
@@ -150,32 +147,25 @@ fn split_new_sidewalks(
     full: LineString,
     rtree: &RTree<GeomWithData<LineString, WayID>>,
 ) -> Vec<(LineString, WayID)> {
-    let mut output = Vec::new();
-    let mut pts = Vec::new();
-    for chunk in full.0.chunk_by(|a, b| {
-        rtree
-            .nearest_neighbor(&Point::from(*a))
-            .map(|obj| &obj.data)
-            == rtree
-                .nearest_neighbor(&Point::from(*b))
-                .map(|obj| &obj.data)
-    }) {
-        pts.extend(chunk);
-        if pts.len() >= 2 {
-            let last = *pts.last().unwrap();
-            // To decide the closest road, use the midpoint of the entire line. Funny stuff happens
-            // near the ends.
-            let new_line = LineString::new(std::mem::take(&mut pts));
-            let midpt = new_line.point_at_ratio_from_start(&Euclidean, 0.5).expect("new sidewalk has no midpt");
-            let road = rtree.nearest_neighbor(&midpt).expect("no closest road to a new sidewalk").data;
-            output.push((new_line, road));
-            pts = vec![last];
-        }
+    let mut lines: Vec<(Line, WayID)> = Vec::new();
+    for line in full.lines() {
+        let midpt = line.point_at_ratio_from_start(&Euclidean, 0.5);
+        let road = rtree
+            .nearest_neighbor(&midpt)
+            .expect("no closest road to a new sidewalk line")
+            .data;
+        lines.push((line, road));
     }
-    // If there's a last point, add it to the last line
-    if pts.len() == 1 {
-        output.last_mut().unwrap().0.0.push(pts[0]);
-        // TODO But dedupe in the case there was just one?
+
+    let mut output = Vec::new();
+    for chunk in lines.chunk_by(|a, b| a.1 == b.1) {
+        // Combine the lines
+        let mut pts = vec![chunk[0].0.start];
+        let road = chunk[0].1;
+        for (line, _) in chunk {
+            pts.push(line.end);
+        }
+        output.push((LineString::new(pts), road));
     }
     output
 }
