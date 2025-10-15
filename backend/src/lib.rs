@@ -72,7 +72,6 @@ pub struct Way {
 
     // TODO Manage derived state better. Everything below is suspect.
     pub kind: Kind,
-    pub is_main_road: bool,
     pub modified: bool,
 }
 

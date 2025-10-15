@@ -66,21 +66,6 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
                 let linestring = LineString::new(pts);
                 let kind = Kind::classify(&tags);
-                let is_main_road = tags.is_any(
-                    "highway",
-                    vec![
-                        "motorway",
-                        "motorway_link",
-                        "trunk",
-                        "trunk_link",
-                        "primary",
-                        "primary_link",
-                        "secondary",
-                        "secondary_link",
-                        "tertiary",
-                        "tertiary_link",
-                    ],
-                );
                 ways.insert(
                     id,
                     Way {
@@ -90,7 +75,6 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         version: version.expect("way missing version"),
 
                         kind,
-                        is_main_road,
                         modified: false,
                     },
                 );

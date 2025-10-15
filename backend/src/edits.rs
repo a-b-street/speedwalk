@@ -198,7 +198,6 @@ impl Edits {
                     version: 0,
 
                     kind: results.new_kind.clone(),
-                    is_main_road: false,
                     modified: true,
                 },
             );
