@@ -49,6 +49,16 @@ impl Speedwalk {
         let subtract_polygons = splitters_mls
             .buffer_with_style(BufferStyle::new(width).line_join(LineJoin::Round(width)));
 
+        // Debugging
+        #[cfg(target_arch = "wasm32")]
+        if true {
+            utils::download_string(
+                &serde_json::to_string(&self.mercator.to_wgs84_gj(&subtract_polygons)).unwrap(),
+                "buffered.geojson",
+            )
+            .unwrap();
+        }
+
         let mut raw_new_sidewalks = Vec::new();
         for polygon in subtract_polygons {
             let (exterior, holes) = polygon.into_inner();

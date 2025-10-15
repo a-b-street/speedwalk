@@ -19,7 +19,7 @@ serde = "1.0.219"
 serde-wasm-bindgen = "0.6.5"
 serde_json = "1.0.140"
 utils = { git = "https://github.com/a-b-street/utils", features = ["serde"] }
-wasm-bindgen = "0.2.100"
+wasm-bindgen = "0.2.104"
 web-sys = { version = "0.3.77", features = ["console"] }
 
 # For local development, build dependencies in release mode once, but otherwise
