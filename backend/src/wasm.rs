@@ -126,6 +126,16 @@ impl Speedwalk {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = editAssumeTags)]
+    pub fn edit_assume_tags(&mut self, drive_on_left: bool) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        // Ignore failure?
+        let _ = edits.apply_cmd(UserCmd::AssumeTags(drive_on_left), self);
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = editApplyQuickfix)]
     pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
         let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;

@@ -36,6 +36,7 @@
   let showNodes = false;
   let showExtraContext = false;
   let fadeUnmodified = false;
+  let driveOnLeft = true;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -78,6 +79,13 @@
     console.time("connectAllCrossings");
     $backend!.editConnectAllCrossings();
     console.timeEnd("connectAllCrossings");
+    $mutationCounter++;
+  }
+
+  function assumeTags() {
+    console.time("assumeTags");
+    $backend!.editAssumeTags(driveOnLeft);
+    console.timeEnd("assumeTags");
     $mutationCounter++;
   }
 
@@ -147,8 +155,18 @@
     {/if}
 
     <div class="card">
-      <div class="card-header">Make all sidewalks</div>
+      <div class="card-header">Bulk operations</div>
       <div class="card-body">
+        <div class="card mb-3">
+          <div class="card-header">Assume old-style tags on one-ways</div>
+          <div class="card-body">
+            <Checkbox bind:checked={driveOnLeft}>Drive on the left</Checkbox>
+            <button class="btn btn-secondary" on:click={assumeTags}>
+              Autoset tags on one-ways
+            </button>
+          </div>
+        </div>
+
         <button class="btn btn-secondary mb-3" on:click={makeAllSidewalksV2}>
           Make all sidewalks v2
         </button>

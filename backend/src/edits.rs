@@ -28,6 +28,7 @@ pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
     MakeAllSidewalksV2,
     ConnectAllCrossings,
+    AssumeTags(bool),
     AddCrossing(Point, Tags),
 }
 
@@ -82,6 +83,21 @@ impl Edits {
             UserCmd::ConnectAllCrossings => {
                 let results = model.connect_all_crossings();
                 self.create_new_geometry(results, model);
+            }
+            UserCmd::AssumeTags(drive_on_left) => {
+                for (id, way) in &model.derived_ways {
+                    if way.is_severance()
+                        && matches!(way.kind, Kind::BadRoadway(_))
+                        && !way.tags.has("sidewalk")
+                        && (way.tags.is("oneway", "yes") || way.tags.is("junction", "roundabout"))
+                    {
+                        let cmds = self.change_way_tags.entry(*id).or_insert_with(Vec::new);
+                        cmds.push(TagCmd::Set(
+                            "sidewalk",
+                            if drive_on_left { "left" } else { "right" },
+                        ));
+                    }
+                }
             }
             UserCmd::AddCrossing(pt_wgs84, tags) => {
                 let pt = model.mercator.to_mercator(&pt_wgs84);
