@@ -107,10 +107,10 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = editMakeAllSidewalksV2)]
-    pub fn edit_make_all_sidewalks_v2(&mut self) -> Result<(), JsValue> {
+    pub fn edit_make_all_sidewalks_v2(&mut self, only_severances: bool) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
         // Ignore failure?
-        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2, self);
+        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2(only_severances), self);
         self.edits = Some(edits);
         self.after_edit();
         Ok(())

@@ -21,17 +21,14 @@ enum Side {
 }
 
 impl Speedwalk {
-    // TODO Plumb through options:
-    // - retain disconnected islands
-    // - all roads, not just severances
-    pub fn make_all_sidewalks_v2(&self) -> CreateNewGeometry {
+    pub fn make_all_sidewalks_v2(&self, only_severances: bool) -> CreateNewGeometry {
         let mut roads = Vec::new();
         let mut roads_with_ways = Vec::new();
         for (id, way) in &self.derived_ways {
             if way.kind == Kind::Sidewalk || way.kind == Kind::Other {
                 continue;
             }
-            if !way.is_severance() {
+            if only_severances && !way.is_severance() {
                 continue;
             }
             // There are already separate sidewalks here

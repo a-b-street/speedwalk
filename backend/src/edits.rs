@@ -26,7 +26,7 @@ pub struct Edits {
 #[derive(Clone, Serialize)]
 pub enum UserCmd {
     ApplyQuickfix(WayID, Quickfix),
-    MakeAllSidewalksV2,
+    MakeAllSidewalksV2(bool),
     ConnectAllCrossings,
     AssumeTags(bool),
     AddCrossing(Point, Tags),
@@ -76,8 +76,8 @@ impl Edits {
                     }
                 }
             }
-            UserCmd::MakeAllSidewalksV2 => {
-                let results = model.make_all_sidewalks_v2();
+            UserCmd::MakeAllSidewalksV2(only_severances) => {
+                let results = model.make_all_sidewalks_v2(only_severances);
                 self.create_new_geometry(results, model);
             }
             UserCmd::ConnectAllCrossings => {

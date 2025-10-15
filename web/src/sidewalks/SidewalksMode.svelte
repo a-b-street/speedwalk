@@ -36,7 +36,9 @@
   let showNodes = false;
   let showExtraContext = false;
   let fadeUnmodified = false;
+
   let driveOnLeft = true;
+  let onlyMakeSeverances = true;
 
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
@@ -62,30 +64,22 @@
 
   // TODO Move to MapContextMenu after svelte 5 upgrade
   function onRightClick(e: CustomEvent<MapMouseEvent>) {
-    console.time("makeAllSidewalksV2");
     $backend!.editAddNewCrossing(e.detail.lngLat.lng, e.detail.lngLat.lat);
-    console.timeEnd("makeAllSidewalksV2");
     $mutationCounter++;
   }
 
   function makeAllSidewalksV2() {
-    console.time("makeAllSidewalksV2");
-    $backend!.editMakeAllSidewalksV2();
-    console.timeEnd("makeAllSidewalksV2");
+    $backend!.editMakeAllSidewalksV2(onlyMakeSeverances);
     $mutationCounter++;
   }
 
   function connectAllCrossings() {
-    console.time("connectAllCrossings");
     $backend!.editConnectAllCrossings();
-    console.timeEnd("connectAllCrossings");
     $mutationCounter++;
   }
 
   function assumeTags() {
-    console.time("assumeTags");
     $backend!.editAssumeTags(driveOnLeft);
-    console.timeEnd("assumeTags");
     $mutationCounter++;
   }
 
@@ -167,9 +161,17 @@
           </div>
         </div>
 
-        <button class="btn btn-secondary mb-3" on:click={makeAllSidewalksV2}>
-          Make all sidewalks v2
-        </button>
+        <div class="card mb-3">
+          <div class="card-header">Make all sidewalks</div>
+          <div class="card-body">
+            <Checkbox bind:checked={onlyMakeSeverances}>
+              Only for severances
+            </Checkbox>
+            <button class="btn btn-secondary" on:click={makeAllSidewalksV2}>
+              Make sidewalks
+            </button>
+          </div>
+        </div>
 
         <button class="btn btn-secondary" on:click={connectAllCrossings}>
           Connect all crossings over severances
