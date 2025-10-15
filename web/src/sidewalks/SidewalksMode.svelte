@@ -124,9 +124,11 @@
 
     for (let way of ways.features) {
       if (way.properties.id == find) {
+        let copy = JSON.parse(JSON.stringify(way));
+        copy.properties.left = pinnedWay.properties.tags["tmp:side"] == "Left";
         return {
           type: "FeatureCollection",
-          features: [way],
+          features: [copy],
         };
       }
     }
@@ -183,6 +185,7 @@
           "line-width": 15,
           "line-color": "blue",
           "line-opacity": 0.5,
+          "line-offset": ["case", ["get", "left"], -3, 3],
         }}
       />
     </GeoJSON>

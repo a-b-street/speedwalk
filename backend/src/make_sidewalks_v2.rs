@@ -2,12 +2,21 @@ use std::collections::HashMap;
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{Buffer, Coord, Euclidean, InterpolatableLine, Line, LineString, MultiLineString};
+use geo::{
+    Buffer, Coord, Distance, Euclidean, InterpolatableLine, Line, LineLocatePoint, LineString,
+    MultiLineString, Point,
+};
 use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
-use utils::{Tags, aabb};
+use utils::{OffsetCurve, Tags, aabb};
 
 use crate::{Kind, Speedwalk, edits::CreateNewGeometry};
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Side {
+    Left,
+    Right,
+}
 
 impl Speedwalk {
     // TODO Plumb through options:
@@ -72,9 +81,10 @@ impl Speedwalk {
         let closest_splitter = RTree::bulk_load(splitters_with_ways);
         let mut new_sidewalks = Vec::new();
         for sidewalk in raw_new_sidewalks {
-            for (ls, way) in split_new_sidewalks(sidewalk, &closest_splitter) {
+            for (ls, way, side) in split_new_sidewalks(sidewalk, &closest_splitter) {
                 let mut tags = new_tags.clone();
                 tags.insert("tmp:closest_way", way.0.to_string());
+                tags.insert("tmp:side", format!("{side:?}"));
                 new_sidewalks.push((ls, tags));
             }
         }
@@ -142,30 +152,51 @@ fn find_all_intersections(ls1: &LineString, ls2: &LineString) -> Vec<(Coord, usi
     hits
 }
 
-// For each point, find the closest splitter road that contributed to it. Chunk by that.
+// For each point, find the closest splitter road that contributed to it. Chunk by that, including
+// the guess on which side of the road.
 fn split_new_sidewalks(
     full: LineString,
     rtree: &RTree<GeomWithData<LineString, WayID>>,
-) -> Vec<(LineString, WayID)> {
-    let mut lines: Vec<(Line, WayID)> = Vec::new();
+) -> Vec<(LineString, WayID, Side)> {
+    let mut lines: Vec<(Line, WayID, Side)> = Vec::new();
     for line in full.lines() {
         let midpt = line.point_at_ratio_from_start(&Euclidean, 0.5);
         let road = rtree
             .nearest_neighbor(&midpt)
-            .expect("no closest road to a new sidewalk line")
-            .data;
-        lines.push((line, road));
+            .expect("no closest road to a new sidewalk line");
+        let side = classify_side(midpt, road.geom());
+
+        lines.push((line, road.data, side));
     }
 
     let mut output = Vec::new();
-    for chunk in lines.chunk_by(|a, b| a.1 == b.1) {
+    for chunk in lines.chunk_by(|a, b| (a.1, a.2) == (b.1, b.2)) {
         // Combine the lines
         let mut pts = vec![chunk[0].0.start];
         let road = chunk[0].1;
-        for (line, _) in chunk {
+        let side = chunk[0].2;
+        for (line, _, _) in chunk {
             pts.push(line.end);
         }
-        output.push((LineString::new(pts), road));
+        output.push((LineString::new(pts), road, side));
     }
     output
+}
+
+fn classify_side(pt: Point, ls: &LineString) -> Side {
+    // TODO There's probably something much easier with Orient, but this works
+    let left = ls.offset_curve(-3.0).expect("offset failed");
+    let right = ls.offset_curve(3.0).expect("offset failed");
+    if distance(&left, pt).expect("snap failed") <= distance(&right, pt).expect("snap failed") {
+        Side::Left
+    } else {
+        Side::Right
+    }
+}
+
+// TODO Upstream
+fn distance(ls: &LineString, pt: Point) -> Option<f64> {
+    let fraction = ls.line_locate_point(&pt)?;
+    let snapped = ls.point_at_ratio_from_start(&Euclidean, fraction)?;
+    Some(Euclidean.distance(pt, snapped))
 }
