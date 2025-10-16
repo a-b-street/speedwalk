@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Auth from "./Auth.svelte";
   import favicon from "../assets/favicon.ico?url";
   import { MapLibre } from "svelte-maplibre";
   import { PolygonToolLayer } from "maplibre-draw-polygon";
@@ -162,6 +163,8 @@
         on:error={(e) => window.alert(e.detail)}
       />
     {/if}
+
+    <Auth />
 
     <div bind:this={sidebarDiv} />
   </div>

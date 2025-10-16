@@ -1,5 +1,4 @@
 <script lang="ts">
-  import Auth from "./Auth.svelte";
   import { downloadGeneratedFile } from "svelte-utils";
   import { backend, mutationCounter } from "./";
   import { uploadChangeset } from "osm-api";
@@ -64,8 +63,6 @@
     }
   }
 </script>
-
-<Auth />
 
 <h3>{cmds.length} {cmds.length == 1 ? "edit" : "edits"}</h3>
 {#if cmds.length > 0}
