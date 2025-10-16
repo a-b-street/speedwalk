@@ -5,8 +5,8 @@
 
   export let pinnedWay: Feature<LineString, WayProps>;
 
-  function setTags(tags: string[]) {
-    $backend!.editSetTags(BigInt(pinnedWay.properties.id), [tags]);
+  function setTags(tags: Array<string[]>) {
+    $backend!.editSetTags(BigInt(pinnedWay.properties.id), tags);
     $mutationCounter++;
   }
 </script>
@@ -22,7 +22,7 @@
     : {pinnedWay.properties.kind}
   </div>
   <div class="card-body">
-    {#if pinnedWay.properties.kind == "Road"}
+    {#if pinnedWay.properties.kind == "Road" || pinnedWay.properties.kind == "RoadWithSeparate"}
       <u>Current sidewalk tags</u>
       <ul>
         {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
@@ -37,9 +37,35 @@
       <div>
         <button
           class="btn btn-secondary mb-1"
-          on:click={() => setTags(["sidewalk:both", "separate"])}
+          on:click={() => setTags([["sidewalk:both", "separate"]])}
         >
           sidewalk:both = separate
+        </button>
+      </div>
+
+      <div>
+        <button
+          class="btn btn-secondary mb-1"
+          on:click={() =>
+            setTags([
+              ["sidewalk:left", "separate"],
+              ["sidewalk:right", "no"],
+            ])}
+        >
+          sidewalk:left = separate, sidewalk:right = no
+        </button>
+      </div>
+
+      <div>
+        <button
+          class="btn btn-secondary mb-1"
+          on:click={() =>
+            setTags([
+              ["sidewalk:right", "separate"],
+              ["sidewalk:left", "no"],
+            ])}
+        >
+          sidewalk:right = separate, sidewalk:left = no
         </button>
       </div>
 
@@ -47,7 +73,7 @@
         <div>
           <button
             class="btn btn-secondary mb-1"
-            on:click={() => setTags(["sidewalk", value])}
+            on:click={() => setTags([["sidewalk", value]])}
           >
             sidewalk = {value}
           </button>

@@ -9,7 +9,7 @@ export interface NodeProps {
 export interface WayProps {
   id: number;
   tags: Record<string, string>;
-  kind: "Sidewalk" | "Road" | "Other";
+  kind: "Sidewalk" | "RoadWithSeparate" | "Road" | "Other";
   modified: boolean;
   node_ids: number[];
 }
