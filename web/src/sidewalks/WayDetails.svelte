@@ -4,6 +4,11 @@
   import { type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
+
+  function setTags(tags: string[]) {
+    $backend!.editSetTags(BigInt(pinnedWay.properties.id), [tags]);
+    $mutationCounter++;
+  }
 </script>
 
 <div class="card mb-5">
@@ -18,22 +23,36 @@
   </div>
   <div class="card-body">
     {#if pinnedWay.properties.kind == "Road"}
-      <div class="card mb-3">
-        <div class="card-header">Set old-style sidewalk tags</div>
-        <div
-          class="card-body"
-          style="display: flex; justify-content: space-between"
+      <u>Current sidewalk tags</u>
+      <ul>
+        {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
+          {#if key.startsWith("sidewalk")}
+            <li>{key} = {value}</li>
+          {/if}
+        {/each}
+      </ul>
+
+      <u>Fix these tags</u>
+
+      <div>
+        <button
+          class="btn btn-secondary mb-1"
+          on:click={() => setTags(["sidewalk:both", "separate"])}
         >
-          {#each ["both", "left", "right", "no"] as value}
-            <button
-              class="btn btn-secondary"
-              on:click={() => window.alert(value)}
-            >
-              {value}
-            </button>
-          {/each}
-        </div>
+          sidewalk:both = separate
+        </button>
       </div>
+
+      {#each ["both", "left", "right", "no"] as value}
+        <div>
+          <button
+            class="btn btn-secondary mb-1"
+            on:click={() => setTags(["sidewalk", value])}
+          >
+            sidewalk = {value}
+          </button>
+        </div>
+      {/each}
     {/if}
 
     <table class="table">

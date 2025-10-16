@@ -119,7 +119,7 @@
     if (!pinnedWay) {
       return emptyGeojson();
     }
-    let find = pinnedWay.properties.tags["tmp:closest_way"];
+    let find = parseInt(pinnedWay.properties.tags["tmp:closest_way"]);
     if (!find) {
       return emptyGeojson();
     }
