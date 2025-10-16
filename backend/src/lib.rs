@@ -20,7 +20,7 @@ use osm_reader::{NodeID, WayID};
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
 
-pub use crate::classify::{Kind, Quickfix};
+pub use crate::classify::Kind;
 pub use crate::edits::{Edits, UserCmd};
 
 #[wasm_bindgen]

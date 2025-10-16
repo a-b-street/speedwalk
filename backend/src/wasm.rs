@@ -9,7 +9,7 @@ use serde::Serialize;
 use utils::{OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
-use crate::{Edits, Kind, Quickfix, Speedwalk, UserCmd};
+use crate::{Edits, Kind, Speedwalk, UserCmd};
 
 static START: Once = Once::new();
 
@@ -62,17 +62,8 @@ impl Speedwalk {
             f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
-            f.set_property("kind", way.kind.to_simple_string());
+            f.set_property("kind", format!("{:?}", way.kind));
             f.set_property("modified", way.modified);
-            if let Kind::QuickfixRoadway(ref fix) = way.kind {
-                f.set_property("fix", serde_json::to_value(&fix).map_err(err_to_js)?);
-            }
-            if let Kind::BadRoadway(ref problem) = way.kind {
-                f.set_property(
-                    "problem",
-                    serde_json::to_value(&problem).map_err(err_to_js)?,
-                );
-            }
             f.set_property(
                 "node_ids",
                 way.node_ids.iter().map(|n| n.0).collect::<Vec<_>>(),
@@ -136,12 +127,20 @@ impl Speedwalk {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = editApplyQuickfix)]
-    pub fn edit_apply_quickfix(&mut self, base: i64, quickfix: JsValue) -> Result<(), JsValue> {
-        let quickfix: Quickfix = serde_wasm_bindgen::from_value(quickfix)?;
+    #[wasm_bindgen(js_name = editSetTags)]
+    pub fn edit_set_tags(&mut self, base: i64, tags: JsValue) -> Result<(), JsValue> {
+        let tags: Vec<Vec<String>> = serde_wasm_bindgen::from_value(tags)?;
         let mut edits = self.edits.take().unwrap();
         edits
-            .apply_cmd(UserCmd::ApplyQuickfix(WayID(base), quickfix), self)
+            .apply_cmd(
+                UserCmd::SetTags(
+                    WayID(base),
+                    tags.into_iter()
+                        .map(|mut kv| (kv.remove(0), kv.remove(0)))
+                        .collect(),
+                ),
+                self,
+            )
             .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
@@ -217,17 +216,15 @@ fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
 
 #[derive(Default, Serialize)]
 struct Metrics {
-    total_length_meters: HashMap<&'static str, f64>,
+    total_length_meters: HashMap<Kind, f64>,
 }
 
 impl Metrics {
     fn new(model: &Speedwalk) -> Self {
         let mut metrics = Self::default();
         for way in model.derived_ways.values() {
-            *metrics
-                .total_length_meters
-                .entry(way.kind.to_simple_string())
-                .or_insert(0.0) += Euclidean.length(&way.linestring);
+            *metrics.total_length_meters.entry(way.kind).or_insert(0.0) +=
+                Euclidean.length(&way.linestring);
         }
         metrics
     }

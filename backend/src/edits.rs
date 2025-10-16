@@ -6,7 +6,7 @@ use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::Tags;
 
-use crate::{Kind, Node, Speedwalk, Way, classify::Quickfix};
+use crate::{Kind, Node, Speedwalk, Way};
 
 #[derive(Default)]
 pub struct Edits {
@@ -25,7 +25,7 @@ pub struct Edits {
 
 #[derive(Clone, Serialize)]
 pub enum UserCmd {
-    ApplyQuickfix(WayID, Quickfix),
+    SetTags(WayID, Vec<(String, String)>),
     MakeAllSidewalksV2(bool),
     ConnectAllCrossings,
     AssumeTags(bool),
@@ -33,8 +33,8 @@ pub enum UserCmd {
 }
 
 pub enum TagCmd {
-    Set(&'static str, &'static str),
-    Remove(&'static str),
+    Set(String, String),
+    Remove(String),
 }
 
 impl Edits {
@@ -51,29 +51,17 @@ impl Edits {
     pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) -> Result<()> {
         self.user_commands.push(cmd.clone());
         match cmd {
-            UserCmd::ApplyQuickfix(way, quickfix) => {
+            UserCmd::SetTags(way, replace) => {
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
-                match quickfix {
-                    Quickfix::OldSidewalkSeparate => {
-                        cmds.push(TagCmd::Remove("sidewalk"));
-                        cmds.push(TagCmd::Set("sidewalk:both", "separate"));
+                // Clear old sidewalk tags first
+                for (k, _) in &model.derived_ways[&way].tags.0 {
+                    if k.starts_with("sidewalk") {
+                        cmds.push(TagCmd::Remove(k.clone()));
                     }
-                    Quickfix::OldSidewalkNo | Quickfix::OldSidewalkNone => {
-                        cmds.push(TagCmd::Remove("sidewalk"));
-                        cmds.push(TagCmd::Set("sidewalk:both", "no"));
-                    }
-                    Quickfix::SetOldSidewalkBoth => {
-                        cmds.push(TagCmd::Set("sidewalk", "both"));
-                    }
-                    Quickfix::SetOldSidewalkLeft => {
-                        cmds.push(TagCmd::Set("sidewalk", "left"));
-                    }
-                    Quickfix::SetOldSidewalkRight => {
-                        cmds.push(TagCmd::Set("sidewalk", "right"));
-                    }
-                    Quickfix::SetOldSidewalkNo => {
-                        cmds.push(TagCmd::Set("sidewalk", "no"));
-                    }
+                }
+
+                for (k, v) in replace {
+                    cmds.push(TagCmd::Set(k, v));
                 }
             }
             UserCmd::MakeAllSidewalksV2(only_severances) => {
@@ -87,14 +75,20 @@ impl Edits {
             UserCmd::AssumeTags(drive_on_left) => {
                 for (id, way) in &model.derived_ways {
                     if way.is_severance()
-                        && matches!(way.kind, Kind::BadRoadway(_))
+                        && !way.tags.has("sidewalk:both")
+                        && !way.tags.has("sidewalk:left")
+                        && !way.tags.has("sidewalk:right")
                         && !way.tags.has("sidewalk")
                         && (way.tags.is("oneway", "yes") || way.tags.is("junction", "roundabout"))
                     {
                         let cmds = self.change_way_tags.entry(*id).or_insert_with(Vec::new);
                         cmds.push(TagCmd::Set(
-                            "sidewalk",
-                            if drive_on_left { "left" } else { "right" },
+                            "sidewalk".to_string(),
+                            if drive_on_left {
+                                "left".to_string()
+                            } else {
+                                "right".to_string()
+                            },
                         ));
                     }
                 }
@@ -326,10 +320,10 @@ impl Speedwalk {
             for cmd in cmds {
                 match cmd {
                     TagCmd::Set(k, v) => {
-                        way.tags.insert(*k, *v);
+                        way.tags.insert(k, v);
                     }
                     TagCmd::Remove(k) => {
-                        way.tags.remove(*k);
+                        way.tags.remove(k);
                     }
                 }
             }

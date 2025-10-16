@@ -32,7 +32,10 @@ impl Speedwalk {
                 continue;
             }
             // There are already separate sidewalks here
-            if way.kind == Kind::GoodRoadway {
+            if way.tags.has("sidewalk:both")
+                || way.tags.has("sidewalk:left")
+                || way.tags.has("sidewalk:right")
+            {
                 continue;
             }
             // Even if the lack of sidewalks is tagged in the old style, skip
