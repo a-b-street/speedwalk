@@ -16,6 +16,7 @@ export interface WayProps {
 
 export let colors = {
   Sidewalk: "black",
-  Road: "purple",
+  RoadWithSeparate: "purple",
+  Road: "red",
   Other: "grey",
 };

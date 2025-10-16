@@ -5,6 +5,9 @@ use utils::Tags;
 pub enum Kind {
     /// A separately mapped sidewalk
     Sidewalk,
+    /// A road with some hint of separate sidewalks (maybe not consistent/complete)
+    RoadWithSeparate,
+    /// A road with no mention of separate sidewalks
     Road,
     /// A non-sidewalk footway, a crossing, a cycleway, or something else
     Other,
@@ -29,6 +32,10 @@ impl Kind {
             ],
         ) {
             return Self::Other;
+        }
+
+        if tags.has("sidewalk:both") || tags.has("sidewalk:left") || tags.has("sidewalk:right") {
+            return Self::RoadWithSeparate;
         }
 
         Self::Road
