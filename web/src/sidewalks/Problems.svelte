@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { FeatureCollection, LineString, Point } from "geojson";
   import { backend } from "../";
+  import { Checkbox } from "svelte-utils";
   import { emptyGeojson } from "svelte-utils/map";
   import PrevNext from "./PrevNext.svelte";
 
@@ -10,17 +11,34 @@
     LineString | Point,
     { problem: string; osm: string }
   >;
+  let problemTypes = new Set<string>();
+
   let idx = 0;
+  let showAll = true;
+  let filterType = "";
 
   function refresh() {
     gj = JSON.parse($backend!.findProblems());
-    //gj.features = gj.features.filter((f) => f.properties.problem == "possible separate sidewalk near way without it tagged");
-    gj = gj;
     idx = 0;
+
+    if (filterType == "") {
+      problemTypes = new Set();
+      for (let f of gj.features) {
+        problemTypes.add(f.properties.problem);
+      }
+      problemTypes = problemTypes;
+    } else {
+      gj.features = gj.features.filter(
+        (f) => f.properties.problem == filterType,
+      );
+      gj = gj;
+    }
   }
 
   $: drawProblems = gj.features.length
-    ? { type: "FeatureCollection", features: [gj.features[idx]] }
+    ? showAll
+      ? gj
+      : { type: "FeatureCollection", features: [gj.features[idx]] }
     : emptyGeojson();
 </script>
 
@@ -32,12 +50,26 @@
     </button>
 
     {#if gj.features.length}
-      <PrevNext bind:idx list={gj.features} />
+      <label>
+        Only show problems
+        <select class="form-select" bind:value={filterType} on:change={refresh}>
+          <option value="">All</option>
+          {#each problemTypes as x}
+            <option value={x}>{x}</option>
+          {/each}
+        </select>
+      </label>
 
-      <div>
-        {gj.features[idx].properties.problem}:
-        <a href={gj.features[idx].properties.osm} target="_blank">OSM</a>
-      </div>
+      <Checkbox bind:checked={showAll}>Show all problems</Checkbox>
+
+      {#if !showAll}
+        <PrevNext bind:idx list={gj.features} />
+
+        <div>
+          {gj.features[idx].properties.problem}:
+          <a href={gj.features[idx].properties.osm} target="_blank">OSM</a>
+        </div>
+      {/if}
     {/if}
   </div>
 </div>
