@@ -185,7 +185,7 @@
       </div>
     </div>
 
-    <Problems bind:drawProblems />
+    <Problems bind:map bind:drawProblems />
   </div>
 
   <div slot="map">

@@ -1,10 +1,12 @@
 <script lang="ts">
-  import type { FeatureCollection, LineString, Point } from "geojson";
+  import type { Map } from "maplibre-gl";
+  import type { Feature, FeatureCollection, LineString, Point } from "geojson";
   import { backend } from "../";
   import { Checkbox } from "svelte-utils";
-  import { emptyGeojson } from "svelte-utils/map";
+  import { bbox, emptyGeojson } from "svelte-utils/map";
   import PrevNext from "./PrevNext.svelte";
 
+  export let map: Map;
   export let drawProblems: FeatureCollection;
 
   let gj = emptyGeojson() as FeatureCollection<
@@ -40,6 +42,24 @@
       ? gj
       : { type: "FeatureCollection", features: [gj.features[idx]] }
     : emptyGeojson();
+
+  $: if (gj.features.length && idx != -1 && !showAll) {
+    showFeature(gj.features[idx]);
+  }
+
+  function showFeature(f: Feature) {
+    if (f.geometry.type == "Point") {
+      map.flyTo({
+        center: f.geometry.coordinates as [number, number],
+        duration: 500,
+      });
+    } else {
+      map.fitBounds(bbox(f), {
+        padding: 200,
+        duration: 500,
+      });
+    }
+  }
 </script>
 
 <div class="card mb-3">
