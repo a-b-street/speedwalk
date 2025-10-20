@@ -14,7 +14,12 @@
     Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/two_column_layout";
-  import { emptyGeojson, constructMatchExpression } from "svelte-utils/map";
+  import {
+    isPoint,
+    isLine,
+    emptyGeojson,
+    constructMatchExpression,
+  } from "svelte-utils/map";
   import { Checkbox } from "svelte-utils";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
@@ -36,6 +41,7 @@
   let showNodes = false;
   let showExtraContext = false;
   let fadeUnmodified = false;
+  let drawProblems = emptyGeojson();
 
   let driveOnLeft = true;
   let onlyMakeSeverances = true;
@@ -179,7 +185,7 @@
       </div>
     </div>
 
-    <Problems />
+    <Problems bind:drawProblems />
   </div>
 
   <div slot="map">
@@ -294,6 +300,26 @@
         layout={{
           "text-field": ["get", "idx"],
           "text-size": 16,
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={drawProblems}>
+      <CircleLayer
+        filter={isPoint}
+        paint={{
+          "circle-radius": 20,
+          "circle-color": "yellow",
+          "circle-opacity": 0.5,
+        }}
+      />
+
+      <LineLayer
+        filter={isLine}
+        paint={{
+          "line-width": 20,
+          "line-color": "yellow",
+          "line-opacity": 0.5,
         }}
       />
     </GeoJSON>
