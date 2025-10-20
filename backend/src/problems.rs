@@ -1,8 +1,8 @@
 use anyhow::Result;
 use geo::Point;
 use geojson::GeoJson;
-use rstar::{AABB, RTree, primitives::GeomWithData};
-use utils::aabb;
+use rstar::{RTree, primitives::GeomWithData};
+use utils::{aabb, buffer_aabb};
 
 use crate::{Kind, Speedwalk};
 
@@ -69,19 +69,4 @@ impl Speedwalk {
 
         Ok(serde_json::to_string(&GeoJson::from(features))?)
     }
-}
-
-// TODO Upstream
-// Expand an AABB by some amount on all sides
-fn buffer_aabb(aabb: AABB<Point>, buffer_meters: f64) -> AABB<Point> {
-    AABB::from_corners(
-        Point::new(
-            aabb.lower().x() - buffer_meters,
-            aabb.lower().y() - buffer_meters,
-        ),
-        Point::new(
-            aabb.upper().x() + buffer_meters,
-            aabb.upper().y() + buffer_meters,
-        ),
-    )
 }
