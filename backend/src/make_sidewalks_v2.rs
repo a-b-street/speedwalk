@@ -42,6 +42,21 @@ impl Speedwalk {
             if way.tags.is("sidewalk", "no") {
                 continue;
             }
+            // This is ambiguous, but generally seems to mean both
+            if way.tags.is("sidewalk", "separate") {
+                continue;
+            }
+            // Implies no sidewalks
+            if way
+                .tags
+                .is_any("highway", vec!["motorway", "motorway_link"])
+            {
+                continue;
+            }
+            // Ignore things that don't exist
+            if way.tags.is("highway", "proposed") {
+                continue;
+            }
 
             roads.push(way.linestring.clone());
 
