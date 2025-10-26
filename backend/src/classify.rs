@@ -9,7 +9,8 @@ pub enum Kind {
     RoadWithSeparate,
     /// A road with no mention of separate sidewalks
     Road,
-    /// A non-sidewalk footway, a crossing, a cycleway, or something else
+    Crossing,
+    /// A non-sidewalk footway, a cycleway, or something else
     Other,
 }
 
@@ -17,6 +18,11 @@ impl Kind {
     pub fn classify(tags: &Tags) -> Self {
         if tags.is("highway", "footway") && tags.is("footway", "sidewalk") {
             return Self::Sidewalk;
+        }
+
+        // TODO Or crossing=*, or should we be strict?
+        if tags.is("highway", "footway") && tags.is("footway", "crossing") {
+            return Self::Crossing;
         }
 
         if tags.is_any(

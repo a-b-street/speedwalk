@@ -79,6 +79,17 @@
           </button>
         </div>
       {/each}
+    {:else if pinnedWay.properties.kind == "Other"}
+      <u>Set these tags</u>
+
+      <div>
+        <button
+          class="btn btn-secondary mb-1"
+          on:click={() => setTags([["footway", "crossing"]])}
+        >
+          footway = crossing
+        </button>
+      </div>
     {/if}
 
     <table class="table">

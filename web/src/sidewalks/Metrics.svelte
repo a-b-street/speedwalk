@@ -6,6 +6,7 @@
     total_length_meters: {
       Sidewalk: number;
       Road: number;
+      Crossings: number;
       Other: number;
     };
   }

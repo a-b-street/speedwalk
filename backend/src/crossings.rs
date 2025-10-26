@@ -107,7 +107,7 @@ impl Speedwalk {
 
         CreateNewGeometry {
             new_objects: new_crossings,
-            new_kind: Kind::Other,
+            new_kind: Kind::Crossing,
             modify_existing,
         }
     }
