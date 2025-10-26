@@ -79,7 +79,7 @@
           </button>
         </div>
       {/each}
-    {:else if pinnedWay.properties.kind == "Other"}
+    {:else if pinnedWay.properties.kind == "Sidewalk" || pinnedWay.properties.kind == "Other"}
       <u>Set these tags</u>
 
       <div>

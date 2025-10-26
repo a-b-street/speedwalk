@@ -34,6 +34,29 @@ impl Speedwalk {
             }
         }
 
+        // Look for footways involving crossing nodes that aren't marked footway=crossing
+        for (way_id, way) in &self.derived_ways {
+            if !matches!(self.derived_ways[way_id].kind, Kind::Sidewalk | Kind::Other) {
+                continue;
+            }
+            if way.node_ids.iter().any(|n| {
+                let node = &self.derived_nodes[n];
+                // TODO This one is debatable
+                // Only crossing nodes over severances -- it's normal for a sidewalk to have
+                // side road crossings in the middle
+                node.is_crossing()
+                    && node
+                        .way_ids
+                        .iter()
+                        .any(|w| self.derived_ways[w].is_severance())
+            }) {
+                let mut f = self.mercator.to_wgs84_gj(&way.linestring);
+                f.set_property("osm", way_id.to_string());
+                f.set_property("problem", "missing footway=crossing");
+                features.push(f);
+            }
+        }
+
         // Look for roads without separate sidewalks marked, but that seem to be geometrically
         // close to separate sidewalks
         let closest_sidewalk = RTree::bulk_load(
