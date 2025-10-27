@@ -24,7 +24,6 @@
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
-  //import ExtraContext from "./ExtraContext.svelte";
   import Problems from "./Problems.svelte";
 
   export let map: Map;
@@ -39,8 +38,8 @@
   };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
-  let showExtraContext = false;
   let fadeUnmodified = false;
+  let onlySeverances = false;
   let drawProblems = emptyGeojson();
 
   let driveOnLeft = true;
@@ -222,6 +221,9 @@
         beforeId="Road labels"
         manageHoverState
         eventsIfTopMost
+        filter={onlySeverances
+          ? ["any", ["!=", ["get", "kind"], "Road"], ["get", "is_severance"]]
+          : undefined}
         paint={{
           "line-width": hoverStateFilter(5, 8),
           "line-color": constructMatchExpression(
@@ -293,9 +295,9 @@
       <SymbolLayer
         id="pinned-node-order"
         paint={{
-          "text-color": "black",
-          "text-halo-color": "red",
-          "text-halo-width": 4,
+          "text-color": "white",
+          "text-halo-color": "blue",
+          "text-halo-width": 5,
         }}
         layout={{
           "text-field": ["get", "idx"],
@@ -324,15 +326,15 @@
       />
     </GeoJSON>
 
-    <!--<ExtraContext show={showExtraContext} />-->
-
     <Control position="top-right">
       <div style:background="white" style:width="200px" style:padding="8px">
         <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
-        <Checkbox bind:checked={showExtraContext}>Extra context</Checkbox>
-
         <Checkbox bind:checked={fadeUnmodified}>Fade unmodified ways</Checkbox>
+
+        <Checkbox bind:checked={onlySeverances}>
+          Only show severance roads
+        </Checkbox>
 
         <Metrics />
       </div>

@@ -68,6 +68,7 @@ impl Speedwalk {
                 "node_ids",
                 way.node_ids.iter().map(|n| n.0).collect::<Vec<_>>(),
             );
+            f.set_property("is_severance", way.is_severance());
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)

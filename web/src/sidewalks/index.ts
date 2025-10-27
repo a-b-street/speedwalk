@@ -12,6 +12,7 @@ export interface WayProps {
   kind: "Sidewalk" | "RoadWithSeparate" | "Road" | "Crossing" | "Other";
   modified: boolean;
   node_ids: number[];
+  is_severance: boolean;
 }
 
 export let colors = {
