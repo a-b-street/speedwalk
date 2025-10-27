@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::sync::Once;
 
 use anyhow::Result;
@@ -217,7 +217,7 @@ fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
 
 #[derive(Default, Serialize)]
 struct Metrics {
-    total_length_meters: HashMap<Kind, f64>,
+    total_length_meters: BTreeMap<Kind, f64>,
 }
 
 impl Metrics {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backend, prettyPrintDistance, sum } from "../";
+  import { backend, mutationCounter, prettyPrintDistance, sum } from "../";
   import { colors } from "./";
 
   interface Metrics {
@@ -12,6 +12,9 @@
   }
 
   let metrics: Metrics = JSON.parse($backend!.getMetrics());
+  $: if ($mutationCounter) {
+    metrics = JSON.parse($backend!.getMetrics());
+  }
 
   let total = sum(Object.values(metrics.total_length_meters));
 
