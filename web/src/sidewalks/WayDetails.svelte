@@ -85,6 +85,15 @@
       <div>
         <button
           class="btn btn-secondary mb-1"
+          on:click={() => setTags([["footway", "sidewalk"]])}
+        >
+          footway = sidewalk
+        </button>
+      </div>
+
+      <div>
+        <button
+          class="btn btn-secondary mb-1"
           on:click={() => setTags([["footway", "crossing"]])}
         >
           footway = crossing
