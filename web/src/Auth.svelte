@@ -22,7 +22,7 @@
     OSM.login({
       mode: "redirect",
       clientId: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
-      redirectUrl: "http://127.0.0.1:5173/speedwalk/index.html",
+      redirectUrl: "http://127.0.0.1:5174/speedwalk/index.html",
       scopes: ["read_prefs", "write_api"],
     });
   }

@@ -14,6 +14,7 @@ export default defineConfig({
   },
   plugins: [svelte(), wasm()],
   server: {
+    port: 5174,
     fs: {
       allow: ["./", "../backend/pkg"]
     }
