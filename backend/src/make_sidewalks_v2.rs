@@ -25,7 +25,7 @@ impl Speedwalk {
         let mut roads = Vec::new();
         let mut roads_with_ways = Vec::new();
         for (id, way) in &self.derived_ways {
-            if matches!(way.kind, Kind::Sidewalk | Kind::Crossing) {
+            if matches!(way.kind, Kind::Sidewalk | Kind::Crossing | Kind::Other) {
                 continue;
             }
             if only_severances && !way.is_severance() {
