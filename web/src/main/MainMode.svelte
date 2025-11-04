@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Edits from "../Edits.svelte";
+  import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import { backend, mutationCounter } from "../";
   import { problemTypes, colors, type NodeProps, type WayProps } from "./";
@@ -179,10 +179,18 @@
     }
     return ["all", ...all] as ExpressionSpecification;
   }
+
+  function clear() {
+    $backend = null;
+  }
 </script>
 
 <SplitComponent>
   <div slot="sidebar">
+    <button class="btn btn-secondary" on:click={clear}>
+      Load another area
+    </button>
+
     <p>OSM data is from {getOsmTimestamp()}</p>
 
     <Edits />

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { downloadGeneratedFile } from "svelte-utils";
-  import { backend, mutationCounter } from "./";
+  import { backend, mutationCounter } from "../";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
