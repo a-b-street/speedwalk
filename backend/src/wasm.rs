@@ -160,6 +160,7 @@ impl Speedwalk {
         Ok(())
     }
 
+    // TODO Unused now, was just for debug
     #[wasm_bindgen(js_name = editAddNewCrossing)]
     pub fn edit_add_new_crossing(&mut self, x: f64, y: f64) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();

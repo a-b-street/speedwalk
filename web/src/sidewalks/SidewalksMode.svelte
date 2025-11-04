@@ -1,5 +1,6 @@
 <script lang="ts">
   import Edits from "../Edits.svelte";
+  import BulkOperations from "./BulkOperations.svelte";
   import { backend, mutationCounter } from "../";
   import { problemTypes, colors, type NodeProps, type WayProps } from "./";
   import type {
@@ -49,9 +50,6 @@
     problemTypes.map((k) => [k, true]),
   );
 
-  let driveOnLeft = true;
-  let onlyMakeSeverances = true;
-
   $: updateModel($mutationCounter);
   function updateModel(mutationCounter: number) {
     nodes = JSON.parse($backend!.getNodes());
@@ -81,27 +79,6 @@
       pinnedWay = ways.features.find((f) => f.id == rendered.id)!;
       break;
     }
-  }
-
-  // TODO Move to MapContextMenu after svelte 5 upgrade
-  function onRightClick(e: CustomEvent<MapMouseEvent>) {
-    $backend!.editAddNewCrossing(e.detail.lngLat.lng, e.detail.lngLat.lat);
-    $mutationCounter++;
-  }
-
-  function makeAllSidewalksV2() {
-    $backend!.editMakeAllSidewalksV2(onlyMakeSeverances);
-    $mutationCounter++;
-  }
-
-  function connectAllCrossings() {
-    $backend!.editConnectAllCrossings();
-    $mutationCounter++;
-  }
-
-  function assumeTags() {
-    $backend!.editAssumeTags(driveOnLeft);
-    $mutationCounter++;
   }
 
   function getOsmTimestamp(): string {
@@ -212,42 +189,13 @@
 
     {#if pinnedWay}
       <WayDetails {pinnedWay} />
+    {:else}
+      <BulkOperations />
     {/if}
-
-    <div class="card">
-      <div class="card-header">Bulk operations</div>
-      <div class="card-body">
-        <div class="card mb-3">
-          <div class="card-header">Assume old-style tags on one-ways</div>
-          <div class="card-body">
-            <Checkbox bind:checked={driveOnLeft}>Drive on the left</Checkbox>
-            <button class="btn btn-secondary" on:click={assumeTags}>
-              Autoset tags on one-ways
-            </button>
-          </div>
-        </div>
-
-        <div class="card mb-3">
-          <div class="card-header">Make all sidewalks</div>
-          <div class="card-body">
-            <Checkbox bind:checked={onlyMakeSeverances}>
-              Only for severances
-            </Checkbox>
-            <button class="btn btn-secondary" on:click={makeAllSidewalksV2}>
-              Make sidewalks
-            </button>
-          </div>
-        </div>
-
-        <button class="btn btn-secondary" on:click={connectAllCrossings}>
-          Connect all crossings over severances
-        </button>
-      </div>
-    </div>
   </div>
 
   <div slot="map">
-    <MapEvents on:click={onMapClick} on:contextmenu={onRightClick} />
+    <MapEvents on:click={onMapClick} />
 
     <GeoJSON data={pinnedWay || emptyGeojson()}>
       <LineLayer
@@ -370,7 +318,7 @@
         filter={isPoint}
         paint={{
           "circle-radius": 20,
-          "circle-color": "grey",
+          "circle-color": "yellow",
           "circle-opacity": 0.5,
         }}
       />
@@ -379,7 +327,7 @@
         filter={isLine}
         paint={{
           "line-width": 20,
-          "line-color": "grey",
+          "line-color": "yellow",
           "line-opacity": 0.5,
         }}
       />
