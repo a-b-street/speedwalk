@@ -7,7 +7,7 @@
   import { backend } from "./";
   import "bootstrap/dist/css/bootstrap.min.css";
   import type { Map } from "maplibre-gl";
-  import { basemapStyles, Basemaps, StandardControls } from "svelte-utils/map";
+  import { basemapStyles, Basemaps, Geocoder, StandardControls } from "svelte-utils/map";
   import {
     mapContents,
     sidebarContents,
@@ -61,6 +61,7 @@
       }}
     >
       <StandardControls {map} />
+      <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
       <!--<MapContextMenu {map} />-->
       <Basemaps bind:style choice="Maptiler OpenStreetMap" />
 
