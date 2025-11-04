@@ -216,11 +216,6 @@ impl Speedwalk {
             .to_osmchange_json(self)
             .map_err(err_to_js)
     }
-
-    #[wasm_bindgen(js_name = findProblems)]
-    pub fn find_problems_wasm(&self) -> Result<String, JsValue> {
-        self.find_problems().map_err(err_to_js)
-    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {

@@ -28,7 +28,6 @@
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
-  import Problems from "./Problems.svelte";
 
   export let map: Map;
 
@@ -44,7 +43,6 @@
   let showNodes = false;
   let onlyModified = false;
   let onlySeverances = false;
-  let drawProblems = emptyGeojson();
   let drawProblemDetails = emptyGeojson();
   let showProblems = false;
   let showProblemTypes: Record<string, boolean> = Object.fromEntries(
@@ -175,7 +173,12 @@
     return emptyGeojson();
   }
 
-  function filterWays(_a: boolean, _b: boolean, _c: boolean, _d: any): ExpressionSpecification {
+  function filterWays(
+    _a: boolean,
+    _b: boolean,
+    _c: boolean,
+    _d: any,
+  ): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
       // TODO or RoadWithSeparate?
@@ -241,8 +244,6 @@
         </button>
       </div>
     </div>
-
-    <Problems bind:map bind:drawProblems />
   </div>
 
   <div slot="map">
@@ -369,7 +370,7 @@
         filter={isPoint}
         paint={{
           "circle-radius": 20,
-          "circle-color": "yellow",
+          "circle-color": "grey",
           "circle-opacity": 0.5,
         }}
       />
@@ -378,27 +379,7 @@
         filter={isLine}
         paint={{
           "line-width": 20,
-          "line-color": "yellow",
-          "line-opacity": 0.5,
-        }}
-      />
-    </GeoJSON>
-
-    <GeoJSON data={drawProblems}>
-      <CircleLayer
-        filter={isPoint}
-        paint={{
-          "circle-radius": 20,
-          "circle-color": "yellow",
-          "circle-opacity": 0.5,
-        }}
-      />
-
-      <LineLayer
-        filter={isLine}
-        paint={{
-          "line-width": 20,
-          "line-color": "yellow",
+          "line-color": "grey",
           "line-opacity": 0.5,
         }}
       />
