@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, GeometryCollection, LineString};
-use osm_reader::Element;
+use geo::{Coord, GeometryCollection, LineString, Polygon};
+use osm_reader::{Element, OsmID};
+use rstar::RTree;
 use utils::{Mercator, Tags};
 
 use crate::{Edits, Kind, Node, Speedwalk, Way};
@@ -12,6 +13,10 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     let mut nodes = HashMap::new();
     let mut ways = HashMap::new();
     let mut used_nodes = HashSet::new();
+
+    let mut possible_building_parts = HashMap::new();
+    let mut buildings = Vec::new();
+
     osm_reader::parse(input_bytes, |elem| match elem {
         Element::Timestamp(ts) => {
             timestamp = Some(ts);
@@ -45,16 +50,15 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
             version,
             ..
         } => {
+            let num = node_ids.len();
+            node_ids.retain(|n| nodes.contains_key(n));
+            if node_ids.len() != num {
+                warn!("{id} refers to nodes outside the imported area");
+                return;
+            }
+
             let tags: Tags = tags.into();
             if tags.has("highway") && !tags.is("area", "yes") {
-                // This sometimes happens from Overpass?
-                let num = node_ids.len();
-                node_ids.retain(|n| nodes.contains_key(n));
-                if node_ids.len() != num {
-                    warn!("{id} refers to nodes outside the imported area");
-                    return;
-                }
-
                 let mut pts = Vec::new();
                 for node_id in &node_ids {
                     used_nodes.insert(*node_id);
@@ -80,9 +84,34 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
                         problems: Vec::new(),
                     },
                 );
+            } else if tags.has("building") {
+                buildings.push(Polygon::new(
+                    LineString::new(node_ids.into_iter().map(|n| nodes[&n].pt).collect()),
+                    Vec::new(),
+                ));
+            } else if node_ids[0] == *node_ids.last().unwrap() {
+                possible_building_parts.insert(
+                    id,
+                    Polygon::new(
+                        LineString::new(node_ids.into_iter().map(|n| nodes[&n].pt).collect()),
+                        Vec::new(),
+                    ),
+                );
             }
         }
-        Element::Relation { .. } => {}
+        Element::Relation { members, tags, .. } => {
+            if tags.contains_key("building") {
+                for (role, id) in members {
+                    if role == "outer"
+                        && let OsmID::Way(way) = id
+                    {
+                        if let Some(polygon) = possible_building_parts.remove(&way) {
+                            buildings.push(polygon);
+                        }
+                    }
+                }
+            }
+        }
         Element::Bounds { .. } => {}
     })?;
 
@@ -101,12 +130,16 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         mercator.to_mercator_in_place(&mut way.linestring);
     }
     info!("Found {} ways", ways.len());
+    for polygon in &mut buildings {
+        mercator.to_mercator_in_place(polygon);
+    }
 
     let mut model = Speedwalk {
         original_nodes: nodes.clone(),
         original_ways: ways.clone(),
         mercator,
         timestamp,
+        closest_building: RTree::bulk_load(buildings),
 
         edits: Some(Edits::default()),
 

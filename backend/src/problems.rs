@@ -1,6 +1,4 @@
-use geo::{
-    Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point, Polygon,
-};
+use geo::{Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point};
 use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, aabb, buffer_aabb};
@@ -131,16 +129,13 @@ impl Speedwalk {
                             b.point_at_ratio_from_start(&Euclidean, 0.5).unwrap().into(),
                         ]);
 
-                        /*let nearby_buildings: Vec<&Polygon> = closest_building
+                        if self
+                            .closest_building
                             .locate_in_envelope_intersecting(&aabb(&midpt_line))
-                            .map(|obj| obj.geom())
-                            .collect();
-                        if nearby_buildings
-                            .iter()
                             .any(|polygon| polygon.intersects(&midpt_line))
                         {
                             continue 'LINE;
-                        }*/
+                        }
 
                         results.push((*road_id, sidewalk.data));
                         continue 'ROAD;

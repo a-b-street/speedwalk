@@ -15,9 +15,10 @@ mod wasm;
 use std::collections::HashMap;
 
 use anyhow::Result;
-use geo::{Coord, LineString};
+use geo::{Coord, LineString, Polygon};
 use geojson::Feature;
 use osm_reader::{NodeID, WayID};
+use rstar::RTree;
 use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
@@ -31,6 +32,7 @@ pub struct Speedwalk {
     original_ways: HashMap<WayID, Way>,
     mercator: Mercator,
     pub timestamp: Option<i64>,
+    closest_building: RTree<Polygon>,
 
     edits: Option<Edits>,
 
