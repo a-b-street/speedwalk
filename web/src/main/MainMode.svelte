@@ -90,8 +90,8 @@
     return "unknown";
   }
 
-  $: pinnedWaySides = pinnedWay
-    ? JSON.parse($backend!.getSideLocations(BigInt(pinnedWay.properties.id)))
+  $: pinnedWaySides = $backend && pinnedWay
+    ? JSON.parse($backend.getSideLocations(BigInt(pinnedWay.properties.id)))
     : emptyGeojson();
 
   $: drawProblemDetails = problemDetails(pinnedWay);
