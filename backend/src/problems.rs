@@ -95,6 +95,13 @@ impl Speedwalk {
     fn find_parallel_sidewalks(&self) -> Vec<(WayID, WayID, Vec<Feature>)> {
         let mut results = Vec::new();
 
+        let closest_way = RTree::bulk_load(
+            self.derived_ways
+                .iter()
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+
         let closest_sidewalk = RTree::bulk_load(
             self.derived_ways
                 .iter()
@@ -135,11 +142,22 @@ impl Speedwalk {
                             continue 'LINE;
                         }
 
+                        // Near complex junctions and dual carriageways, the sidewalk might also be close
+                        // to multiple parallel-ish lines. We only want the closest one, so make sure we
+                        // don't cross other roads.
+                        for obj in closest_way.locate_in_envelope_intersecting(&aabb(&midpt_line)) {
+                            if obj.data == sidewalk.data || obj.data == *road_id {
+                                continue;
+                            }
+                            if obj.geom().intersects(&midpt_line) {
+                                continue 'LINE;
+                            }
+                        }
+
                         let details = vec![
                             self.mercator
                                 .to_wgs84_gj(&self.derived_ways[&sidewalk.data].linestring),
-                            self.mercator
-                                .to_wgs84_gj(&midpt_line),
+                            self.mercator.to_wgs84_gj(&midpt_line),
                         ];
 
                         results.push((*road_id, sidewalk.data, details));
