@@ -57,7 +57,7 @@
 
     for (let x of [...nodes.features, ...ways.features]) {
       let types = [];
-      for (let problem of x.properties.problems ?? []) {
+      for (let problem of x.properties.problems) {
         types.push(problem.note);
       }
       // @ts-expect-error TODO Hack for maplibre "in" expressions
@@ -99,11 +99,9 @@
     pinnedWay: Feature<LineString, WayProps> | null,
   ): FeatureCollection {
     let gj = emptyGeojson();
-    if (pinnedWay && pinnedWay.properties.problems) {
+    if (pinnedWay) {
       for (let problem of pinnedWay.properties.problems) {
-        if (problem.details) {
-          gj.features.push(problem.details);
-        }
+        gj.features = [...gj.features, ...problem.details];
       }
     }
     return gj;

@@ -112,5 +112,5 @@ impl Way {
 #[derive(Clone, Serialize)]
 pub struct Problem {
     pub note: String,
-    pub details: Option<Feature>,
+    pub details: Vec<Feature>,
 }

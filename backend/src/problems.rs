@@ -1,4 +1,5 @@
 use geo::{Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point};
+use geojson::Feature;
 use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, aabb, buffer_aabb};
@@ -26,7 +27,7 @@ impl Speedwalk {
                         Kind::Sidewalk | Kind::Other
                     )
                 }) {
-                    problem_nodes.push((*node_id, "missing crossing node", None));
+                    problem_nodes.push((*node_id, "missing crossing node", Vec::new()));
                 }
             }
         }
@@ -50,22 +51,19 @@ impl Speedwalk {
                 problem_ways.push((
                     *way_id,
                     "missing footway=crossing",
-                    Some(
+                    vec![
                         self.mercator
                             .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt)),
-                    ),
+                    ],
                 ));
             }
         }
 
-        for (road, sidewalk) in self.find_parallel_sidewalks() {
+        for (road, _sidewalk, details) in self.find_parallel_sidewalks() {
             problem_ways.push((
                 road,
                 "possible separate sidewalk near way without it tagged",
-                Some(
-                    self.mercator
-                        .to_wgs84_gj(&self.derived_ways[&sidewalk].linestring),
-                ),
+                details,
             ));
         }
 
@@ -92,9 +90,9 @@ impl Speedwalk {
         }
     }
 
-    // Returns pairs of (road, nearby matching sidewalk). Only tries to find one nearby sidewalk
+    // Returns pairs of (road, nearby matching sidewalk, debug). Only tries to find one nearby sidewalk
     // per road.
-    fn find_parallel_sidewalks(&self) -> Vec<(WayID, WayID)> {
+    fn find_parallel_sidewalks(&self) -> Vec<(WayID, WayID, Vec<Feature>)> {
         let mut results = Vec::new();
 
         let closest_sidewalk = RTree::bulk_load(
@@ -137,7 +135,14 @@ impl Speedwalk {
                             continue 'LINE;
                         }
 
-                        results.push((*road_id, sidewalk.data));
+                        let details = vec![
+                            self.mercator
+                                .to_wgs84_gj(&self.derived_ways[&sidewalk.data].linestring),
+                            self.mercator
+                                .to_wgs84_gj(&midpt_line),
+                        ];
+
+                        results.push((*road_id, sidewalk.data, details));
                         continue 'ROAD;
                     }
                 }

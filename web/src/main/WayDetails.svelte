@@ -23,7 +23,7 @@
   </div>
 
   <div class="card-body">
-    {#if pinnedWay.properties.problems}
+    {#if pinnedWay.properties.problems.length}
       <u>Problems:</u>
       {#each pinnedWay.properties.problems as problem}
         <p>{problem.note}</p>

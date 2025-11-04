@@ -6,7 +6,7 @@ export interface NodeProps {
   is_crossing: boolean;
   modified: boolean;
   way_ids: number[];
-  problems?: Problem[];
+  problems: Problem[];
 }
 
 export interface WayProps {
@@ -16,12 +16,12 @@ export interface WayProps {
   modified: boolean;
   node_ids: number[];
   is_severance: boolean;
-  problems?: Problem[];
+  problems: Problem[];
 }
 
 interface Problem {
   note: string;
-  details?: Feature;
+  details: Feature[];
 }
 
 export let colors = {
