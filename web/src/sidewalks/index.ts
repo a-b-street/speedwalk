@@ -31,3 +31,10 @@ export let colors = {
   Crossing: "green",
   Other: "grey",
 };
+
+// TODO Simpler to hardcode from backend
+export let problemTypes = [
+  "missing crossing node",
+  "missing footway=crossing",
+  "possible separate sidewalk near way without it tagged",
+];

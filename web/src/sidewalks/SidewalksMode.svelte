@@ -1,8 +1,12 @@
 <script lang="ts">
   import Edits from "../Edits.svelte";
   import { backend, mutationCounter } from "../";
-  import { colors, type NodeProps, type WayProps } from "./";
-  import type { Map, MapMouseEvent } from "maplibre-gl";
+  import { problemTypes, colors, type NodeProps, type WayProps } from "./";
+  import type {
+    Map,
+    MapMouseEvent,
+    ExpressionSpecification,
+  } from "maplibre-gl";
   import {
     GeoJSON,
     CircleLayer,
@@ -38,10 +42,14 @@
   };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
   let showNodes = false;
-  let fadeUnmodified = false;
+  let onlyModified = false;
   let onlySeverances = false;
   let drawProblems = emptyGeojson();
   let drawProblemDetails = emptyGeojson();
+  let showProblems = false;
+  let showProblemTypes: Record<string, boolean> = Object.fromEntries(
+    problemTypes.map((k) => [k, true]),
+  );
 
   let driveOnLeft = true;
   let onlyMakeSeverances = true;
@@ -50,6 +58,15 @@
   function updateModel(mutationCounter: number) {
     nodes = JSON.parse($backend!.getNodes());
     ways = JSON.parse($backend!.getWays());
+
+    for (let x of [...nodes.features, ...ways.features]) {
+      let types = [];
+      for (let problem of x.properties.problems ?? []) {
+        types.push(problem.note);
+      }
+      // @ts-expect-error TODO Hack for maplibre "in" expressions
+      x.properties.problem_types = types;
+    }
 
     if (pinnedWay) {
       let findId = pinnedWay.id;
@@ -157,6 +174,31 @@
     }
     return emptyGeojson();
   }
+
+  function filterWays(_a: boolean, _b: boolean, _c: boolean, _d: any): ExpressionSpecification {
+    let all = [];
+    if (onlySeverances) {
+      // TODO or RoadWithSeparate?
+      all.push([
+        "any",
+        ["!=", ["get", "kind"], "Road"],
+        ["get", "is_severance"],
+      ]);
+    }
+    if (onlyModified) {
+      all.push(["get", "modified"]);
+    }
+    if (showProblems) {
+      let any = [];
+      for (let [key, value] of Object.entries(showProblemTypes)) {
+        if (value) {
+          any.push(["in", key, ["get", "problem_types"]]);
+        }
+      }
+      all.push(["any", ...any]);
+    }
+    return ["all", ...all] as ExpressionSpecification;
+  }
 </script>
 
 <SplitComponent>
@@ -237,9 +279,12 @@
         beforeId="Road labels"
         manageHoverState
         eventsIfTopMost
-        filter={onlySeverances
-          ? ["any", ["!=", ["get", "kind"], "Road"], ["get", "is_severance"]]
-          : undefined}
+        filter={filterWays(
+          onlySeverances,
+          onlyModified,
+          showProblems,
+          showProblemTypes,
+        )}
         paint={{
           "line-width": hoverStateFilter(5, 8),
           "line-color": constructMatchExpression(
@@ -247,9 +292,6 @@
             colors,
             "cyan",
           ),
-          "line-opacity": fadeUnmodified
-            ? ["case", ["get", "modified"], 1.0, 0.5]
-            : 1.0,
         }}
       />
     </GeoJSON>
@@ -265,7 +307,7 @@
           "circle-opacity": [
             "case",
             ["boolean", ["get", "is_crossing"]],
-            fadeUnmodified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
+            onlyModified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
             0,
           ],
           "circle-stroke-color": ["case", ["has", "tags"], "black", "grey"],
@@ -363,16 +405,26 @@
     </GeoJSON>
 
     <Control position="top-right">
-      <div style:background="white" style:width="200px" style:padding="8px">
-        <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
+      <div class="card" style:width="250px" style:padding="8px">
+        <div class="card-header">Filters</div>
+        <div class="card-body">
+          <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
-        <Checkbox bind:checked={fadeUnmodified}>Fade unmodified ways</Checkbox>
+          <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
 
-        <Checkbox bind:checked={onlySeverances}>
-          Only show severance roads
-        </Checkbox>
+          <Checkbox bind:checked={onlySeverances}>
+            Only show severance roads
+          </Checkbox>
 
-        <Metrics />
+          <Checkbox bind:checked={showProblems}>Only show problems</Checkbox>
+          {#if showProblems}
+            {#each problemTypes as key}
+              <Checkbox bind:checked={showProblemTypes[key]}>{key}</Checkbox>
+            {/each}
+          {/if}
+
+          <Metrics />
+        </div>
       </div>
     </Control>
   </div>
