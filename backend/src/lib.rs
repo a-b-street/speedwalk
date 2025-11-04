@@ -16,7 +16,9 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geo::{Coord, LineString};
+use geojson::Feature;
 use osm_reader::{NodeID, WayID};
+use serde::Serialize;
 use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
 
@@ -61,6 +63,7 @@ pub struct Node {
     pub way_ids: Vec<WayID>,
     // Only used in the UI. TODO might be wrong.
     pub modified: bool,
+    pub problems: Vec<Problem>,
 }
 
 #[derive(Clone)]
@@ -73,6 +76,7 @@ pub struct Way {
     // TODO Manage derived state better. Everything below is suspect.
     pub kind: Kind,
     pub modified: bool,
+    pub problems: Vec<Problem>,
 }
 
 impl Node {
@@ -101,4 +105,10 @@ impl Way {
             ],
         )
     }
+}
+
+#[derive(Clone, Serialize)]
+pub struct Problem {
+    pub note: String,
+    pub details: Option<Feature>,
 }

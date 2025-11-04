@@ -107,6 +107,7 @@ impl Edits {
                         // Calculate later
                         way_ids: Vec::new(),
                         modified: true,
+                        problems: Vec::new(),
                     },
                 );
 
@@ -147,6 +148,7 @@ impl Edits {
                         // Calculate later
                         way_ids: Vec::new(),
                         modified: true,
+                        problems: Vec::new(),
                     },
                 );
                 node_mapping.insert(HashedPoint::new(pt), node_id);
@@ -175,6 +177,7 @@ impl Edits {
                                 // Calculate later
                                 way_ids: Vec::new(),
                                 modified: true,
+                                problems: Vec::new(),
                             },
                         );
                         node_id
@@ -193,6 +196,7 @@ impl Edits {
 
                     kind: results.new_kind.clone(),
                     modified: true,
+                    problems: Vec::new(),
                 },
             );
         }
@@ -364,6 +368,8 @@ impl Speedwalk {
             node.way_ids.sort();
             node.way_ids.dedup();
         }
+
+        self.recalculate_problems();
     }
 }
 

@@ -41,6 +41,7 @@
   let fadeUnmodified = false;
   let onlySeverances = false;
   let drawProblems = emptyGeojson();
+  let drawProblemDetails = emptyGeojson();
 
   let driveOnLeft = true;
   let onlyMakeSeverances = true;
@@ -100,6 +101,21 @@
   $: pinnedWaySides = pinnedWay
     ? JSON.parse($backend!.getSideLocations(BigInt(pinnedWay.properties.id)))
     : emptyGeojson();
+
+  $: drawProblemDetails = problemDetails(pinnedWay);
+  function problemDetails(
+    pinnedWay: Feature<LineString, WayProps> | null,
+  ): FeatureCollection {
+    let gj = emptyGeojson();
+    if (pinnedWay && pinnedWay.properties.problems) {
+      for (let problem of pinnedWay.properties.problems) {
+        if (problem.details) {
+          gj.features.push(problem.details);
+        }
+      }
+    }
+    return gj;
+  }
 
   function showNodeOrder(
     pinnedWay: Feature<LineString, WayProps> | null,
@@ -302,6 +318,26 @@
         layout={{
           "text-field": ["get", "idx"],
           "text-size": 16,
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={drawProblemDetails}>
+      <CircleLayer
+        filter={isPoint}
+        paint={{
+          "circle-radius": 20,
+          "circle-color": "yellow",
+          "circle-opacity": 0.5,
+        }}
+      />
+
+      <LineLayer
+        filter={isLine}
+        paint={{
+          "line-width": 20,
+          "line-color": "yellow",
+          "line-opacity": 0.5,
         }}
       />
     </GeoJSON>

@@ -48,6 +48,12 @@ impl Speedwalk {
                 "way_ids",
                 node.way_ids.iter().map(|w| w.0).collect::<Vec<_>>(),
             );
+            if !node.problems.is_empty() {
+                f.set_property(
+                    "problems",
+                    serde_json::to_value(&node.problems).map_err(err_to_js)?,
+                );
+            }
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
@@ -69,6 +75,12 @@ impl Speedwalk {
                 way.node_ids.iter().map(|n| n.0).collect::<Vec<_>>(),
             );
             f.set_property("is_severance", way.is_severance());
+            if !way.problems.is_empty() {
+                f.set_property(
+                    "problems",
+                    serde_json::to_value(&way.problems).map_err(err_to_js)?,
+                );
+            }
             features.push(f);
         }
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)

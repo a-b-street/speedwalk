@@ -34,6 +34,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
                     way_ids: Vec::new(),
                     modified: false,
+                    problems: Vec::new(),
                 },
             );
         }
@@ -76,6 +77,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
                         kind,
                         modified: false,
+                        problems: Vec::new(),
                     },
                 );
             }
@@ -100,7 +102,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
     }
     info!("Found {} ways", ways.len());
 
-    Ok(Speedwalk {
+    let mut model = Speedwalk {
         original_nodes: nodes.clone(),
         original_ways: ways.clone(),
         mercator,
@@ -110,5 +112,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
         derived_nodes: nodes,
         derived_ways: ways,
-    })
+    };
+    model.recalculate_problems();
+    Ok(model)
 }

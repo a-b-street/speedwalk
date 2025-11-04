@@ -1,9 +1,12 @@
+import type { Feature } from "geojson";
+
 export interface NodeProps {
   id: number;
   tags?: Record<string, string>;
   is_crossing: boolean;
   modified: boolean;
   way_ids: number[];
+  problems?: Problem[];
 }
 
 export interface WayProps {
@@ -13,6 +16,12 @@ export interface WayProps {
   modified: boolean;
   node_ids: number[];
   is_severance: boolean;
+  problems?: Problem[];
+}
+
+interface Problem {
+  note: string;
+  details?: Feature;
 }
 
 export let colors = {

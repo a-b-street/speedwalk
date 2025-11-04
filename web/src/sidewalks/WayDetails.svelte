@@ -21,7 +21,15 @@
     </a>
     : {pinnedWay.properties.kind}
   </div>
+
   <div class="card-body">
+    {#if pinnedWay.properties.problems}
+      <u>Problems:</u>
+      {#each pinnedWay.properties.problems as problem}
+        <p>{problem.note}</p>
+      {/each}
+    {/if}
+
     {#if pinnedWay.properties.kind == "Road" || pinnedWay.properties.kind == "RoadWithSeparate"}
       <u>Current sidewalk tags</u>
       <ul>

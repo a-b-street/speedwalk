@@ -4,9 +4,110 @@ use geojson::GeoJson;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{aabb, buffer_aabb};
 
-use crate::{Kind, Speedwalk};
+use crate::{Kind, Problem, Speedwalk};
 
 impl Speedwalk {
+    pub fn recalculate_problems(&mut self) {
+        let mut problem_nodes = Vec::new();
+        let mut problem_ways = Vec::new();
+
+        // Look for footway=crossing ways that don't have crossing nodes on the roads
+        for (_way_id, way) in &self.derived_ways {
+            if !way.tags.is("footway", "crossing") {
+                continue;
+            }
+            for node_id in &way.node_ids {
+                let node = &self.derived_nodes[node_id];
+                if node.is_crossing() {
+                    continue;
+                }
+                if node.way_ids.iter().any(|other_way_id| {
+                    !matches!(
+                        self.derived_ways[other_way_id].kind,
+                        Kind::Sidewalk | Kind::Other
+                    )
+                }) {
+                    problem_nodes.push((*node_id, "missing crossing node", None));
+                }
+            }
+        }
+
+        // Look for footways involving crossing nodes that aren't marked footway=crossing
+        for (way_id, way) in &self.derived_ways {
+            if !matches!(self.derived_ways[way_id].kind, Kind::Sidewalk | Kind::Other) {
+                continue;
+            }
+            if let Some(crossing_node) = way.node_ids.iter().find(|n| {
+                let node = &self.derived_nodes[n];
+                // TODO This one is debatable
+                // Only crossing nodes over severances -- it's normal for a sidewalk to have
+                // side road crossings in the middle
+                node.is_crossing()
+                    && node
+                        .way_ids
+                        .iter()
+                        .any(|w| self.derived_ways[w].is_severance())
+            }) {
+                problem_ways.push((
+                    *way_id,
+                    "missing footway=crossing",
+                    Some(
+                        self.mercator
+                            .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt)),
+                    ),
+                ));
+            }
+        }
+
+        // Look for roads without separate sidewalks marked, but that seem to be geometrically
+        // close to separate sidewalks
+        let closest_sidewalk = RTree::bulk_load(
+            self.derived_ways
+                .iter()
+                .filter(|(_, way)| way.kind == Kind::Sidewalk)
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+        for (way_id, way) in &self.derived_ways {
+            if way.kind != Kind::Road {
+                continue;
+            }
+            for obj in closest_sidewalk
+                .locate_in_envelope_intersecting(&buffer_aabb(aabb(&way.linestring), 15.0))
+            {
+                // TODO See if it's parallelish -- walknet's defn
+                problem_ways.push((
+                    *way_id,
+                    "possible separate sidewalk near way without it tagged",
+                    Some(self.mercator.to_wgs84_gj(obj.geom())),
+                ));
+                break;
+            }
+        }
+
+        // Fill out problems
+        for (id, note, details) in problem_nodes {
+            self.derived_nodes
+                .get_mut(&id)
+                .unwrap()
+                .problems
+                .push(Problem {
+                    note: note.to_string(),
+                    details,
+                });
+        }
+        for (id, note, details) in problem_ways {
+            self.derived_ways
+                .get_mut(&id)
+                .unwrap()
+                .problems
+                .push(Problem {
+                    note: note.to_string(),
+                    details,
+                });
+        }
+    }
+
     pub fn find_problems(&self) -> Result<String> {
         let mut features = Vec::new();
 
@@ -71,7 +172,7 @@ impl Speedwalk {
                 continue;
             }
             let mut any_matches = false;
-            for obj in closest_sidewalk
+            for _ in closest_sidewalk
                 .locate_in_envelope_intersecting(&buffer_aabb(aabb(&way.linestring), 15.0))
             {
                 // TODO See if it's parallelish -- walknet's defn
