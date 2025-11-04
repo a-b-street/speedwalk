@@ -1,6 +1,9 @@
-use geo::Point;
+use geo::{
+    Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point, Polygon,
+};
+use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
-use utils::{aabb, buffer_aabb};
+use utils::{LineSplit, aabb, buffer_aabb};
 
 use crate::{Kind, Problem, Speedwalk};
 
@@ -57,30 +60,15 @@ impl Speedwalk {
             }
         }
 
-        // Look for roads without separate sidewalks marked, but that seem to be geometrically
-        // close to separate sidewalks
-        let closest_sidewalk = RTree::bulk_load(
-            self.derived_ways
-                .iter()
-                .filter(|(_, way)| way.kind == Kind::Sidewalk)
-                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
-                .collect(),
-        );
-        for (way_id, way) in &self.derived_ways {
-            if way.kind != Kind::Road {
-                continue;
-            }
-            for obj in closest_sidewalk
-                .locate_in_envelope_intersecting(&buffer_aabb(aabb(&way.linestring), 15.0))
-            {
-                // TODO See if it's parallelish -- walknet's defn
-                problem_ways.push((
-                    *way_id,
-                    "possible separate sidewalk near way without it tagged",
-                    Some(self.mercator.to_wgs84_gj(obj.geom())),
-                ));
-                break;
-            }
+        for (road, sidewalk) in self.find_parallel_sidewalks() {
+            problem_ways.push((
+                road,
+                "possible separate sidewalk near way without it tagged",
+                Some(
+                    self.mercator
+                        .to_wgs84_gj(&self.derived_ways[&sidewalk].linestring),
+                ),
+            ));
         }
 
         // Fill out problems
@@ -105,4 +93,99 @@ impl Speedwalk {
                 });
         }
     }
+
+    // Returns pairs of (road, nearby matching sidewalk). Only tries to find one nearby sidewalk
+    // per road.
+    fn find_parallel_sidewalks(&self) -> Vec<(WayID, WayID)> {
+        let mut results = Vec::new();
+
+        let closest_sidewalk = RTree::bulk_load(
+            self.derived_ways
+                .iter()
+                .filter(|(_, way)| way.kind == Kind::Sidewalk)
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+
+        'ROAD: for (road_id, road) in &self.derived_ways {
+            if road.kind != Kind::Road {
+                continue;
+            }
+            for sidewalk in closest_sidewalk
+                .locate_in_envelope_intersecting(&buffer_aabb(aabb(&road.linestring), 15.0))
+            {
+                'LINE: for sidewalk_line in sidewalk.geom().lines() {
+                    // Slice the candidate road by this one line segment in the sidewalk
+                    if let Some((a, b)) =
+                        slice_lines_to_match(&sidewalk_line.into(), &road.linestring)
+                    {
+                        // The slices should be roughly parallel
+                        let angle_diff = (angle_ls(&a) - angle_ls(&b)).abs();
+                        if angle_diff > 30.0 {
+                            continue 'LINE;
+                        }
+
+                        // No buildings between the midpoint of the two slices
+                        let midpt_line = LineString::new(vec![
+                            a.point_at_ratio_from_start(&Euclidean, 0.5).unwrap().into(),
+                            b.point_at_ratio_from_start(&Euclidean, 0.5).unwrap().into(),
+                        ]);
+
+                        /*let nearby_buildings: Vec<&Polygon> = closest_building
+                            .locate_in_envelope_intersecting(&aabb(&midpt_line))
+                            .map(|obj| obj.geom())
+                            .collect();
+                        if nearby_buildings
+                            .iter()
+                            .any(|polygon| polygon.intersects(&midpt_line))
+                        {
+                            continue 'LINE;
+                        }*/
+
+                        results.push((*road_id, sidewalk.data));
+                        continue 'ROAD;
+                    }
+                }
+            }
+        }
+
+        results
+    }
+}
+
+// TODO Diagram of example cases would help
+fn slice_lines_to_match(
+    source: &LineString,
+    target: &LineString,
+) -> Option<(LineString, LineString)> {
+    if Euclidean.length(source) >= Euclidean.length(target) {
+        let smaller_source = slice_line_to_match(source, target)?;
+        return Some((smaller_source, target.clone()));
+    }
+
+    let smaller_target = slice_line_to_match(target, source)?;
+    Some((source.clone(), smaller_target))
+}
+
+// Slice `a` to correspond to `b`, by finding the closest point along `a` matching `b`'s start and
+// end point.
+fn slice_line_to_match(a: &LineString, b: &LineString) -> Option<LineString> {
+    let start = a.line_locate_point(&b.points().next().unwrap())?;
+    let end = a.line_locate_point(&b.points().last().unwrap())?;
+    // Note this uses a copy of an API that hasn't been merged into georust yet. It seems to work
+    // fine in practice.
+    a.line_split_twice(start, end)?.into_second()
+}
+
+// Angle in degrees from first to last point. Ignores the "direction" of the line; returns [0,
+// 180].
+// TODO Needs unit testing!
+fn angle_ls(ls: &LineString) -> f64 {
+    let pt1 = ls.coords().next().unwrap();
+    let pt2 = ls.coords().last().unwrap();
+    let a1 = (pt2.y - pt1.y).atan2(pt2.x - pt1.x).to_degrees();
+    // Normalize to [0, 360]
+    let a2 = if a1 < 0.0 { a1 + 360.0 } else { a1 };
+    // Ignore direction
+    if a2 > 180.0 { a2 - 180.0 } else { a2 }
 }
