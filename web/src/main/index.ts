@@ -12,7 +12,14 @@ export interface NodeProps {
 export interface WayProps {
   id: number;
   tags: Record<string, string>;
-  kind: "Sidewalk" | "RoadWithSeparate" | "Road" | "Crossing" | "Other";
+  kind:
+    | "RoadWithSeparate"
+    | "RoadWithTags"
+    | "RoadWithoutSidewalks"
+    | "RoadUnknown"
+    | "Sidewalk"
+    | "Crossing"
+    | "Other";
   modified: boolean;
   node_ids: number[];
   is_severance: boolean;
@@ -25,9 +32,12 @@ interface Problem {
 }
 
 export let colors = {
-  Sidewalk: "black",
   RoadWithSeparate: "purple",
-  Road: "red",
+  RoadWithTags: "blue",
+  RoadWithoutSidewalks: "orange",
+  RoadUnknown: "red",
+
+  Sidewalk: "black",
   Crossing: "green",
   Other: "grey",
 };

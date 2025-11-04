@@ -111,7 +111,8 @@ impl Speedwalk {
         );
 
         'ROAD: for (road_id, road) in &self.derived_ways {
-            if road.kind != Kind::Road {
+            // TODO Double check this
+            if !matches!(road.kind, Kind::RoadWithTags | Kind::RoadWithoutSidewalks | Kind::RoadUnknown) {
                 continue;
             }
             for sidewalk in closest_sidewalk

@@ -121,6 +121,7 @@ impl Speedwalk {
         let closest_road = RTree::bulk_load(
             self.derived_ways
                 .iter()
+                // TODO and not Crossing or Other?
                 .filter(|(_, way)| way.kind != Kind::Sidewalk)
                 .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
                 .collect(),

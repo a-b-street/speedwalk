@@ -31,6 +31,7 @@ impl Speedwalk {
             if only_severances && !way.is_severance() {
                 continue;
             }
+            // TODO Replace some of this with the Kind logic
             // There are already separate sidewalks here
             if way.tags.has("sidewalk:both")
                 || way.tags.has("sidewalk:left")

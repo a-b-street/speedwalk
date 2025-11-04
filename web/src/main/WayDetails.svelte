@@ -30,7 +30,7 @@
       {/each}
     {/if}
 
-    {#if pinnedWay.properties.kind == "Road" || pinnedWay.properties.kind == "RoadWithSeparate"}
+    {#if pinnedWay.properties.kind.startsWith("Road")}
       <u>Current sidewalk tags</u>
       <ul>
         {#each Object.entries(pinnedWay.properties.tags) as [key, value]}

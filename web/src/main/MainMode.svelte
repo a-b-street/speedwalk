@@ -90,9 +90,10 @@
     return "unknown";
   }
 
-  $: pinnedWaySides = $backend && pinnedWay
-    ? JSON.parse($backend.getSideLocations(BigInt(pinnedWay.properties.id)))
-    : emptyGeojson();
+  $: pinnedWaySides =
+    $backend && pinnedWay
+      ? JSON.parse($backend.getSideLocations(BigInt(pinnedWay.properties.id)))
+      : emptyGeojson();
 
   $: drawProblemDetails = problemDetails(pinnedWay);
   function problemDetails(
@@ -156,10 +157,9 @@
   ): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
-      // TODO or RoadWithSeparate?
       all.push([
         "any",
-        ["!=", ["get", "kind"], "Road"],
+        ["in", ["get", "kind"], ["literal", ["Sidewalk", "Crossing", "Other"]]],
         ["get", "is_severance"],
       ]);
     }
