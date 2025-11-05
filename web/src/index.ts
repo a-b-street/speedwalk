@@ -4,6 +4,10 @@ import * as backendPkg from "../../backend/pkg";
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
 
+export let loggedInUser: Writable<
+  { name: string; uid: number; avatarUrl: string } | undefined
+> = writable();
+
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
 }

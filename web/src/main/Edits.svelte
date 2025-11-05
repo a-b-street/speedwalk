@@ -1,6 +1,6 @@
 <script lang="ts">
   import { downloadGeneratedFile } from "svelte-utils";
-  import { backend, mutationCounter } from "../";
+  import { backend, loggedInUser, mutationCounter } from "../";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
@@ -34,6 +34,18 @@
   }
 
   async function uploadOsc() {
+    if (!$loggedInUser) {
+      window.alert("You have to log in first");
+      return;
+    }
+
+    if (cmds.some((cmd) => !("SetTags" in cmd))) {
+      window.alert(
+        "You've done a bulk operation. You should NOT upload this to OSM -- it's only for testing or usage in you own tool that consumes OSM data.",
+      );
+      return;
+    }
+
     if (
       !window.confirm(
         "Do you really know what you're doing and want to upload this?",
