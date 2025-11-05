@@ -1,15 +1,13 @@
 <script lang="ts">
   import * as OSM from "osm-api";
   import { onMount } from "svelte";
-
-  let loggedInUser: { name: string; uid: number; avatarUrl: string } | null =
-    null;
+  import { loggedInUser } from "./";
 
   onMount(async () => {
     await OSM.authReady;
     if (OSM.isLoggedIn()) {
       let user = await OSM.getUser("me");
-      loggedInUser = {
+      $loggedInUser = {
         name: user.display_name,
         uid: user.id,
         avatarUrl: user.img?.href || "",
@@ -28,15 +26,15 @@
   }
 
   async function logout() {
-    loggedInUser = null;
+    $loggedInUser = undefined;
     await OSM.logout();
   }
 </script>
 
-{#if loggedInUser}
-  <p>Logged in as {loggedInUser.name} (id {loggedInUser.uid})</p>
-  {#if loggedInUser.avatarUrl}
-    <img src={loggedInUser.avatarUrl} alt="OSM avatar" />
+{#if $loggedInUser}
+  <p>Logged in as {$loggedInUser.name} (id {$loggedInUser.uid})</p>
+  {#if $loggedInUser.avatarUrl}
+    <img src={$loggedInUser.avatarUrl} alt="OSM avatar" />
   {/if}
 
   <button class="btn btn-danger" on:click={logout}>Logout</button>

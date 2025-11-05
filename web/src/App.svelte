@@ -7,7 +7,12 @@
   import { backend } from "./";
   import "bootstrap/dist/css/bootstrap.min.css";
   import type { Map } from "maplibre-gl";
-  import { basemapStyles, Basemaps, Geocoder, StandardControls } from "svelte-utils/map";
+  import {
+    basemapStyles,
+    Basemaps,
+    Geocoder,
+    StandardControls,
+  } from "svelte-utils/map";
   import {
     mapContents,
     sidebarContents,
