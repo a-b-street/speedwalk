@@ -206,7 +206,6 @@
     <GeoJSON data={pinnedWay || emptyGeojson()}>
       <LineLayer
         id="pinned"
-        beforeId="Road labels"
         paint={{
           "line-width": 12,
           "line-color": "cyan",
@@ -218,7 +217,6 @@
     <GeoJSON data={snappedRoad(pinnedWay)}>
       <LineLayer
         id="snapped-to-pinned"
-        beforeId="Road labels"
         paint={{
           "line-width": 15,
           "line-color": "blue",
@@ -231,7 +229,6 @@
     <GeoJSON data={ways}>
       <LineLayer
         id="ways"
-        beforeId="Road labels"
         manageHoverState
         eventsIfTopMost
         filter={filterWays(
@@ -254,7 +251,6 @@
     <GeoJSON data={nodes}>
       <CircleLayer
         id="nodes"
-        beforeId="Road labels"
         manageHoverState
         paint={{
           "circle-radius": 7,

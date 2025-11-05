@@ -17,7 +17,7 @@
   import MainMode from "./main/MainMode.svelte";
 
   let map: Map | undefined;
-  let style = basemapStyles["Maptiler OpenStreetMap"];
+  let style = basemapStyles["Blank"];
 
   onMount(async () => {
     await backendPkg.default();
@@ -61,9 +61,9 @@
       }}
     >
       <StandardControls {map} />
-      <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
+      <!--<Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" /> -->
       <!--<MapContextMenu {map} />-->
-      <Basemaps bind:style choice="Maptiler OpenStreetMap" />
+      <Basemaps bind:style choice="Blank" />
 
       {#if map}
         <div bind:this={mapDiv} />
