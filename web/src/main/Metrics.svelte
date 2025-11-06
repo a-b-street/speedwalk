@@ -12,8 +12,8 @@
   }
 
   let metrics: Metrics = JSON.parse($backend!.getMetrics());
-  $: if ($mutationCounter) {
-    metrics = JSON.parse($backend!.getMetrics());
+  $: if ($mutationCounter && $backend) {
+    metrics = JSON.parse($backend.getMetrics());
   }
 
   let total = sum(Object.values(metrics.total_length_meters));
