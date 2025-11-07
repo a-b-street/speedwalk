@@ -47,7 +47,9 @@ impl Kind {
             return Self::Other;
         }
 
-        if tags.is_any("sidewalk", vec!["no", "none"]) || tags.is_any("sidewalk:both", vec!["no", "none"]) {
+        if tags.is_any("sidewalk", vec!["no", "none"])
+            || tags.is_any("sidewalk:both", vec!["no", "none"])
+        {
             return Self::RoadWithoutSidewalks;
         }
         // Implied cases

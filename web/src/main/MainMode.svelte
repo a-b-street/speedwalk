@@ -194,7 +194,7 @@
     <Edits />
 
     {#if pinnedWay}
-      <WayDetails {pinnedWay} />
+      <WayDetails {pinnedWay} {drawProblemDetails} />
     {:else}
       <BulkOperations />
     {/if}
@@ -324,7 +324,7 @@
         filter={isPoint}
         paint={{
           "circle-radius": 20,
-          "circle-color": "yellow",
+          "circle-color": ["get", "color"],
           "circle-opacity": 0.5,
         }}
       />
@@ -333,7 +333,7 @@
         filter={isLine}
         paint={{
           "line-width": 20,
-          "line-color": "yellow",
+          "line-color": ["get", "color"],
           "line-opacity": 0.5,
         }}
       />

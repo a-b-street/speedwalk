@@ -1,9 +1,10 @@
 <script lang="ts">
-  import type { Feature, LineString } from "geojson";
+  import type { Feature, FeatureCollection, LineString } from "geojson";
   import { backend, mutationCounter } from "../";
   import { type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
+  export let drawProblemDetails: FeatureCollection;
 
   function setTags(tags: Array<string[]>) {
     $backend!.editSetTags(BigInt(pinnedWay.properties.id), tags);
@@ -25,6 +26,15 @@
   <div class="card-body">
     {#if pinnedWay.properties.problems.length}
       <u>Problems:</u>
+
+      <p>
+        (Details are shown on the map:
+        {#each new Set(drawProblemDetails.features.map((f) => f.properties?.color)) as color}
+          <span class="color-swatch me-1" style:background={color}></span>
+        {/each}
+        )
+      </p>
+
       {#each pinnedWay.properties.problems as problem}
         <p>{problem.note}</p>
       {/each}
@@ -129,3 +139,12 @@
     <p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
   </div>
 </div>
+
+<style>
+  .color-swatch {
+    display: inline-block;
+    height: 16px;
+    width: 24px;
+    border: 1px solid #888;
+  }
+</style>

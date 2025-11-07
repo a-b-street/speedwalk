@@ -48,18 +48,16 @@ impl Speedwalk {
                         .iter()
                         .any(|w| self.derived_ways[w].is_severance())
             }) {
-                problem_ways.push((
-                    *way_id,
-                    "missing footway=crossing",
-                    vec![
-                        self.mercator
-                            .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt)),
-                    ],
-                ));
+                let mut f = self
+                    .mercator
+                    .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt));
+                f.set_property("color", "yellow");
+
+                problem_ways.push((*way_id, "missing footway=crossing", vec![f]));
             }
         }
 
-        for (road, _sidewalk, details) in self.find_parallel_sidewalks() {
+        for (road, _sidewalks, details) in self.find_parallel_sidewalks() {
             problem_ways.push((
                 road,
                 "possible separate sidewalk near way without it tagged",
@@ -90,9 +88,8 @@ impl Speedwalk {
         }
     }
 
-    // Returns pairs of (road, nearby matching sidewalk, debug). Only tries to find one nearby sidewalk
-    // per road.
-    fn find_parallel_sidewalks(&self) -> Vec<(WayID, WayID, Vec<Feature>)> {
+    // Returns pairs of (road, nearby matching sidewalks, debug)
+    fn find_parallel_sidewalks(&self) -> Vec<(WayID, Vec<WayID>, Vec<Feature>)> {
         let mut results = Vec::new();
 
         let closest_way = RTree::bulk_load(
@@ -110,12 +107,19 @@ impl Speedwalk {
                 .collect(),
         );
 
-        'ROAD: for (road_id, road) in &self.derived_ways {
+        for (road_id, road) in &self.derived_ways {
             // TODO Double check this
-            if !matches!(road.kind, Kind::RoadWithTags | Kind::RoadWithoutSidewalks | Kind::RoadUnknown) {
+            if !matches!(
+                road.kind,
+                Kind::RoadWithTags | Kind::RoadWithoutSidewalks | Kind::RoadUnknown
+            ) {
                 continue;
             }
-            for sidewalk in closest_sidewalk
+
+            let mut matching_sidewalks = Vec::new();
+            let mut details = Vec::new();
+
+            'SIDEWALK: for sidewalk in closest_sidewalk
                 .locate_in_envelope_intersecting(&buffer_aabb(aabb(&road.linestring), 15.0))
             {
                 'LINE: for sidewalk_line in sidewalk.geom().lines() {
@@ -155,16 +159,26 @@ impl Speedwalk {
                             }
                         }
 
-                        let details = vec![
-                            self.mercator
-                                .to_wgs84_gj(&self.derived_ways[&sidewalk.data].linestring),
-                            self.mercator.to_wgs84_gj(&midpt_line),
-                        ];
-
-                        results.push((*road_id, sidewalk.data, details));
-                        continue 'ROAD;
+                        matching_sidewalks.push(sidewalk.data);
+                        {
+                            let mut f = self
+                                .mercator
+                                .to_wgs84_gj(&self.derived_ways[&sidewalk.data].linestring);
+                            f.set_property("color", "yellow");
+                            details.push(f);
+                        }
+                        {
+                            let mut f = self.mercator.to_wgs84_gj(&midpt_line);
+                            f.set_property("color", "purple");
+                            details.push(f);
+                        }
+                        continue 'SIDEWALK;
                     }
                 }
+            }
+
+            if !matching_sidewalks.is_empty() {
+                results.push((*road_id, matching_sidewalks, details));
             }
         }
 
