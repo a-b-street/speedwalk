@@ -6,6 +6,7 @@
   import { onMount } from "svelte";
   import { backend } from "./";
   import "bootstrap/dist/css/bootstrap.min.css";
+  import "bootstrap/dist/js/bootstrap.min.js";
   import type { Map } from "maplibre-gl";
   import {
     basemapStyles,

@@ -32,12 +32,24 @@
 </script>
 
 {#if $loggedInUser}
-  <p>Logged in as {$loggedInUser.name} (id {$loggedInUser.uid})</p>
-  {#if $loggedInUser.avatarUrl}
-    <img src={$loggedInUser.avatarUrl} alt="OSM avatar" />
-  {/if}
-
-  <button class="btn btn-danger" on:click={logout}>Logout</button>
+  <div class="dropdown mb-3">
+    <button
+      class="btn btn-outline-secondary dropdown-toggle"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+    >
+      {#if $loggedInUser.avatarUrl}
+        <img src={$loggedInUser.avatarUrl} alt="OSM avatar" />
+      {/if}
+      {$loggedInUser.name}
+    </button>
+    <ul class="dropdown-menu">
+      <li>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a class="dropdown-item" href="#" on:click={logout}>Logout</a>
+      </li>
+    </ul>
+  </div>
 {:else}
-  <button class="btn btn-primary" on:click={login}>Login</button>
+  <button class="btn btn-primary mb-3" on:click={login}>Login</button>
 {/if}
