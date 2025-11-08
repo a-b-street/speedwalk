@@ -1,0 +1,40 @@
+name: Deploy web
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Cache WASM build
+        uses: actions/cache@v3
+        with:
+          path: backend/target
+          key: cargo-wasm-${{ hashFiles('backend/Cargo.lock') }}
+
+      - name: Build web app
+        run: |
+          cd web
+          npm ci
+          npm run wasm-release
+          npm run build --if-present
+
+      - name: Publish
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web/dist/

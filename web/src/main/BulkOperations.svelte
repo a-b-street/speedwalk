@@ -70,10 +70,10 @@
   <p>
     Speedwalk has some experimental features that can automatically generate
     separate sidewalks on roads tagged with <i>sidewalk = left,right,both</i>
-    . This is intended for use in routers and other tools that require separate
-    sidewalks. This generation is very error-prone and not meant to ever replace
-    mapping sidewalks properly, just as a stop-gap for areas with low coverage.
-    Feel free to test it out, but do not ever upload the results to OSM.
+    . This is intended for use in routers and other tools that require separate sidewalks.
+    This generation is very error-prone and not meant to ever replace mapping sidewalks
+    properly, just as a stop-gap for areas with low coverage. Feel free to test it
+    out, but do not ever upload the results to OSM.
   </p>
 
   <button class="btn btn-primary" on:click={enableOps}>I understand</button>

@@ -21,7 +21,7 @@
       await OSM.login({
         mode: "popup",
         clientId: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
-        redirectUrl: "http://127.0.0.1:5174/speedwalk/land.html",
+        redirectUrl: `${window.location.origin}/speedwalk/land.html`,
         scopes: ["read_prefs", "write_api"],
       });
       await handleLogin();
