@@ -3,8 +3,9 @@
   import { onMount } from "svelte";
   import { loggedInUser } from "./";
 
-  onMount(async () => {
-    await OSM.authReady;
+  onMount(handleLogin);
+
+  async function handleLogin() {
     if (OSM.isLoggedIn()) {
       let user = await OSM.getUser("me");
       $loggedInUser = {
@@ -12,17 +13,21 @@
         uid: user.id,
         avatarUrl: user.img?.href || "",
       };
-      history.pushState({}, "", window.location.pathname);
     }
-  });
+  }
 
-  function login() {
-    OSM.login({
-      mode: "redirect",
-      clientId: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
-      redirectUrl: "http://127.0.0.1:5174/speedwalk/index.html",
-      scopes: ["read_prefs", "write_api"],
-    });
+  async function login() {
+    try {
+      await OSM.login({
+        mode: "popup",
+        clientId: "vyCV0t-IiskqNBgpiHvuSAmf2nC8K-zfByeFL6XtAzc",
+        redirectUrl: "http://127.0.0.1:5174/speedwalk/land.html",
+        scopes: ["read_prefs", "write_api"],
+      });
+      await handleLogin();
+    } catch (err) {
+      window.alert(`Login failed: ${err}`);
+    }
   }
 
   async function logout() {
