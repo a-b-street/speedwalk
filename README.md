@@ -17,8 +17,8 @@ The first version:
 
 Later work:
 
-- [ ] https://github.com/a-b-street/speedwalk/issues/4
-- [ ] https://github.com/a-b-street/speedwalk/issues/5
+- [ ] https://github.com/a-b-street/speedwalk/issues/4 Split ways within the tool
+- [ ] https://github.com/a-b-street/speedwalk/issues/5 Integrate into the iD editor
 
 ### Automated sidewalk generation
 
