@@ -8,6 +8,8 @@ export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
 > = writable();
 
+export let enabledBulkOps = writable(false);
+
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
 }
