@@ -129,7 +129,7 @@ impl Edits {
         let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
 
         // Modify existing ways first
-        for (way_id, mut insert_points) in results.modify_existing {
+        for (way_id, mut insert_points) in results.modify_existing_nodes {
             // When there are multiple points, insert the highest indices first, so nothing
             // messes up
             insert_points.sort_by(|a, b| b.1.cmp(&a.1));
@@ -199,6 +199,14 @@ impl Edits {
                     problems: Vec::new(),
                 },
             );
+        }
+
+        // Update tags
+        for (way_id, cmds) in results.modify_existing_tags {
+            self.change_way_tags
+                .entry(way_id)
+                .or_insert_with(Vec::new)
+                .extend(cmds);
         }
     }
 
@@ -432,5 +440,6 @@ pub struct CreateNewGeometry {
     pub new_kind: Kind,
     // Everywhere existing some new object crosses, find the index in the existing way where this
     // crossed point needs to be inserted
-    pub modify_existing: HashMap<WayID, Vec<(Coord, usize)>>,
+    pub modify_existing_nodes: HashMap<WayID, Vec<(Coord, usize)>>,
+    pub modify_existing_tags: HashMap<WayID, Vec<TagCmd>>,
 }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
@@ -10,7 +10,10 @@ use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{OffsetCurve, Tags, aabb};
 
-use crate::{Kind, Speedwalk, edits::CreateNewGeometry};
+use crate::{
+    Kind, Speedwalk,
+    edits::{CreateNewGeometry, TagCmd},
+};
 
 const BUFFER_DISTANCE: f64 = 3.0;
 
@@ -98,6 +101,8 @@ impl Speedwalk {
         );
         let closest_road = RTree::bulk_load(roads_with_ways);
         let mut new_sidewalks = Vec::new();
+        let mut roads_with_new_left = HashSet::new();
+        let mut roads_with_new_right = HashSet::new();
         for sidewalk in raw_new_sidewalks {
             for (ls, way, side) in split_new_sidewalks(sidewalk, &closest_road) {
                 // If the road lacks sidewalks on this side, skip
@@ -112,6 +117,13 @@ impl Speedwalk {
                 tags.insert("tmp:closest_way", way.0.to_string());
                 tags.insert("tmp:side", format!("{side:?}"));
                 new_sidewalks.push((ls, tags));
+
+                if side == Side::Left {
+                    roads_with_new_left.insert(way);
+                }
+                if side == Side::Right {
+                    roads_with_new_right.insert(way);
+                }
             }
         }
 
@@ -130,7 +142,7 @@ impl Speedwalk {
             "Finding existing roads these {} new sidewalks cross",
             new_sidewalks.len()
         );
-        let mut modify_existing = HashMap::new();
+        let mut modify_existing_nodes = HashMap::new();
         for (new_sidewalk, _) in &mut new_sidewalks {
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
@@ -139,7 +151,7 @@ impl Speedwalk {
                     new_sidewalk.0.insert(idx1, pt);
 
                     // Remember to modify the existing way
-                    modify_existing
+                    modify_existing_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
                         .push((pt, idx2));
@@ -147,10 +159,40 @@ impl Speedwalk {
             }
         }
 
+        // Update tags on existing roads
+        let mut modify_existing_tags = HashMap::new();
+        for way in roads_with_new_left {
+            // All existing sidewalk tags will get cleaned up by edits.rs
+            let mut tags = Vec::new();
+            if roads_with_new_right.remove(&way) {
+                tags.push(TagCmd::Set(
+                    "sidewalk:both".to_string(),
+                    "separate".to_string(),
+                ));
+            } else {
+                tags.push(TagCmd::Set(
+                    "sidewalk:left".to_string(),
+                    "separate".to_string(),
+                ));
+                tags.push(TagCmd::Set("sidewalk:right".to_string(), "no".to_string()));
+            }
+            modify_existing_tags.insert(way, tags);
+        }
+        for way in roads_with_new_right {
+            let mut tags = Vec::new();
+            tags.push(TagCmd::Set("sidewalk:left".to_string(), "no".to_string()));
+            tags.push(TagCmd::Set(
+                "sidewalk:right".to_string(),
+                "separate".to_string(),
+            ));
+            modify_existing_tags.insert(way, tags);
+        }
+
         CreateNewGeometry {
             new_objects: new_sidewalks,
             new_kind: Kind::Sidewalk,
-            modify_existing,
+            modify_existing_nodes,
+            modify_existing_tags,
         }
     }
 }
