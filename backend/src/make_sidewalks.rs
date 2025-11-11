@@ -162,8 +162,9 @@ impl Speedwalk {
         // Update tags on existing roads
         let mut modify_existing_tags = HashMap::new();
         for way in roads_with_new_left {
-            // All existing sidewalk tags will get cleaned up by edits.rs
-            let mut tags = Vec::new();
+            // All existing sidewalk tags will get cleaned up by edits.rs, unless the user
+            // previously did AssumeTags. It's always safe to forcibly clean up this tag.
+            let mut tags = vec![TagCmd::Remove("sidewalk".to_string())];
             if roads_with_new_right.remove(&way) {
                 tags.push(TagCmd::Set(
                     "sidewalk:both".to_string(),
@@ -179,12 +180,11 @@ impl Speedwalk {
             modify_existing_tags.insert(way, tags);
         }
         for way in roads_with_new_right {
-            let mut tags = Vec::new();
-            tags.push(TagCmd::Set("sidewalk:left".to_string(), "no".to_string()));
-            tags.push(TagCmd::Set(
-                "sidewalk:right".to_string(),
-                "separate".to_string(),
-            ));
+            let tags = vec![
+                TagCmd::Remove("sidewalk".to_string()),
+                TagCmd::Set("sidewalk:left".to_string(), "no".to_string()),
+                TagCmd::Set("sidewalk:right".to_string(), "separate".to_string()),
+            ];
             modify_existing_tags.insert(way, tags);
         }
 
