@@ -7,7 +7,7 @@ extern crate log;
 mod classify;
 mod crossings;
 mod edits;
-mod make_sidewalks_v2;
+mod make_sidewalks;
 mod problems;
 mod scrape;
 mod wasm;

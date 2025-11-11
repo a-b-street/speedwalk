@@ -21,7 +21,7 @@ enum Side {
 }
 
 impl Speedwalk {
-    pub fn make_all_sidewalks_v2(&self, only_severances: bool) -> CreateNewGeometry {
+    pub fn make_all_sidewalks(&self, only_severances: bool) -> CreateNewGeometry {
         let mut roads = Vec::new();
         let mut roads_with_ways = Vec::new();
         for (id, way) in &self.derived_ways {

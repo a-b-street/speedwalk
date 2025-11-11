@@ -26,7 +26,7 @@ pub struct Edits {
 #[derive(Clone, Serialize)]
 pub enum UserCmd {
     SetTags(WayID, Vec<(String, String)>),
-    MakeAllSidewalksV2(bool),
+    MakeAllSidewalks(bool),
     ConnectAllCrossings,
     AssumeTags(bool),
     AddCrossing(Point, Tags),
@@ -64,8 +64,8 @@ impl Edits {
                     cmds.push(TagCmd::Set(k, v));
                 }
             }
-            UserCmd::MakeAllSidewalksV2(only_severances) => {
-                let results = model.make_all_sidewalks_v2(only_severances);
+            UserCmd::MakeAllSidewalks(only_severances) => {
+                let results = model.make_all_sidewalks(only_severances);
                 self.create_new_geometry(results, model);
             }
             UserCmd::ConnectAllCrossings => {

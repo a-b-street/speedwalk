@@ -11,8 +11,8 @@
   let driveOnLeft = true;
   let onlyMakeSeverances = true;
 
-  function makeAllSidewalksV2() {
-    $backend!.editMakeAllSidewalksV2(onlyMakeSeverances);
+  function makeAllSidewalks() {
+    $backend!.editMakeAllSidewalks(onlyMakeSeverances);
     $mutationCounter++;
   }
 
@@ -47,7 +47,7 @@
           <Checkbox bind:checked={onlyMakeSeverances}>
             Only for severances
           </Checkbox>
-          <button class="btn btn-secondary" on:click={makeAllSidewalksV2}>
+          <button class="btn btn-secondary" on:click={makeAllSidewalks}>
             Make sidewalks
           </button>
         </div>

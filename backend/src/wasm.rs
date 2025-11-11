@@ -106,11 +106,11 @@ impl Speedwalk {
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 
-    #[wasm_bindgen(js_name = editMakeAllSidewalksV2)]
-    pub fn edit_make_all_sidewalks_v2(&mut self, only_severances: bool) -> Result<(), JsValue> {
+    #[wasm_bindgen(js_name = editMakeAllSidewalks)]
+    pub fn edit_make_all_sidewalks(&mut self, only_severances: bool) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
         // Ignore failure?
-        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalksV2(only_severances), self);
+        let _ = edits.apply_cmd(UserCmd::MakeAllSidewalks(only_severances), self);
         self.edits = Some(edits);
         self.after_edit();
         Ok(())
