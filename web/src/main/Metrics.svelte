@@ -1,14 +1,17 @@
 <script lang="ts">
+  import { QualitativeLegend } from "svelte-utils";
   import { backend, mutationCounter, prettyPrintDistance, sum } from "../";
   import { colors } from "./";
 
+  let roads = [
+    ["RoadWithSeparate", "With separate sidewalks"],
+    ["RoadWithTags", "With tags"],
+    ["RoadWithoutSidewalks", "Without sidewalks"],
+    ["RoadUnknown", "Totally unknown"],
+  ];
+
   interface Metrics {
-    total_length_meters: {
-      Sidewalk: number;
-      Road: number;
-      Crossings: number;
-      Other: number;
-    };
+    total_length_meters: Record<keyof typeof colors, number>;
   }
 
   let metrics: Metrics = JSON.parse($backend!.getMetrics());
@@ -16,29 +19,63 @@
     metrics = JSON.parse($backend.getMetrics());
   }
 
-  let total = sum(Object.values(metrics.total_length_meters));
+  $: total = sum(
+    roads.map(([x, _]) => metrics.total_length_meters[castKey(x)]),
+  );
+
+  $: otherColors = Object.fromEntries([
+    [
+      `Sidewalks: ${prettyPrintDistance(metrics.total_length_meters.Sidewalk)}`,
+      colors.Sidewalk,
+    ],
+    [
+      `Crossings: ${prettyPrintDistance(metrics.total_length_meters.Crossing)}`,
+      colors.Crossing,
+    ],
+    [
+      `Other: ${prettyPrintDistance(metrics.total_length_meters.Other)}`,
+      colors.Other,
+    ],
+  ]);
 
   function castKey(key: string): keyof typeof colors {
     return key as keyof typeof colors;
   }
 </script>
 
-{#each Object.entries(metrics.total_length_meters) as [key, length]}
-  <div class="row">
-    <div
-      style:position="absolute"
-      style:width={`${(100 * length) / total}%`}
-      style:height="100%"
-      style:background-color={colors[castKey(key)]}
+<div class="card mb-3">
+  <div class="card-header">Roads</div>
+  <div class="card-body">
+    <div class="row">
+      {#each roads as [key, _]}
+        {@const length = metrics.total_length_meters[castKey(key)]}
+        <span
+          style:width={`${(100 * length) / total}%`}
+          style:height="100%"
+          style:background-color={colors[castKey(key)]}
+        ></span>
+      {/each}
+    </div>
+
+    <QualitativeLegend
+      labelColors={Object.fromEntries(
+        roads.map(([key, label]) => [
+          `${label}: ${prettyPrintDistance(metrics.total_length_meters[castKey(key)])}`,
+          colors[castKey(key)],
+        ]),
+      )}
+      itemsPerRow={1}
     />
-    <div style:position="relative">{key}: {prettyPrintDistance(length)}</div>
   </div>
-{/each}
+</div>
+
+<QualitativeLegend labelColors={otherColors} itemsPerRow={1} />
 
 <style>
   .row {
+    display: flex;
+    flex-wrap: nowrap;
     width: 100%;
-    border: 1px solid black;
-    position: relative;
+    height: 30px;
   }
 </style>
