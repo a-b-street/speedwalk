@@ -28,33 +28,14 @@ impl Speedwalk {
         let mut roads = Vec::new();
         let mut roads_with_ways = Vec::new();
         for (id, way) in &self.derived_ways {
-            if matches!(way.kind, Kind::Sidewalk | Kind::Crossing | Kind::Other) {
+            if !matches!(way.kind, Kind::RoadWithTags | Kind::RoadUnknown) {
                 continue;
             }
             if only_severances && !way.is_severance() {
                 continue;
             }
-            // TODO Replace some of this with the Kind logic
-            // There are already separate sidewalks here
-            if way.tags.has("sidewalk:both")
-                || way.tags.has("sidewalk:left")
-                || way.tags.has("sidewalk:right")
-            {
-                continue;
-            }
-            // Even if the lack of sidewalks is tagged in the old style, skip
-            if way.tags.is("sidewalk", "no") {
-                continue;
-            }
             // This is ambiguous, but generally seems to mean both
             if way.tags.is("sidewalk", "separate") {
-                continue;
-            }
-            // Implies no sidewalks
-            if way
-                .tags
-                .is_any("highway", vec!["motorway", "motorway_link"])
-            {
                 continue;
             }
             // Ignore things that don't exist

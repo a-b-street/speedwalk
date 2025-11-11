@@ -53,7 +53,7 @@ impl Kind {
             return Self::RoadWithoutSidewalks;
         }
         // Implied cases
-        if tags.is_any("highway", vec!["service"]) {
+        if tags.is_any("highway", vec!["motorway", "motorway_link", "service"]) {
             return Self::RoadWithoutSidewalks;
         }
 
