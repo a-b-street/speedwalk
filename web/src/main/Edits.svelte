@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { downloadGeneratedFile } from "svelte-utils";
-  import { backend, loggedInUser, mutationCounter } from "../";
+  import { downloadGeneratedFile, Loading } from "svelte-utils";
+  import { backend, loggedInUser, mutationCounter, refreshLoadingScreen } from "../";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
   let idx = 0;
+  let loading = "";
 
   $: if ($mutationCounter > 0) {
     cmds = $backend ? JSON.parse($backend.getEdits()) : [];
@@ -19,14 +20,26 @@
     idx++;
   }
 
-  function clear() {
-    $backend!.editClear();
-    $mutationCounter++;
+  async function clear() {
+    loading = "Clearing edits";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editClear();
+      $mutationCounter++;
+    } finally {
+      loading = "";
+    }
   }
 
-  function undo() {
-    $backend!.editUndo();
-    $mutationCounter++;
+  async function undo() {
+    loading = "Undoing last edit";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editUndo();
+      $mutationCounter++;
+    } finally {
+      loading = "";
+    }
   }
 
   function downloadOsc() {
@@ -75,6 +88,8 @@
     }
   }
 </script>
+
+<Loading {loading} />
 
 <div class="card mb-3">
   <div class="card-header">

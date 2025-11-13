@@ -1,16 +1,28 @@
 <script lang="ts">
   import type { Feature, FeatureCollection, LineString } from "geojson";
-  import { backend, mutationCounter } from "../";
+  import { backend, mutationCounter, refreshLoadingScreen } from "../";
+  import { Loading } from "svelte-utils";
   import { type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
   export let drawProblemDetails: FeatureCollection;
 
-  function setTags(tags: Array<string[]>) {
-    $backend!.editSetTags(BigInt(pinnedWay.properties.id), tags);
-    $mutationCounter++;
+  let loading = "";
+
+  async function setTags(tags: Array<string[]>) {
+    loading = "Setting tags";
+    await refreshLoadingScreen();
+
+    try {
+      $backend!.editSetTags(BigInt(pinnedWay.properties.id), tags);
+      $mutationCounter++;
+    } finally {
+      loading = "";
+    }
   }
 </script>
+
+<Loading {loading} />
 
 <div class="card mb-5">
   <div class="card-header">

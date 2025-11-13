@@ -1,6 +1,11 @@
 <script lang="ts">
-  import { Checkbox, Modal } from "svelte-utils";
-  import { backend, mutationCounter, enabledBulkOps } from "../";
+  import { Checkbox, Modal, Loading } from "svelte-utils";
+  import {
+    backend,
+    mutationCounter,
+    enabledBulkOps,
+    refreshLoadingScreen,
+  } from "../";
 
   let show = false;
   function enableOps() {
@@ -8,24 +13,51 @@
     show = false;
   }
 
+  let loading = "";
   let driveOnLeft = true;
   let onlyMakeSeverances = true;
 
-  function makeAllSidewalks() {
-    $backend!.editMakeAllSidewalks(onlyMakeSeverances);
-    $mutationCounter++;
+  async function makeAllSidewalks() {
+    loading = "Generating sidewalks";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editMakeAllSidewalks(onlyMakeSeverances);
+      $mutationCounter++;
+    } catch (err) {
+      window.alert(`Error: ${err}`);
+    } finally {
+      loading = "";
+    }
   }
 
-  function connectAllCrossings() {
-    $backend!.editConnectAllCrossings();
-    $mutationCounter++;
+  async function connectAllCrossings() {
+    loading = "Connecting crossings";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editConnectAllCrossings();
+      $mutationCounter++;
+    } catch (err) {
+      window.alert(`Error: ${err}`);
+    } finally {
+      loading = "";
+    }
   }
 
-  function assumeTags() {
-    $backend!.editAssumeTags(driveOnLeft);
-    $mutationCounter++;
+  async function assumeTags() {
+    loading = "Inferring sidewalks around one-ways";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editAssumeTags(driveOnLeft);
+      $mutationCounter++;
+    } catch (err) {
+      window.alert(`Error: ${err}`);
+    } finally {
+      loading = "";
+    }
   }
 </script>
+
+<Loading {loading} />
 
 {#if $enabledBulkOps}
   <div class="card">

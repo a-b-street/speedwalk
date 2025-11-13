@@ -1,7 +1,7 @@
 <script lang="ts">
   import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
-  import { backend, mutationCounter } from "../";
+  import { backend, mutationCounter, refreshLoadingScreen } from "../";
   import { problemTypes, colors, type NodeProps, type WayProps } from "./";
   import type {
     Map,
@@ -25,7 +25,7 @@
     emptyGeojson,
     constructMatchExpression,
   } from "svelte-utils/map";
-  import { Checkbox } from "svelte-utils";
+  import { Checkbox, Loading } from "svelte-utils";
   import type { Feature, LineString, FeatureCollection, Point } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
@@ -50,10 +50,18 @@
     problemTypes.map((k) => [k, true]),
   );
 
+  let loading = "";
+
   $: updateModel($mutationCounter);
-  function updateModel(mutationCounter: number) {
-    nodes = JSON.parse($backend!.getNodes());
-    ways = JSON.parse($backend!.getWays());
+  async function updateModel(mutationCounter: number) {
+    loading = "Recalculating model";
+    await refreshLoadingScreen();
+    try {
+      nodes = JSON.parse($backend!.getNodes());
+      ways = JSON.parse($backend!.getWays());
+    } finally {
+      loading = "";
+    }
 
     for (let x of [...nodes.features, ...ways.features]) {
       let types = [];
@@ -182,6 +190,8 @@
     $backend = null;
   }
 </script>
+
+<Loading {loading} />
 
 <SplitComponent>
   <div slot="sidebar">
