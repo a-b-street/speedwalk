@@ -118,6 +118,7 @@
     . Please file a Github issue or contact
     <a href="mailto:dustin@abstreet.uk" target="_blank">dustin@abstreet.uk</a>
     with feedback.
+    <b>This is an alpha tool; there will be problems!</b>
   </p>
 
   <button class="btn btn-primary" on:click={() => (show = false)}>Start</button>
