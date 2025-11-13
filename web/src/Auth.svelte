@@ -56,5 +56,5 @@
     </ul>
   </div>
 {:else}
-  <button class="btn btn-primary mb-3" on:click={login}>Login</button>
+  <button class="btn btn-primary mb-3" on:click={login}>Login to OSM</button>
 {/if}

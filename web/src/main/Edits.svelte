@@ -1,6 +1,11 @@
 <script lang="ts">
   import { downloadGeneratedFile, Loading } from "svelte-utils";
-  import { backend, loggedInUser, mutationCounter, refreshLoadingScreen } from "../";
+  import {
+    backend,
+    loggedInUser,
+    mutationCounter,
+    refreshLoadingScreen,
+  } from "../";
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = [];
@@ -93,7 +98,8 @@
 
 <div class="card mb-3">
   <div class="card-header">
-    <h3>{cmds.length} {cmds.length == 1 ? "edit" : "edits"}</h3>
+    {cmds.length}
+    {cmds.length == 1 ? "edit" : "edits"}
   </div>
   <div class="card-body">
     {#if cmds.length > 0}

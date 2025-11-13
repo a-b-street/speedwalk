@@ -2,6 +2,7 @@
   import Loader from "./Loader.svelte";
   import Auth from "./Auth.svelte";
   import favicon from "../assets/favicon.ico?url";
+  import logo from "../assets/logo.svg?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
   import { backend } from "./";
@@ -19,11 +20,13 @@
     sidebarContents,
     Layout,
   } from "svelte-utils/two_column_layout";
+  import { Modal } from "svelte-utils";
   import * as backendPkg from "../../backend/pkg";
   import MainMode from "./main/MainMode.svelte";
 
   let map: Map | undefined;
   let style = basemapStyles["Maptiler OpenStreetMap"];
+  let show = true;
 
   onMount(async () => {
     await backendPkg.default();
@@ -47,7 +50,10 @@
 
 <Layout>
   <div slot="left">
-    <h1>Speedwalk</h1>
+    <h1>
+      <img src={logo} style="height: 30px" class="me-3" alt="A/B Street logo" />
+      Speedwalk
+    </h1>
 
     <Auth />
 
@@ -83,3 +89,36 @@
     </MapLibre>
   </div>
 </Layout>
+
+<Modal bind:show>
+  <h1>Welcome to Speedwalk</h1>
+
+  <p>
+    This tool helps you quickly assess how sidewalks are mapped in OSM. You can
+    find and fix common tagging problems. The tool assumes you understand the
+    correct <a
+      href="https://wiki.openstreetmap.org/wiki/Sidewalks"
+      target="_blank"
+    >
+      sidewalk mapping conventions
+    </a>
+    . If you are unsure about some edits you make, you can download the changeset
+    file and check in JOSM, rather than uploading directly.
+  </p>
+
+  <p>
+    This is an <a
+      href="https://github.com/a-b-street/speedwalk"
+      target="_blank"
+    >
+      open source project
+    </a>
+    developed without funding by
+    <a href="https://abstreet.uk" target="_blank">A/B Street Ltd</a>
+    . Please file a Github issue or contact
+    <a href="mailto:dustin@abstreet.uk" target="_blank">dustin@abstreet.uk</a>
+    with feedback.
+  </p>
+
+  <button class="btn btn-primary" on:click={() => (show = false)}>Start</button>
+</Modal>
