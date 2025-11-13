@@ -20,3 +20,15 @@ export function prettyPrintDistance(meters: number): string {
   }
   return (meters / 1000.0).toFixed(1) + " km";
 }
+
+// This is a replacement for `svelte.tick`, which doesn't seem to work for some
+// reason. Wait for two frames, to give the Loading component a chance to
+// update, before doing someting blocking on the UI thread.
+// TODO Upstream?
+export async function refreshLoadingScreen(): Promise<void> {
+  await new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}

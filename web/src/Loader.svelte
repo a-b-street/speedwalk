@@ -6,7 +6,7 @@
   import type { Map } from "maplibre-gl";
   import { OverpassSelector } from "svelte-utils/overpass";
   import * as backendPkg from "../../backend/pkg";
-  import { backend } from "./";
+  import { backend, refreshLoadingScreen } from "./";
 
   export let map: Map;
 
@@ -16,6 +16,7 @@
   async function loadFile(e: Event) {
     try {
       loading = "Loading from file";
+      await refreshLoadingScreen();
       let bytes = await fileInput!.files![0].arrayBuffer();
       $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
       zoomFit();
@@ -28,6 +29,8 @@
 
   async function gotXml(e: CustomEvent<{ xml: string }>) {
     try {
+      loading = "Processing Overpass data";
+      await refreshLoadingScreen();
       let bytes = new TextEncoder().encode(e.detail.xml);
       $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
       zoomFit();
