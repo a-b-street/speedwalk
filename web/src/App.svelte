@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ReportProblem from "./ReportProblem.svelte";
   import Loader from "./Loader.svelte";
   import Auth from "./Auth.svelte";
   import favicon from "../assets/favicon.ico?url";
@@ -78,6 +79,8 @@
       <Basemaps bind:style choice="Maptiler OpenStreetMap" />
 
       {#if map}
+        <ReportProblem {map} />
+
         <div bind:this={mapDiv} />
 
         {#if $backend}
