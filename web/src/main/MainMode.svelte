@@ -1,7 +1,12 @@
 <script lang="ts">
   import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
-  import { backend, mutationCounter, refreshLoadingScreen } from "../";
+  import {
+    backend,
+    mutationCounter,
+    refreshLoadingScreen,
+    roadLineWidth,
+  } from "../";
   import { problemTypes, colors, type NodeProps, type WayProps } from "./";
   import type {
     Map,
@@ -12,7 +17,6 @@
     GeoJSON,
     CircleLayer,
     LineLayer,
-    hoverStateFilter,
     SymbolLayer,
     MapEvents,
     Control,
@@ -232,7 +236,7 @@
         id="pinned"
         beforeId="Road labels"
         paint={{
-          "line-width": 12,
+          "line-width": roadLineWidth(10),
           "line-color": "cyan",
           "line-opacity": 0.5,
         }}
@@ -244,10 +248,10 @@
         id="snapped-to-pinned"
         beforeId="Road labels"
         paint={{
-          "line-width": 15,
+          "line-width": roadLineWidth(10),
           "line-color": "blue",
           "line-opacity": 0.5,
-          "line-offset": ["case", ["get", "left"], -3, 3],
+          "line-offset": ["case", ["get", "left"], -5, 5],
         }}
       />
     </GeoJSON>
@@ -257,6 +261,7 @@
         id="ways"
         beforeId="Road labels"
         manageHoverState
+        hoverCursor="pointer"
         eventsIfTopMost
         filter={filterWays(
           onlySeverances,
@@ -266,7 +271,7 @@
           showProblemTypes,
         )}
         paint={{
-          "line-width": hoverStateFilter(5, 8),
+          "line-width": roadLineWidth(0),
           "line-color": constructMatchExpression(
             ["get", "kind"],
             colors,
@@ -357,7 +362,7 @@
       <LineLayer
         filter={isLine}
         paint={{
-          "line-width": 20,
+          "line-width": roadLineWidth(5),
           "line-color": ["get", "color"],
           "line-opacity": 0.5,
         }}
