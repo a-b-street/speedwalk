@@ -2,6 +2,8 @@
   export let show: boolean;
   export let closeable = true;
 
+  // TODO https://caniuse.com/wf-dialog-closedby not supported yet
+
   // Relies on external styling
   let modalDialog: HTMLDialogElement | undefined = undefined;
 

@@ -2,7 +2,7 @@
   import type { Feature, FeatureCollection, LineString } from "geojson";
   import { backend, mutationCounter, refreshLoadingScreen } from "../";
   import { Loading } from "svelte-utils";
-  import { type WayProps } from "./";
+  import { kindLabels, type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
   export let drawProblemDetails: FeatureCollection;
@@ -32,7 +32,7 @@
     >
       Way {pinnedWay.properties.id}
     </a>
-    : {pinnedWay.properties.kind}
+    : {kindLabels[pinnedWay.properties.kind]}
   </div>
 
   <div class="card-body">

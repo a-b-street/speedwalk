@@ -44,6 +44,17 @@ export let colors = {
   Other: "grey",
 };
 
+export let kindLabels = {
+    RoadWithSeparate: "With separate sidewalks",
+    RoadWithTags: "With tagged sidewalks",
+    RoadWithoutSidewalksExplicit: "Tagged as no sidewalks",
+    RoadWithoutSidewalksImplicit: "Assumed as no sidewalks",
+    RoadUnknown: "Totally unknown",
+    Sidewalk: "Separate sidewalk",
+    Crossing: "Crossing",
+    Other: "Other",
+};
+
 // TODO Simpler to hardcode from backend
 export let problemTypes = [
   "missing crossing node",
