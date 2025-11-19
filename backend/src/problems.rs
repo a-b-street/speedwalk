@@ -52,6 +52,7 @@ impl Speedwalk {
                     .mercator
                     .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt));
                 f.set_property("color", "yellow");
+                f.set_property("label", "crossing node");
 
                 problem_ways.push((*way_id, "missing footway=crossing", vec![f]));
             }
@@ -168,11 +169,13 @@ impl Speedwalk {
                                 .mercator
                                 .to_wgs84_gj(&self.derived_ways[&sidewalk.data].linestring);
                             f.set_property("color", "yellow");
+                            f.set_property("label", "separate sidewalk that seems parallel");
                             details.push(f);
                         }
                         {
                             let mut f = self.mercator.to_wgs84_gj(&midpt_line);
                             f.set_property("color", "purple");
+                            f.set_property("label", "straight line between the road and sidewalk that doesn't hit a building");
                             details.push(f);
                         }
                         continue 'SIDEWALK;

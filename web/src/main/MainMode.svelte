@@ -26,7 +26,13 @@
     constructMatchExpression,
   } from "svelte-utils/map";
   import { Checkbox, Loading } from "svelte-utils";
-  import type { Feature, LineString, FeatureCollection, Point } from "geojson";
+  import type {
+    Feature,
+    LineString,
+    FeatureCollection,
+    Geometry,
+    Point,
+  } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
 
@@ -45,7 +51,10 @@
   let onlyModified = false;
   let onlySeverances = false;
   let showServiceRoads = true;
-  let drawProblemDetails = emptyGeojson();
+  let drawProblemDetails = emptyGeojson() as FeatureCollection<
+    Geometry,
+    { label: string; color: string }
+  >;
   let showProblems = false;
   let showProblemTypes: Record<string, boolean> = Object.fromEntries(
     problemTypes.map((k) => [k, true]),
@@ -107,14 +116,14 @@
   $: drawProblemDetails = problemDetails(pinnedWay);
   function problemDetails(
     pinnedWay: Feature<LineString, WayProps> | null,
-  ): FeatureCollection {
+  ): FeatureCollection<Geometry, { label: string; color: string }> {
     let gj = emptyGeojson();
     if (pinnedWay) {
       for (let problem of pinnedWay.properties.problems) {
         gj.features = [...gj.features, ...problem.details];
       }
     }
-    return gj;
+    return gj as FeatureCollection<Geometry, { label: string; color: string }>;
   }
 
   function showNodeOrder(
@@ -371,12 +380,22 @@
             Show service roads
           </Checkbox>
 
-          <Checkbox bind:checked={showProblems}>Only show problems</Checkbox>
-          {#if showProblems}
-            {#each problemTypes as key}
-              <Checkbox bind:checked={showProblemTypes[key]}>{key}</Checkbox>
-            {/each}
-          {/if}
+          <div class="card mb-3">
+            <div class="card-header">
+              <Checkbox bind:checked={showProblems}>
+                Only show problems
+              </Checkbox>
+            </div>
+            {#if showProblems}
+              <div class="card-body">
+                {#each problemTypes as key}
+                  <Checkbox bind:checked={showProblemTypes[key]}>
+                    {key}
+                  </Checkbox>
+                {/each}
+              </div>
+            {/if}
+          </div>
 
           <Metrics />
         </div>

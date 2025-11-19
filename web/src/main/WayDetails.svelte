@@ -1,11 +1,19 @@
 <script lang="ts">
-  import type { Feature, FeatureCollection, LineString } from "geojson";
+  import type {
+    Feature,
+    FeatureCollection,
+    Geometry,
+    LineString,
+  } from "geojson";
   import { backend, mutationCounter, refreshLoadingScreen } from "../";
-  import { Loading } from "svelte-utils";
+  import { Loading, QualitativeLegend } from "svelte-utils";
   import { kindLabels, type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
-  export let drawProblemDetails: FeatureCollection;
+  export let drawProblemDetails: FeatureCollection<
+    Geometry,
+    { label: string; color: string }
+  >;
 
   let loading = "";
 
@@ -39,17 +47,19 @@
     {#if pinnedWay.properties.problems.length}
       <u>Problems:</u>
 
-      <p>
-        (Details are shown on the map:
-        {#each new Set(drawProblemDetails.features.map((f) => f.properties?.color)) as color}
-          <span class="color-swatch me-1" style:background={color}></span>
-        {/each}
-        )
-      </p>
-
       {#each pinnedWay.properties.problems as problem}
         <p>{problem.note}</p>
       {/each}
+
+      <QualitativeLegend
+        labelColors={Object.fromEntries(
+          drawProblemDetails.features.map((f) => [
+            f.properties.label,
+            f.properties.color,
+          ]),
+        )}
+        itemsPerRow={1}
+      />
     {/if}
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
@@ -151,12 +161,3 @@
     <p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
   </div>
 </div>
-
-<style>
-  .color-swatch {
-    display: inline-block;
-    height: 16px;
-    width: 24px;
-    border: 1px solid #888;
-  }
-</style>
