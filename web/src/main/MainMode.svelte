@@ -378,7 +378,7 @@
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
 
           <Checkbox bind:checked={onlySeverances}>
-            Only show severance roads
+            Only show major roads
           </Checkbox>
 
           <Checkbox bind:checked={showServiceRoads}>

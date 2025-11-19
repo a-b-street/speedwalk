@@ -77,7 +77,7 @@
         <div class="card-header">Make all sidewalks</div>
         <div class="card-body">
           <Checkbox bind:checked={onlyMakeSeverances}>
-            Only for severances
+            Only for major roads
           </Checkbox>
           <button class="btn btn-secondary" on:click={makeAllSidewalks}>
             Make sidewalks
@@ -86,7 +86,7 @@
       </div>
 
       <button class="btn btn-secondary" on:click={connectAllCrossings}>
-        Connect all crossings over severances
+        Connect all crossings over major roads
       </button>
     </div>
   </div>
