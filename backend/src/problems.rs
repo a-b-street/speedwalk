@@ -111,7 +111,10 @@ impl Speedwalk {
             // TODO Double check this
             if !matches!(
                 road.kind,
-                Kind::RoadWithTags | Kind::RoadWithoutSidewalks | Kind::RoadUnknown
+                Kind::RoadWithTags
+                    | Kind::RoadWithoutSidewalksImplicit
+                    | Kind::RoadWithoutSidewalksExplicit
+                    | Kind::RoadUnknown
             ) {
                 continue;
             }

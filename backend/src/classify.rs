@@ -7,8 +7,10 @@ pub enum Kind {
     RoadWithSeparate,
     /// A road with tagged sidewalks on at least one side
     RoadWithTags,
-    /// A road explicitly or implicitly with no sidewalks at all
-    RoadWithoutSidewalks,
+    /// A road tagged as having no sidewalks
+    RoadWithoutSidewalksExplicit,
+    /// A road assumed to have no sidewalks
+    RoadWithoutSidewalksImplicit,
     /// A road missing sidewalk info completely
     RoadUnknown,
 
@@ -50,7 +52,7 @@ impl Kind {
         if tags.is_any("sidewalk", vec!["no", "none"])
             || tags.is_any("sidewalk:both", vec!["no", "none"])
         {
-            return Self::RoadWithoutSidewalks;
+            return Self::RoadWithoutSidewalksExplicit;
         }
 
         if tags.has("sidewalk:both") || tags.has("sidewalk:left") || tags.has("sidewalk:right") {
@@ -61,9 +63,8 @@ impl Kind {
             return Self::RoadWithTags;
         }
 
-        // Implied cases
         if tags.is_any("highway", vec!["motorway", "motorway_link", "service"]) {
-            return Self::RoadWithoutSidewalks;
+            return Self::RoadWithoutSidewalksImplicit;
         }
 
         Self::RoadUnknown

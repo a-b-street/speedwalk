@@ -15,7 +15,8 @@ export interface WayProps {
   kind:
     | "RoadWithSeparate"
     | "RoadWithTags"
-    | "RoadWithoutSidewalks"
+    | "RoadWithoutSidewalksExplicit"
+    | "RoadWithoutSidewalksImplicit"
     | "RoadUnknown"
     | "Sidewalk"
     | "Crossing"
@@ -34,7 +35,8 @@ interface Problem {
 export let colors = {
   RoadWithSeparate: "purple",
   RoadWithTags: "blue",
-  RoadWithoutSidewalks: "orange",
+  RoadWithoutSidewalksExplicit: "#8B4000",
+  RoadWithoutSidewalksImplicit: "orange",
   RoadUnknown: "red",
 
   Sidewalk: "black",

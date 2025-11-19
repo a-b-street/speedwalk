@@ -5,8 +5,9 @@
 
   let roads = [
     ["RoadWithSeparate", "With separate sidewalks"],
-    ["RoadWithTags", "With tags"],
-    ["RoadWithoutSidewalks", "Without sidewalks"],
+    ["RoadWithTags", "With tagged sidewalks"],
+    ["RoadWithoutSidewalksExplicit", "Tagged as no sidewalks"],
+    ["RoadWithoutSidewalksImplicit", "Assumed as no sidewalks"],
     ["RoadUnknown", "Totally unknown"],
   ];
 
