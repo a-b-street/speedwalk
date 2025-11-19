@@ -61,4 +61,5 @@ export let problemTypes = [
   "missing crossing node",
   "missing footway=crossing",
   "possible separate sidewalk near way without it tagged",
+  "sidewalk=separate is ambiguous about the side",
 ];

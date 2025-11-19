@@ -34,7 +34,7 @@ impl Speedwalk {
 
         // Look for footways involving crossing nodes that aren't marked footway=crossing
         for (way_id, way) in &self.derived_ways {
-            if !matches!(self.derived_ways[way_id].kind, Kind::Sidewalk | Kind::Other) {
+            if !matches!(way.kind, Kind::Sidewalk | Kind::Other) {
                 continue;
             }
             if let Some(crossing_node) = way.node_ids.iter().find(|n| {
@@ -64,6 +64,16 @@ impl Speedwalk {
                 "possible separate sidewalk near way without it tagged",
                 details,
             ));
+        }
+
+        for (way_id, way) in &self.derived_ways {
+            if way.tags.is("sidewalk", "separate") {
+                problem_ways.push((
+                    *way_id,
+                    "sidewalk=separate is ambiguous about the side",
+                    Vec::new(),
+                ));
+            }
         }
 
         // Fill out problems

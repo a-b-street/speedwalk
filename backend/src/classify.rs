@@ -55,7 +55,11 @@ impl Kind {
             return Self::RoadWithoutSidewalksExplicit;
         }
 
-        if tags.has("sidewalk:both") || tags.has("sidewalk:left") || tags.has("sidewalk:right") {
+        if tags.has("sidewalk:both")
+            || tags.has("sidewalk:left")
+            || tags.has("sidewalk:right")
+            || tags.is("sidewalk", "separate")
+        {
             return Self::RoadWithSeparate;
         }
 

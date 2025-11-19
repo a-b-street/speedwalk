@@ -13,6 +13,7 @@ The first version:
   - [x] `footway=crossing` ways that may be missing a crossing node
   - [x] `highway=footway` ways that may need to be split when they cross a road
   - [x] Roads parallel to separately mapped sidewalks, but maybe missing `sidewalk:{left,right,both} = separate`
+  - [x] Roads with `sidewalk=separate`, which is ambiguous about the side
   - [ ] A `highway=footway` that's parallel to a road, but maybe missing `footway=sidewalk`
   - [ ] A road tagged with `sidewalk=separate` that's ambiguous about the side
 
