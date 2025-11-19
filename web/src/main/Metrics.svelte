@@ -79,4 +79,9 @@
     width: 100%;
     height: 30px;
   }
+
+  .row span {
+    flex-shrink: 1;
+    min-width: 0;
+  }
 </style>
