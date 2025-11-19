@@ -73,6 +73,7 @@ impl Speedwalk {
                 way.node_ids.iter().map(|n| n.0).collect::<Vec<_>>(),
             );
             f.set_property("is_severance", way.is_severance());
+            f.set_property("is_service", way.tags.is("highway", "service"));
             f.set_property(
                 "problems",
                 serde_json::to_value(&way.problems).map_err(err_to_js)?,

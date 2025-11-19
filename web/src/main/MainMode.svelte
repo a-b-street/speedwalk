@@ -44,6 +44,7 @@
   let showNodes = false;
   let onlyModified = false;
   let onlySeverances = false;
+  let showServiceRoads = true;
   let drawProblemDetails = emptyGeojson();
   let showProblems = false;
   let showProblemTypes: Record<string, boolean> = Object.fromEntries(
@@ -161,7 +162,8 @@
     _a: boolean,
     _b: boolean,
     _c: boolean,
-    _d: any,
+    _d: boolean,
+    _e: any,
   ): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
@@ -170,6 +172,9 @@
         ["in", ["get", "kind"], ["literal", ["Sidewalk", "Crossing", "Other"]]],
         ["get", "is_severance"],
       ]);
+    }
+    if (!showServiceRoads) {
+      all.push(["!", ["get", "is_service"]]);
     }
     if (onlyModified) {
       all.push(["get", "modified"]);
@@ -248,6 +253,7 @@
           onlySeverances,
           onlyModified,
           showProblems,
+          showServiceRoads,
           showProblemTypes,
         )}
         paint={{
@@ -359,6 +365,10 @@
 
           <Checkbox bind:checked={onlySeverances}>
             Only show severance roads
+          </Checkbox>
+
+          <Checkbox bind:checked={showServiceRoads}>
+            Show service roads
           </Checkbox>
 
           <Checkbox bind:checked={showProblems}>Only show problems</Checkbox>

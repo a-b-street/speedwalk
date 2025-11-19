@@ -24,6 +24,7 @@ export interface WayProps {
   modified: boolean;
   node_ids: number[];
   is_severance: boolean;
+  is_service: boolean;
   problems: Problem[];
 }
 
@@ -45,14 +46,14 @@ export let colors = {
 };
 
 export let kindLabels = {
-    RoadWithSeparate: "With separate sidewalks",
-    RoadWithTags: "With tagged sidewalks",
-    RoadWithoutSidewalksExplicit: "Tagged as no sidewalks",
-    RoadWithoutSidewalksImplicit: "Assumed as no sidewalks",
-    RoadUnknown: "Totally unknown",
-    Sidewalk: "Separate sidewalk",
-    Crossing: "Crossing",
-    Other: "Other",
+  RoadWithSeparate: "With separate sidewalks",
+  RoadWithTags: "With tagged sidewalks",
+  RoadWithoutSidewalksExplicit: "Tagged as no sidewalks",
+  RoadWithoutSidewalksImplicit: "Assumed as no sidewalks",
+  RoadUnknown: "Totally unknown",
+  Sidewalk: "Separate sidewalk",
+  Crossing: "Crossing",
+  Other: "Other",
 };
 
 // TODO Simpler to hardcode from backend
