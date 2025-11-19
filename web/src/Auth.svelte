@@ -44,7 +44,7 @@
       aria-expanded="false"
     >
       {#if $loggedInUser.avatarUrl}
-        <img src={$loggedInUser.avatarUrl} alt="OSM avatar" />
+        <img src={$loggedInUser.avatarUrl} alt="OSM avatar" height="50" />
       {/if}
       {$loggedInUser.name}
     </button>

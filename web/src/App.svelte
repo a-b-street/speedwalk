@@ -1,4 +1,7 @@
 <script lang="ts">
+  import "bootstrap/dist/css/bootstrap.min.css";
+  import "bootstrap/dist/js/bootstrap.min.js";
+  import "@fortawesome/fontawesome-free/css/all.min.css";
   import ReportProblem from "./ReportProblem.svelte";
   import Loader from "./Loader.svelte";
   import Auth from "./Auth.svelte";
@@ -7,8 +10,6 @@
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
   import { backend } from "./";
-  import "bootstrap/dist/css/bootstrap.min.css";
-  import "bootstrap/dist/js/bootstrap.min.js";
   import type { Map } from "maplibre-gl";
   import {
     basemapStyles,
@@ -51,10 +52,13 @@
 
 <Layout>
   <div slot="left">
-    <h1>
+    <div class="d-flex align-items-center">
       <img src={logo} style="height: 30px" class="me-3" alt="A/B Street logo" />
-      Speedwalk
-    </h1>
+      <h2 class="me-3">Speedwalk</h2>
+      <a href="#" on:click={() => (show = true)}>
+        <i class="fa-solid fa-circle-info"></i>
+      </a>
+    </div>
 
     <Auth />
 
