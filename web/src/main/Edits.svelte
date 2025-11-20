@@ -8,6 +8,8 @@
   } from "../";
   import { uploadChangeset } from "osm-api";
 
+  export let anyEdits: boolean;
+
   let cmds: any[] = [];
   let idx = 0;
   let loading = "";
@@ -15,6 +17,7 @@
   $: if ($mutationCounter > 0) {
     cmds = $backend ? JSON.parse($backend.getEdits()) : [];
     idx = 0;
+    anyEdits = cmds.length > 0;
   }
 
   function prev() {

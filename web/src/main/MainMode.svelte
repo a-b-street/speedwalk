@@ -63,6 +63,7 @@
   let showProblemTypes: Record<string, boolean> = Object.fromEntries(
     problemTypes.map((k) => [k, true]),
   );
+  let anyEdits = false;
 
   let loading = "";
 
@@ -205,7 +206,15 @@
   }
 
   function clear() {
-    $backend = null;
+    if (anyEdits) {
+      if (
+        window.confirm(
+          "Changing areas will discard your current edits. Do you want to clear the edits?",
+        )
+      ) {
+        $backend = null;
+      }
+    }
   }
 </script>
 
@@ -219,7 +228,7 @@
 
     <p>OSM data is from {getOsmTimestamp()}</p>
 
-    <Edits />
+    <Edits bind:anyEdits />
 
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} />
