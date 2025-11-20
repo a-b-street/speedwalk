@@ -34,8 +34,8 @@ export async function refreshLoadingScreen(): Promise<void> {
   });
 }
 
-// Zoom-dependant line width, adapted from from the Minor road layer (secondary
-// road class) from https://api.maptiler.com/maps/streets-v2/style.json.
+// Zoom-dependant line width, adapted from from the Minor road layer (secondary road class) from
+// https://api.maptiler.com/maps/streets-v2/style.json. At high zoom, make sidewalks much thinner.
 export function roadLineWidth(extraWidth: number): ExpressionSpecification {
   return [
     "interpolate",
@@ -50,8 +50,18 @@ export function roadLineWidth(extraWidth: number): ExpressionSpecification {
     14,
     4 + extraWidth,
     16,
-    7 + extraWidth,
+    [
+      "case",
+      ["==", "Sidewalk", ["get", "kind"]],
+      4 + extraWidth,
+      7 + extraWidth,
+    ],
     20,
-    24 + extraWidth,
+    [
+      "case",
+      ["==", "Sidewalk", ["get", "kind"]],
+      7 + extraWidth,
+      24 + extraWidth,
+    ],
   ];
 }

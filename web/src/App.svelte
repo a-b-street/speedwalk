@@ -55,6 +55,7 @@
     <div class="d-flex align-items-center">
       <img src={logo} style="height: 30px" class="me-3" alt="A/B Street logo" />
       <h2 class="me-3">Speedwalk</h2>
+      <!-- svelte-ignore a11y-invalid-attribute -->
       <a href="#" on:click={() => (show = true)}>
         <i class="fa-solid fa-circle-info"></i>
       </a>
