@@ -252,6 +252,17 @@
           "line-opacity": 0.5,
         }}
       />
+
+      <SymbolLayer
+        minzoom={12}
+        layout={{
+          "icon-image": "arrow",
+          "icon-size": 1.0,
+          "symbol-placement": "line",
+          "symbol-spacing": 50,
+          "icon-allow-overlap": true,
+        }}
+      />
     </GeoJSON>
 
     <GeoJSON data={snappedRoad(pinnedWay, $debugMode)}>

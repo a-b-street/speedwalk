@@ -7,6 +7,7 @@
   import Auth from "./Auth.svelte";
   import favicon from "../assets/favicon.ico?url";
   import logo from "../assets/logo.svg?url";
+  import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
   import { backend } from "./";
@@ -77,6 +78,7 @@
         // @ts-ignore ErrorEvent isn't exported
         console.log(e.detail.error);
       }}
+      images={[{ id: "arrow", url: arrow }]}
     >
       <StandardControls {map} />
       <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
