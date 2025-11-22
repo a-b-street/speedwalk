@@ -5,7 +5,12 @@
     Geometry,
     LineString,
   } from "geojson";
-  import { backend, mutationCounter, refreshLoadingScreen } from "../";
+  import {
+    debugMode,
+    backend,
+    mutationCounter,
+    refreshLoadingScreen,
+  } from "../";
   import { Loading, QualitativeLegend } from "svelte-utils";
   import { kindLabels, type WayProps } from "./";
 
@@ -158,6 +163,8 @@
       </tbody>
     </table>
 
-    <p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
+    {#if $debugMode}
+      <p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
+    {/if}
   </div>
 </div>

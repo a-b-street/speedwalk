@@ -6,6 +6,7 @@
     mutationCounter,
     refreshLoadingScreen,
     roadLineWidth,
+    debugMode,
   } from "../";
   import { problemTypes, colors, type NodeProps, type WayProps } from "./";
   import type {
@@ -150,8 +151,9 @@
 
   function snappedRoad(
     pinnedWay: Feature<LineString, WayProps> | null,
+    debugMode: boolean,
   ): FeatureCollection {
-    if (!pinnedWay) {
+    if (!pinnedWay || !debugMode) {
       return emptyGeojson();
     }
     let find = parseInt(pinnedWay.properties.tags["tmp:closest_way"]);
@@ -252,7 +254,7 @@
       />
     </GeoJSON>
 
-    <GeoJSON data={snappedRoad(pinnedWay)}>
+    <GeoJSON data={snappedRoad(pinnedWay, $debugMode)}>
       <LineLayer
         id="snapped-to-pinned"
         beforeId="Road labels"
@@ -354,6 +356,7 @@
         layout={{
           "text-field": ["get", "idx"],
           "text-size": 16,
+          visibility: $debugMode ? "visible" : "none",
         }}
       />
     </GeoJSON>
@@ -382,6 +385,8 @@
       <div class="card" style:width="250px" style:padding="8px">
         <div class="card-header">Filters</div>
         <div class="card-body">
+          <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
+
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
