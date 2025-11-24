@@ -37,7 +37,16 @@ impl Speedwalk {
             if !matches!(way.kind, Kind::Sidewalk | Kind::Other) {
                 continue;
             }
-            if let Some(crossing_node) = way.node_ids.iter().find(|n| {
+            if way.tags.is("highway", "cycleway") && way.tags.is("cycleway", "crossing") {
+                continue;
+            }
+
+            if let Some((_, crossing_node)) = way.node_ids.iter().enumerate().find(|(idx, n)| {
+                // Ignore when the crossing node is the first or last on the way
+                if *idx == 0 || *idx == way.node_ids.len() - 1 {
+                    return false;
+                }
+
                 let node = &self.derived_nodes[n];
                 // TODO This one is debatable
                 // Only crossing nodes over severances -- it's normal for a sidewalk to have
