@@ -29,6 +29,10 @@
   }
 
   async function clear() {
+    if (!window.confirm("Do you really want to clear your edits?")) {
+      return;
+    }
+
     loading = "Clearing edits";
     await refreshLoadingScreen();
     try {
