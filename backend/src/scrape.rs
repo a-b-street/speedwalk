@@ -58,7 +58,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
             }
 
             let tags: Tags = tags.into();
-            if tags.has("highway") && !tags.is("area", "yes") {
+            if tags.has("highway") && !tags.is("area", "yes") && !tags.is("highway", "proposed") {
                 let mut pts = Vec::new();
                 for node_id in &node_ids {
                     used_nodes.insert(*node_id);
