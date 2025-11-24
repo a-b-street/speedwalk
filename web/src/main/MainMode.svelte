@@ -52,10 +52,16 @@
     features: [],
   };
   let pinnedWay: Feature<LineString, WayProps> | null = null;
+
   let showNodes = false;
   let onlyModified = false;
   let onlySeverances = false;
   let showServiceRoads = true;
+
+  let showKinds = Object.fromEntries(
+    Object.keys(colors).map((kind) => [kind, true]),
+  );
+
   let drawProblemDetails = emptyGeojson() as FeatureCollection<
     Geometry,
     { label: string; color: string }
@@ -64,6 +70,7 @@
   let showProblemTypes: Record<string, boolean> = Object.fromEntries(
     problemTypes.map((k) => [k, true]),
   );
+
   let anyEdits = false;
 
   let loading = "";
@@ -109,7 +116,7 @@
     let t = $backend!.getOsmTimestamp();
     if (t) {
       let d = new Date(1000 * Number(t));
-      return d.toDateString();
+      return d.toLocaleString();
     }
     return "unknown";
   }
@@ -180,6 +187,7 @@
     _c: boolean,
     _d: boolean,
     _e: any,
+    _f: any,
   ): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
@@ -204,6 +212,16 @@
       }
       all.push(["any", ...any]);
     }
+    all.push([
+      "in",
+      ["get", "kind"],
+      [
+        "literal",
+        Object.entries(showKinds)
+          .filter((pair) => pair[1])
+          .map((pair) => pair[0]),
+      ],
+    ]);
     return ["all", ...all] as ExpressionSpecification;
   }
 
@@ -291,6 +309,7 @@
           showProblems,
           showServiceRoads,
           showProblemTypes,
+          showKinds,
         )}
         paint={{
           "line-width": roadLineWidth(0),
@@ -427,7 +446,7 @@
             {/if}
           </div>
 
-          <Metrics />
+          <Metrics bind:showKinds />
         </div>
       </div>
     </Control>
