@@ -95,7 +95,15 @@
       window.alert(`Upload failed: ${err}`);
     }
   }
+
+  async function onKeyDown(e: KeyboardEvent) {
+    if (e.key == "z" && e.ctrlKey && cmds.length > 0) {
+      await undo();
+    }
+  }
 </script>
+
+<svelte:window on:keydown={onKeyDown} />
 
 <Loading {loading} />
 

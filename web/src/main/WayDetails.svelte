@@ -33,7 +33,47 @@
       loading = "";
     }
   }
+
+  let roadFixTagChoices = [
+    [["sidewalk:both", "separate"]],
+    [
+      ["sidewalk:left", "separate"],
+      ["sidewalk:right", "no"],
+    ],
+    [
+      ["sidewalk:right", "separate"],
+      ["sidewalk:left", "no"],
+    ],
+    [["sidewalk", "both"]],
+    [["sidewalk", "left"]],
+    [["sidewalk", "right"]],
+    [["sidewalk", "no"]],
+  ];
+
+  let footwayFixTagChoices = [
+    [["footway", "sidewalk"]],
+    [["footway", "crossing"]],
+  ];
+
+  async function onKeyPress(e: KeyboardEvent) {
+    let choices = [] as Array<string[]>[];
+    if (pinnedWay.properties.kind.startsWith("Road")) {
+      choices = roadFixTagChoices;
+    } else if (
+      pinnedWay.properties.kind == "Sidewalk" ||
+      pinnedWay.properties.kind == "Other"
+    ) {
+      choices = footwayFixTagChoices;
+    }
+
+    let n = parseInt(e.key);
+    if (Number.isInteger(n) && n <= choices.length) {
+      await setTags(choices[n - 1]);
+    }
+  }
 </script>
+
+<svelte:window on:keypress={onKeyPress} />
 
 <Loading {loading} />
 
@@ -77,73 +117,27 @@
         {/each}
       </ul>
 
-      <u>Fix these tags</u>
+      <u>Override to these tags</u>
 
-      <div>
-        <button
-          class="btn btn-secondary mb-1"
-          on:click={() => setTags([["sidewalk:both", "separate"]])}
-        >
-          sidewalk:both = separate
-        </button>
-      </div>
-
-      <div>
-        <button
-          class="btn btn-secondary mb-1"
-          on:click={() =>
-            setTags([
-              ["sidewalk:left", "separate"],
-              ["sidewalk:right", "no"],
-            ])}
-        >
-          sidewalk:left = separate, sidewalk:right = no
-        </button>
-      </div>
-
-      <div>
-        <button
-          class="btn btn-secondary mb-1"
-          on:click={() =>
-            setTags([
-              ["sidewalk:right", "separate"],
-              ["sidewalk:left", "no"],
-            ])}
-        >
-          sidewalk:right = separate, sidewalk:left = no
-        </button>
-      </div>
-
-      {#each ["both", "left", "right", "no"] as value}
+      {#each roadFixTagChoices.entries() as [idx, tags]}
         <div>
-          <button
-            class="btn btn-secondary mb-1"
-            on:click={() => setTags([["sidewalk", value]])}
-          >
-            sidewalk = {value}
+          <button class="btn btn-secondary mb-1" on:click={() => setTags(tags)}>
+            <kbd>{idx + 1}</kbd>
+            {tags.map((pair) => `${pair[0]} = ${pair[1]}`).join(", ")}
           </button>
         </div>
       {/each}
     {:else if pinnedWay.properties.kind == "Sidewalk" || pinnedWay.properties.kind == "Other"}
       <u>Set these tags</u>
 
-      <div>
-        <button
-          class="btn btn-secondary mb-1"
-          on:click={() => setTags([["footway", "sidewalk"]])}
-        >
-          footway = sidewalk
-        </button>
-      </div>
-
-      <div>
-        <button
-          class="btn btn-secondary mb-1"
-          on:click={() => setTags([["footway", "crossing"]])}
-        >
-          footway = crossing
-        </button>
-      </div>
+      {#each footwayFixTagChoices.entries() as [idx, tags]}
+        <div>
+          <button class="btn btn-secondary mb-1" on:click={() => setTags(tags)}>
+            <kbd>{idx + 1}</kbd>
+            {tags.map((pair) => `${pair[0]} = ${pair[1]}`).join(", ")}
+          </button>
+        </div>
+      {/each}
     {/if}
 
     <table class="table">
