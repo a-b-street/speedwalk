@@ -1,7 +1,5 @@
 import { type Writable, writable } from "svelte/store";
 import * as backendPkg from "../../backend/pkg";
-import type { ExpressionSpecification } from "maplibre-gl";
-import { constructMatchExpression } from "svelte-utils/map";
 
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
@@ -34,43 +32,4 @@ export async function refreshLoadingScreen(): Promise<void> {
       requestAnimationFrame(resolve);
     });
   });
-}
-
-// Zoom-dependant line width, adapted from from the Minor road layer (secondary
-// road class) from https://api.maptiler.com/maps/streets-v2/style.json. At
-// high zoom, make sidewalks, crossings, and other roads thinner.
-export function roadLineWidth(extraWidth: number): ExpressionSpecification {
-  return [
-    "interpolate",
-    ["linear"],
-    ["zoom"],
-    5,
-    0.5 + extraWidth,
-    10,
-    1 + extraWidth,
-    12,
-    1.5 + extraWidth,
-    14,
-    4 + extraWidth,
-    16,
-    constructMatchExpression(
-      ["get", "kind"],
-      {
-        Sidewalk: 4 + extraWidth,
-        Crossing: 5 + extraWidth,
-        Other: 5 + extraWidth,
-      },
-      7 + extraWidth,
-    ),
-    20,
-    constructMatchExpression(
-      ["get", "kind"],
-      {
-        Sidewalk: 7 + extraWidth,
-        Crossing: 10 + extraWidth,
-        Other: 10 + extraWidth,
-      },
-      24 + extraWidth,
-    ),
-  ];
 }

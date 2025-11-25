@@ -11,7 +11,7 @@
     mutationCounter,
     refreshLoadingScreen,
   } from "../";
-  import { Loading, QualitativeLegend } from "svelte-utils";
+  import { Checkbox, Loading, QualitativeLegend } from "svelte-utils";
   import { kindLabels, type WayProps } from "./";
 
   export let pinnedWay: Feature<LineString, WayProps>;
@@ -19,6 +19,7 @@
     Geometry,
     { label: string; color: string }
   >;
+  export let showProblemDetails: boolean;
 
   let loading = "";
 
@@ -95,6 +96,12 @@
       {#each pinnedWay.properties.problems as problem}
         <p>{problem.note}</p>
       {/each}
+
+      {#if drawProblemDetails.features.length}
+        <Checkbox bind:checked={showProblemDetails}>
+          Show problem details
+        </Checkbox>
+      {/if}
 
       <QualitativeLegend
         labelColors={Object.fromEntries(

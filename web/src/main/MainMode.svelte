@@ -5,10 +5,15 @@
     backend,
     mutationCounter,
     refreshLoadingScreen,
-    roadLineWidth,
     debugMode,
   } from "../";
-  import { problemTypes, colors, type NodeProps, type WayProps } from "./";
+  import {
+    roadLineWidth,
+    problemTypes,
+    colors,
+    type NodeProps,
+    type WayProps,
+  } from "./";
   import type {
     Map,
     MapMouseEvent,
@@ -62,6 +67,7 @@
     Object.keys(colors).map((kind) => [kind, true]),
   );
 
+  let showProblemDetails = true;
   let drawProblemDetails = emptyGeojson() as FeatureCollection<
     Geometry,
     { label: string; color: string }
@@ -251,7 +257,7 @@
     <Edits bind:anyEdits />
 
     {#if pinnedWay}
-      <WayDetails {pinnedWay} {drawProblemDetails} />
+      <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {:else}
       <BulkOperations />
     {/if}
@@ -399,6 +405,9 @@
           "circle-color": ["get", "color"],
           "circle-opacity": 0.5,
         }}
+        layout={{
+          visibility: showProblemDetails ? "visible" : "none",
+        }}
       />
 
       <LineLayer
@@ -407,6 +416,9 @@
           "line-width": roadLineWidth(5),
           "line-color": ["get", "color"],
           "line-opacity": 0.5,
+        }}
+        layout={{
+          visibility: showProblemDetails ? "visible" : "none",
         }}
       />
     </GeoJSON>
