@@ -37,9 +37,6 @@ impl Speedwalk {
             if !matches!(way.kind, Kind::Sidewalk | Kind::Other) {
                 continue;
             }
-            if way.tags.is("highway", "cycleway") && way.tags.is("cycleway", "crossing") {
-                continue;
-            }
 
             if let Some((_, crossing_node)) = way.node_ids.iter().enumerate().find(|(idx, n)| {
                 // Ignore when the crossing node is the first or last on the way
