@@ -226,15 +226,15 @@
   }
 
   function clear() {
-    if (anyEdits) {
-      if (
-        window.confirm(
-          "Changing areas will discard your current edits. Do you want to clear the edits?",
-        )
-      ) {
-        $backend = null;
-      }
+    if (
+      anyEdits &&
+      !window.confirm(
+        "Changing areas will discard your current edits. Do you want to clear the edits?",
+      )
+    ) {
+      return;
     }
+    $backend = null;
   }
 </script>
 
