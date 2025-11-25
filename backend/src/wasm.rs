@@ -60,10 +60,10 @@ impl Speedwalk {
     #[wasm_bindgen(js_name = getWays)]
     pub fn get_ways(&self) -> Result<String, JsValue> {
         let mut features = Vec::new();
-        // TODO HashMap nondet order
-        for (idx, (id, way)) in self.derived_ways.iter().enumerate() {
+        let mut crossings = Vec::new();
+        // TODO HashMap nondet order, but it matters less since we sort later
+        for (id, way) in &self.derived_ways {
             let mut f = self.mercator.to_wgs84_gj(&way.linestring);
-            f.id = Some(geojson::feature::Id::Number(idx.into()));
             f.set_property("id", id.0);
             f.set_property("tags", serde_json::to_value(&way.tags).map_err(err_to_js)?);
             f.set_property("kind", format!("{:?}", way.kind));
@@ -78,8 +78,20 @@ impl Speedwalk {
                 "problems",
                 serde_json::to_value(&way.problems).map_err(err_to_js)?,
             );
-            features.push(f);
+            if way.kind == Kind::Crossing {
+                crossings.push(f);
+            } else {
+                features.push(f);
+            }
         }
+
+        // Partially sort, putting crossings last
+        features.extend(crossings);
+
+        for (idx, f) in features.iter_mut().enumerate() {
+            f.id = Some(geojson::feature::Id::Number(idx.into()));
+        }
+
         serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)
     }
 
