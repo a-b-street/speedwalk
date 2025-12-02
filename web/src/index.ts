@@ -8,6 +8,8 @@ export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
 > = writable();
 
+export let mode: Writable<"main" | "crossings"> = writable("main");
+
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);
 

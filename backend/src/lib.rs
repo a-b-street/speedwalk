@@ -4,6 +4,7 @@ extern crate anyhow;
 #[macro_use]
 extern crate log;
 
+mod audit;
 mod classify;
 mod crossings;
 mod edits;

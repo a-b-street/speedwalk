@@ -226,6 +226,12 @@ impl Speedwalk {
             .to_osmchange_json(self)
             .map_err(err_to_js)
     }
+
+    #[wasm_bindgen(js_name = auditCrossings)]
+    pub fn audit_crossings_wasm(&self, ignore_service_roads: bool) -> Result<String, JsValue> {
+        self.audit_crossings(ignore_service_roads)
+            .map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
