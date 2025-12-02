@@ -6,6 +6,7 @@
     mutationCounter,
     refreshLoadingScreen,
     debugMode,
+    mode,
   } from "../";
   import {
     roadLineWidth,
@@ -260,6 +261,15 @@
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {:else}
       <BulkOperations />
+
+      <div class="mt-3">
+        <button
+          class="btn btn-secondary"
+          on:click={() => ($mode = "crossings")}
+        >
+          Audit crossings
+        </button>
+      </div>
     {/if}
   </div>
 

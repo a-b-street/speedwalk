@@ -10,7 +10,7 @@
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
-  import { backend } from "./";
+  import { backend, mode } from "./";
   import type { Map } from "maplibre-gl";
   import {
     basemapStyles,
@@ -26,6 +26,7 @@
   import { Modal } from "svelte-utils";
   import * as backendPkg from "../../backend/pkg";
   import MainMode from "./main/MainMode.svelte";
+  import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
 
   let map: Map | undefined;
   let style = basemapStyles["Maptiler OpenStreetMap"];
@@ -91,7 +92,11 @@
         <div bind:this={mapDiv} />
 
         {#if $backend}
-          <MainMode {map} />
+          {#if $mode == "main"}
+            <MainMode {map} />
+          {:else}
+            <AuditCrossingsMode />
+          {/if}
         {:else}
           <Loader {map} />
         {/if}
