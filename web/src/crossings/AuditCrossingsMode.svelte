@@ -29,7 +29,7 @@
           "circle-color": "black",
           "circle-opacity": hoverStateFilter(0.5, 1.0),
           "circle-stroke-color": "black",
-          "circle-stroke-width": 1,
+          "circle-stroke-width": 3,
         }}
       />
     </GeoJSON>

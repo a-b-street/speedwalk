@@ -1,9 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use anyhow::Result;
-use geo::Point;
+use geo::{LineString, Point};
 use geojson::GeoJson;
-use osm_reader::NodeID;
+use osm_reader::{NodeID, WayID};
+use utils::Tags;
 
 use crate::Speedwalk;
 
@@ -11,10 +12,10 @@ impl Speedwalk {
     pub fn audit_crossings(&self, ignore_service_roads: bool) -> Result<String> {
         let mut features = Vec::new();
 
-        for node in self.find_junctions(ignore_service_roads) {
-            let f = self
-                .mercator
-                .to_wgs84_gj(&Point::from(self.derived_nodes[&node].pt));
+        let graph = Graph::new(self);
+
+        for i in self.find_junctions(ignore_service_roads, &graph) {
+            let f = self.mercator.to_wgs84_gj(&graph.intersections[&i].point);
             features.push(f);
         }
 
@@ -22,32 +23,151 @@ impl Speedwalk {
     }
 
     /// Find all junctions along severances
-    fn find_junctions(&self, ignore_service_roads: bool) -> BTreeSet<NodeID> {
-        let mut nodes = BTreeSet::new();
-        for (way_id, way) in &self.derived_ways {
-            if !way.is_severance() {
-                continue;
+    fn find_junctions(
+        &self,
+        ignore_service_roads: bool,
+        graph: &Graph,
+    ) -> BTreeSet<IntersectionID> {
+        let mut intersections = BTreeSet::new();
+        for (i, intersection) in &graph.intersections {
+            let mut any_severances = false;
+            let mut edges = Vec::new();
+            for e in &intersection.edges {
+                let way = &self.derived_ways[&graph.edges[e].osm_way];
+                if way.is_severance() {
+                    any_severances = true;
+                }
+                if ignore_service_roads && way.tags.is("highway", "service") {
+                    continue;
+                }
+                edges.push(*e);
             }
 
-            for node_id in &way.node_ids {
-                // TODO This counting is completely wrong; we're not working with a graph
-                if self.derived_nodes[node_id].way_ids.len() <= 2 {
-                    continue;
-                }
-                if ignore_service_roads
-                    && self.derived_nodes[node_id]
-                        .way_ids
-                        .iter()
-                        .filter(|w| !self.derived_ways[w].tags.is("highway", "service"))
-                        .count()
-                        <= 2
-                {
-                    continue;
-                }
-
-                nodes.insert(*node_id);
+            if any_severances && edges.len() > 2 {
+                intersections.insert(*i);
             }
         }
-        nodes
+        intersections
+    }
+}
+
+// TODO Adapted from utils::osm2graph. Not sure we need all of this.
+struct Graph {
+    edges: BTreeMap<EdgeID, Edge>,
+    intersections: BTreeMap<IntersectionID, Intersection>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+struct EdgeID(usize);
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+struct IntersectionID(usize);
+
+#[allow(unused)]
+struct Edge {
+    id: EdgeID,
+    src: IntersectionID,
+    dst: IntersectionID,
+
+    osm_way: WayID,
+    osm_node1: NodeID,
+    osm_node2: NodeID,
+    osm_tags: Tags,
+
+    node_ids: Vec<NodeID>,
+
+    linestring: LineString,
+}
+
+#[allow(unused)]
+struct Intersection {
+    id: IntersectionID,
+    edges: Vec<EdgeID>,
+
+    osm_node: NodeID,
+
+    point: Point,
+}
+
+impl Graph {
+    fn new(osm: &Speedwalk) -> Self {
+        // Count how many ways reference each node
+        let mut node_counter: HashMap<NodeID, usize> = HashMap::new();
+        for way in osm.derived_ways.values() {
+            for node in &way.node_ids {
+                *node_counter.entry(*node).or_insert(0) += 1;
+            }
+        }
+
+        // Split each way into edges
+        let mut id_counter = 0;
+        let mut node_to_intersection: HashMap<NodeID, IntersectionID> = HashMap::new();
+        let mut intersections = BTreeMap::new();
+        let mut edges = BTreeMap::new();
+        for (way_id, way) in &osm.derived_ways {
+            let mut node1 = way.node_ids[0];
+            let mut pts = Vec::new();
+            let mut nodes = Vec::new();
+
+            let num_nodes = way.node_ids.len();
+            for (idx, node) in way.node_ids.iter().cloned().enumerate() {
+                pts.push(osm.derived_nodes[&node].pt);
+                nodes.push(node);
+                // Edges start/end at intersections between two ways. The endpoints of the way also
+                // count as intersections.
+                let is_endpoint =
+                    idx == 0 || idx == num_nodes - 1 || *node_counter.get(&node).unwrap() > 1;
+                if is_endpoint && pts.len() > 1 {
+                    let edge_id = EdgeID(id_counter);
+                    id_counter += 1;
+
+                    let mut i_ids = Vec::new();
+                    for (n, point) in [(node1, pts[0]), (node, *pts.last().unwrap())] {
+                        let i = node_to_intersection.get(&n).cloned().unwrap_or_else(|| {
+                            let i = IntersectionID(id_counter);
+                            id_counter += 1;
+                            intersections.insert(
+                                i,
+                                Intersection {
+                                    id: i,
+                                    osm_node: n,
+                                    point: Point(point),
+                                    edges: Vec::new(),
+                                },
+                            );
+                            node_to_intersection.insert(n, i);
+                            i
+                        });
+                        let intersection = intersections.get_mut(&i).unwrap();
+
+                        intersection.edges.push(edge_id);
+                        i_ids.push(i);
+                    }
+
+                    edges.insert(
+                        edge_id,
+                        Edge {
+                            id: edge_id,
+                            src: i_ids[0],
+                            dst: i_ids[1],
+                            osm_way: *way_id,
+                            osm_node1: node1,
+                            osm_node2: node,
+                            node_ids: nodes.clone(),
+                            osm_tags: way.tags.clone(),
+                            linestring: LineString::new(std::mem::take(&mut pts)),
+                        },
+                    );
+
+                    // Start the next edge
+                    node1 = node;
+                    pts.push(osm.derived_nodes[&node].pt);
+                }
+            }
+        }
+
+        Self {
+            edges,
+            intersections,
+        }
     }
 }
