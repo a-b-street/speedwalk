@@ -7,6 +7,11 @@
   let ignoreServiceRoads = false;
 
   $: data = JSON.parse($backend!.auditCrossings(ignoreServiceRoads));
+
+  let crossingNodes = JSON.parse($backend!.getNodes());
+  crossingNodes.features = crossingNodes.features.filter(
+    (f) => f.properties.is_crossing,
+  );
 </script>
 
 <SplitComponent>
@@ -30,6 +35,19 @@
           "circle-opacity": hoverStateFilter(0.5, 1.0),
           "circle-stroke-color": "black",
           "circle-stroke-width": 3,
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={crossingNodes} generateId>
+      <CircleLayer
+        manageHoverState
+        paint={{
+          "circle-radius": 7,
+          "circle-color": "yellow",
+          "circle-opacity": hoverStateFilter(0.3, 1.0),
+          "circle-stroke-color": "black",
+          "circle-stroke-width": 1,
         }}
       />
     </GeoJSON>
