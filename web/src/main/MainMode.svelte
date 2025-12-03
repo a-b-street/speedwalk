@@ -267,7 +267,7 @@
           class="btn btn-secondary"
           on:click={() => ($mode = "crossings")}
         >
-          Audit crossings
+          Audit crossings (experimental)
         </button>
       </div>
     {/if}
@@ -363,13 +363,15 @@
           {@const props = data?.properties ?? {}}
           <h4>Node {props.id}</h4>
           <p>Ways: {props.way_ids}</p>
-          <table>
-            {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
-              <tr>
-                <td>{key}</td>
-                <td>{value}</td>
-              </tr>
-            {/each}
+          <table class="table table-bordered">
+            <tbody>
+              {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
+                <tr>
+                  <td>{key}</td>
+                  <td>{value}</td>
+                </tr>
+              {/each}
+            </tbody>
           </table>
         </Popup>
       </CircleLayer>
