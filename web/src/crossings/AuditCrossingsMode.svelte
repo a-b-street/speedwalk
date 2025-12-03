@@ -1,16 +1,28 @@
 <script lang="ts">
   import { Checkbox } from "svelte-utils";
-  import { GeoJSON, CircleLayer, hoverStateFilter } from "svelte-maplibre";
+  import {
+    LineLayer,
+    GeoJSON,
+    CircleLayer,
+    hoverStateFilter,
+  } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/two_column_layout";
   import { backend, mode } from "../";
+  import type { Feature, FeatureCollection } from "geojson";
+  import { emptyGeojson } from "svelte-utils/map";
 
   let ignoreServiceRoads = false;
 
   $: data = JSON.parse($backend!.auditCrossings(ignoreServiceRoads));
 
-  let crossingNodes = JSON.parse($backend!.getNodes());
+  let hovered: Feature | null = null;
+  $: debugArms = hovered
+    ? JSON.parse(hovered.properties!.arms)
+    : emptyGeojson();
+
+  let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
   crossingNodes.features = crossingNodes.features.filter(
-    (f) => f.properties.is_crossing,
+    (f) => f.properties!.is_crossing,
   );
 </script>
 
@@ -36,7 +48,12 @@
           "circle-stroke-color": "black",
           "circle-stroke-width": 3,
         }}
+        bind:hovered
       />
+    </GeoJSON>
+
+    <GeoJSON data={debugArms}>
+      <LineLayer paint={{ "line-width": 6, "line-color": "blue" }} />
     </GeoJSON>
 
     <GeoJSON data={crossingNodes} generateId>

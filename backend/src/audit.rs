@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, HashMap};
 
 use anyhow::Result;
 use geo::{LineString, Point};
@@ -14,8 +14,15 @@ impl Speedwalk {
 
         let graph = Graph::new(self);
 
-        for i in self.find_junctions(ignore_service_roads, &graph) {
-            let f = self.mercator.to_wgs84_gj(&graph.intersections[&i].point);
+        for junction in self.find_junctions(ignore_service_roads, &graph) {
+            let mut f = self.mercator.to_wgs84_gj(&graph.intersections[&junction.i].point);
+
+            let mut debug_arms = Vec::new();
+            for e in junction.arms {
+                debug_arms.push(self.mercator.to_wgs84_gj(&graph.edges[&e].linestring));
+            }
+            f.set_property("arms", GeoJson::from(debug_arms));
+
             features.push(f);
         }
 
@@ -27,15 +34,15 @@ impl Speedwalk {
         &self,
         ignore_service_roads: bool,
         graph: &Graph,
-    ) -> BTreeSet<IntersectionID> {
-        let mut intersections = BTreeSet::new();
+    ) -> Vec<Junction> {
+        let mut junctions = Vec::new();
         for (i, intersection) in &graph.intersections {
             if self.derived_nodes[&intersection.osm_node].tags.is("highway", "crossing") {
                 continue;
             }
 
             let mut any_severances = false;
-            let mut edges = Vec::new();
+            let mut arms = Vec::new();
             for e in &intersection.edges {
                 let way = &self.derived_ways[&graph.edges[e].osm_way];
                 if way.is_severance() {
@@ -44,15 +51,23 @@ impl Speedwalk {
                 if ignore_service_roads && way.tags.is("highway", "service") {
                     continue;
                 }
-                edges.push(*e);
+                arms.push(*e);
             }
 
-            if any_severances && edges.len() > 2 {
-                intersections.insert(*i);
+            if any_severances && arms.len() > 2 {
+                junctions.push(Junction {
+                    i: *i,
+                    arms,
+                });
             }
         }
-        intersections
+        junctions
     }
+}
+
+struct Junction {
+    i: IntersectionID,
+    arms: Vec<EdgeID>,
 }
 
 // TODO Adapted from utils::osm2graph. Not sure we need all of this.
