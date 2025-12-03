@@ -8,6 +8,7 @@ mod audit;
 mod classify;
 mod crossings;
 mod edits;
+mod graph;
 mod make_sidewalks;
 mod problems;
 mod scrape;
