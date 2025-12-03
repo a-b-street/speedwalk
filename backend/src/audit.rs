@@ -30,6 +30,10 @@ impl Speedwalk {
     ) -> BTreeSet<IntersectionID> {
         let mut intersections = BTreeSet::new();
         for (i, intersection) in &graph.intersections {
+            if self.derived_nodes[&intersection.osm_node].tags.is("highway", "crossing") {
+                continue;
+            }
+
             let mut any_severances = false;
             let mut edges = Vec::new();
             for e in &intersection.edges {
