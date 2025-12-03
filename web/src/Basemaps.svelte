@@ -55,12 +55,15 @@
 
     let props = choices.find((props) => props.name == currentBasemap)!;
 
+    // TODO Trial and error to get these. I need to understand the URL format in editor-layer-index and also what maplibre supports.
+    let url = props.url.replace("{proj}", "EPSG:3857").replace("{width}", "256").replace("{height}", "256").replace("{bbox}", "{bbox-epsg-3857}").replace("{zoom}", "{z}");
+
     style = {
       version: 8,
       sources: {
         "raster-tiles": {
           type: "raster",
-          tiles: [props.url],
+          tiles: [url],
           tileSize: 256,
           attribution: props.attribution?.text || "",
         },
