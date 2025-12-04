@@ -14,7 +14,9 @@
 
   let ignoreServiceRoads = false;
 
-  $: data = JSON.parse($backend!.auditCrossings(ignoreServiceRoads));
+  $: data = JSON.parse(
+    $backend!.auditCrossings(ignoreServiceRoads),
+  ) as FeatureCollection;
   $: completeJunctions = data.features.filter(
     (f) => f.properties!.complete,
   ).length;

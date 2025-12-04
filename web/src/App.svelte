@@ -10,14 +10,10 @@
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
-  import { backend, mode } from "./";
+  import { basemapStyles, backend, mode } from "./";
   import type { Map } from "maplibre-gl";
-  import {
-    basemapStyles,
-    Basemaps,
-    Geocoder,
-    StandardControls,
-  } from "svelte-utils/map";
+  import { Geocoder, StandardControls } from "svelte-utils/map";
+  import Basemaps from "./Basemaps.svelte";
   import {
     mapContents,
     sidebarContents,
@@ -29,7 +25,7 @@
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
 
   let map: Map | undefined;
-  let style = basemapStyles["Maptiler OpenStreetMap"];
+  let basemap = "Maptiler OpenStreetMap";
   let show = true;
 
   onMount(async () => {
@@ -72,7 +68,7 @@
 
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
-      {style}
+      style={$basemapStyles[basemap]}
       hash
       bind:map
       on:error={(e) => {
@@ -84,7 +80,7 @@
       <StandardControls {map} />
       <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
       <!--<MapContextMenu {map} />-->
-      <Basemaps bind:style choice="Maptiler OpenStreetMap" />
+      <Basemaps bind:basemap />
 
       {#if map}
         <ReportProblem {map} />

@@ -1,5 +1,6 @@
 import { type Writable, writable } from "svelte/store";
 import * as backendPkg from "../../backend/pkg";
+import { basemapStyles as originalBasemapStyles } from "svelte-utils/map";
 
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
@@ -12,6 +13,11 @@ export let mode: Writable<"main" | "crossings"> = writable("main");
 
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);
+
+// TODO In svelte 4, it's simplest to copy this into a store instead of mutate an import
+export let basemapStyles = writable(
+  JSON.parse(JSON.stringify(originalBasemapStyles)),
+);
 
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
