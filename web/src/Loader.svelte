@@ -2,14 +2,11 @@
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { SplitComponent } from "svelte-utils/two_column_layout";
   import { bbox } from "svelte-utils/map";
-  import { Loading } from "svelte-utils";
-  import type { Map } from "maplibre-gl";
+  import { Loading, notNull } from "svelte-utils";
   import { OverpassSelector } from "svelte-utils/overpass";
   import * as backendPkg from "../../backend/pkg";
-  import { backend, refreshLoadingScreen } from "./";
+  import { backend, refreshLoadingScreen, map } from "./";
   import type { Feature, Polygon } from "geojson";
-
-  export let map: Map;
 
   let loading = "";
 
@@ -48,7 +45,7 @@
   }
 
   function zoomFit() {
-    map.fitBounds(bbox(JSON.parse($backend!.getNodes())), {
+    $map!.fitBounds(bbox(JSON.parse($backend!.getNodes())), {
       animate: false,
       padding: 10,
     });
@@ -74,7 +71,7 @@
     <p class="fst-italic my-3">or...</p>
 
     <OverpassSelector
-      {map}
+      map={notNull($map)}
       on:gotXml={gotXml}
       on:loading={(e) => (loading = e.detail)}
       on:error={(e) => window.alert(e.detail)}

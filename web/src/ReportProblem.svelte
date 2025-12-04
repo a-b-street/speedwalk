@@ -1,10 +1,8 @@
 <script lang="ts">
   import type { Map } from "maplibre-gl";
   import { Checkbox } from "svelte-utils";
-  import { loggedInUser } from "./";
+  import { loggedInUser, map } from "./";
   import Modal from "./Modal.svelte";
-
-  export let map: Map;
 
   let show = false;
   let submitting = false;
@@ -23,9 +21,9 @@
     show = true;
     automaticDetails = {
       url: window.location.toString(),
-      viewport: getViewportHash(map),
+      viewport: getViewportHash($map!),
     };
-    screenshotBlob = await mapToBlob(map);
+    screenshotBlob = await mapToBlob($map!);
     screenshotURL = URL.createObjectURL(screenshotBlob);
   }
 

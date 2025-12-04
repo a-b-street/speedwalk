@@ -1,7 +1,9 @@
 import { type Writable, writable } from "svelte/store";
 import * as backendPkg from "../../backend/pkg";
 import { basemapStyles as originalBasemapStyles } from "svelte-utils/map";
+import type { Map } from "maplibre-gl";
 
+export let map: Writable<Map | null> = writable(null);
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
 
@@ -9,7 +11,8 @@ export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
 > = writable();
 
-export let mode: Writable<"main" | "crossings"> = writable("main");
+export let mode: Writable<"main" | "crossings" | "disconnections"> =
+  writable("main");
 
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);

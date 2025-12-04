@@ -8,6 +8,7 @@
     refreshLoadingScreen,
     debugMode,
     mode,
+    map,
   } from "../";
   import {
     roadLineWidth,
@@ -16,11 +17,7 @@
     type NodeProps,
     type WayProps,
   } from "./";
-  import type {
-    Map,
-    MapMouseEvent,
-    ExpressionSpecification,
-  } from "maplibre-gl";
+  import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import {
     GeoJSON,
     CircleLayer,
@@ -47,8 +44,6 @@
   } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
-
-  export let map: Map;
 
   let nodes: FeatureCollection<Point, NodeProps> = {
     type: "FeatureCollection",
@@ -111,7 +106,7 @@
 
   function onMapClick(e: CustomEvent<MapMouseEvent>) {
     pinnedWay = null;
-    for (let rendered of map.queryRenderedFeatures(e.detail.point, {
+    for (let rendered of $map!.queryRenderedFeatures(e.detail.point, {
       layers: ["ways"],
     })) {
       // Find the original feature in the GJ, to avoid having to parse nested properties
@@ -260,6 +255,14 @@
           on:click={() => ($mode = "crossings")}
         >
           Audit crossings (experimental)
+        </button>
+      </div>
+      <div class="mt-3">
+        <button
+          class="btn btn-secondary"
+          on:click={() => ($mode = "disconnections")}
+        >
+          Network disconnections
         </button>
       </div>
     {/if}

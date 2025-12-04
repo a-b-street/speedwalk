@@ -7,6 +7,7 @@ extern crate log;
 mod audit;
 mod classify;
 mod crossings;
+mod disconnected;
 mod edits;
 mod graph;
 mod make_sidewalks;

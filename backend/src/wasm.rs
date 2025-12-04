@@ -246,6 +246,12 @@ impl Speedwalk {
         self.audit_crossings(ignore_service_roads)
             .map_err(err_to_js)
     }
+
+    #[wasm_bindgen(js_name = findConnectedComponents)]
+    pub fn find_connected_components_wasm(&self) -> Result<String, JsValue> {
+        let graph = crate::graph::Graph::new(self);
+        Ok(serde_json::to_string(&self.find_connected_components(&graph)).map_err(err_to_js)?)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {

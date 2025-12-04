@@ -10,7 +10,7 @@
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
-  import { basemapStyles, backend, mode } from "./";
+  import { basemapStyles, backend, mode, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
   import { Geocoder, StandardControls } from "svelte-utils/map";
   import Basemaps from "./Basemaps.svelte";
@@ -23,11 +23,16 @@
   import * as backendPkg from "../../backend/pkg";
   import MainMode from "./main/MainMode.svelte";
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
+  import DisconnectionsMode from "./DisconnectionsMode.svelte";
   import StudyAreaFade from "./StudyAreaFade.svelte";
 
   let map: Map | undefined;
   let basemap = "Maptiler OpenStreetMap";
   let show = true;
+
+  $: if (map) {
+    mapStore.set(map);
+  }
 
   onMount(async () => {
     await backendPkg.default();
@@ -84,7 +89,7 @@
       <Basemaps bind:basemap />
 
       {#if map}
-        <ReportProblem {map} />
+        <ReportProblem />
 
         <div bind:this={mapDiv} />
 
@@ -92,12 +97,14 @@
           <StudyAreaFade />
 
           {#if $mode == "main"}
-            <MainMode {map} />
-          {:else}
+            <MainMode />
+          {:else if $mode == "crossings"}
             <AuditCrossingsMode />
+          {:else if $mode == "disconnections"}
+            <DisconnectionsMode />
           {/if}
         {:else}
-          <Loader {map} />
+          <Loader />
         {/if}
       {/if}
     </MapLibre>
