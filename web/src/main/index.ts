@@ -64,6 +64,7 @@ export let problemTypes = [
   "missing footway=crossing",
   "possible separate sidewalk near way without it tagged",
   "sidewalk=separate is ambiguous about the side",
+  "sidewalk:left and sidewalk:right should each be tagged as separate or no",
 ];
 
 // Zoom-dependant line width, adapted from from the Minor road layer (secondary

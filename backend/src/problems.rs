@@ -82,6 +82,25 @@ impl Speedwalk {
             }
         }
 
+        for (way_id, way) in &self.derived_ways {
+            if way.kind != Kind::RoadWithSeparate {
+                continue;
+            }
+            if way.tags.is_any("sidewalk:both", vec!["separate", "no"]) {
+                continue;
+            }
+            let left_ok = way.tags.is_any("sidewalk:left", vec!["separate", "no"]);
+            let right_ok = way.tags.is_any("sidewalk:right", vec!["separate", "no"]);
+            if !left_ok || !right_ok {
+                // TODO The description is literal, but maybe too verbose
+                problem_ways.push((
+                    *way_id,
+                    "sidewalk:left and sidewalk:right should each be tagged as separate or no",
+                    Vec::new(),
+                ));
+            }
+        }
+
         // Fill out problems
         for (id, note, details) in problem_nodes {
             self.derived_nodes
