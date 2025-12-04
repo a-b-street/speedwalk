@@ -1,4 +1,5 @@
 <script lang="ts">
+  import OsmProvenance from "./OsmProvenance.svelte";
   import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import {
@@ -117,36 +118,6 @@
       pinnedWay = ways.features.find((f) => f.id == rendered.id)!;
       break;
     }
-  }
-
-  function describeOsmTimestamp(): string {
-    let t = $backend!.getOsmTimestamp();
-    if (t) {
-      let d = new Date(1000 * Number(t));
-      return `${d.toLocaleString()} (${describeTimeSince(d)} ago)`;
-    }
-    return "unknown";
-  }
-
-  function describeTimeSince(fromDate: Date): string {
-    let ms = Date.now() - fromDate.getTime();
-
-    let seconds = Math.floor(ms / 1000);
-    let minutes = Math.floor(seconds / 60);
-    let hours = Math.floor(minutes / 60);
-    let days = Math.floor(hours / 24);
-
-    // Don't be precise
-    if (days) {
-      return days == 1 ? "1 day" : `${days} days`;
-    }
-    if (hours) {
-      return hours == 1 ? "1 hour" : `${hours} hours`;
-    }
-    if (minutes) {
-      return minutes == 1 ? "1 minute" : `${minutes} minutes}`;
-    }
-    return "a few seconds";
   }
 
   $: pinnedWaySides =
@@ -274,7 +245,7 @@
       Load another area
     </button>
 
-    <p>OSM data is from {describeOsmTimestamp()}</p>
+    <OsmProvenance {anyEdits} />
 
     <Edits bind:anyEdits />
 
