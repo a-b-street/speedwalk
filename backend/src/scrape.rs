@@ -1,14 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, GeometryCollection, LineString, Polygon};
+use geo::{ConvexHull, Coord, GeometryCollection, LineString, Polygon};
 use osm_reader::{Element, OsmID};
 use rstar::RTree;
 use utils::{Mercator, Tags};
 
 use crate::{Edits, Kind, Node, Speedwalk, Way};
 
-pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
+pub fn scrape_osm(input_bytes: &[u8], maybe_boundary_wgs84: Option<Polygon>) -> Result<Speedwalk> {
     let mut timestamp = None;
     let mut nodes = HashMap::new();
     let mut ways = HashMap::new();
@@ -117,12 +117,13 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
 
     nodes.retain(|id, _| used_nodes.contains(id));
 
-    let mercator = Mercator::from(GeometryCollection::from(
+    let all_geometry = GeometryCollection::from(
         ways.values()
             .map(|way| way.linestring.clone())
             .collect::<Vec<_>>(),
-    ))
-    .unwrap();
+    );
+    let boundary_wgs84 = maybe_boundary_wgs84.unwrap_or_else(|| all_geometry.convex_hull());
+    let mercator = Mercator::from(all_geometry).unwrap();
     for node in nodes.values_mut() {
         node.pt = mercator.pt_to_mercator(node.pt);
     }
@@ -138,6 +139,7 @@ pub fn scrape_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
         original_nodes: nodes.clone(),
         original_ways: ways.clone(),
         mercator,
+        boundary_wgs84,
         timestamp,
         closest_building: RTree::bulk_load(buildings),
 

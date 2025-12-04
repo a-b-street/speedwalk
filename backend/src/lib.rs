@@ -33,6 +33,7 @@ pub struct Speedwalk {
     original_nodes: HashMap<NodeID, Node>,
     original_ways: HashMap<WayID, Way>,
     mercator: Mercator,
+    boundary_wgs84: Polygon,
     pub timestamp: Option<i64>,
     closest_building: RTree<Polygon>,
 
@@ -43,8 +44,8 @@ pub struct Speedwalk {
 }
 
 impl Speedwalk {
-    pub fn new_from_osm(input_bytes: &[u8]) -> Result<Speedwalk> {
-        crate::scrape::scrape_osm(input_bytes)
+    pub fn new_from_osm(input_bytes: &[u8], boundary_wgs84: Option<Polygon>) -> Result<Speedwalk> {
+        crate::scrape::scrape_osm(input_bytes, boundary_wgs84)
     }
 
     // TODO Workaround wasm stuff

@@ -23,6 +23,7 @@
   import * as backendPkg from "../../backend/pkg";
   import MainMode from "./main/MainMode.svelte";
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
+  import StudyAreaFade from "./StudyAreaFade.svelte";
 
   let map: Map | undefined;
   let basemap = "Maptiler OpenStreetMap";
@@ -88,6 +89,8 @@
         <div bind:this={mapDiv} />
 
         {#if $backend}
+          <StudyAreaFade />
+
           {#if $mode == "main"}
             <MainMode {map} />
           {:else}

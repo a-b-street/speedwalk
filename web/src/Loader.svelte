@@ -7,6 +7,7 @@
   import { OverpassSelector } from "svelte-utils/overpass";
   import * as backendPkg from "../../backend/pkg";
   import { backend, refreshLoadingScreen } from "./";
+  import type { Feature, Polygon } from "geojson";
 
   export let map: Map;
 
@@ -18,7 +19,7 @@
       loading = "Loading from file";
       await refreshLoadingScreen();
       let bytes = await fileInput!.files![0].arrayBuffer();
-      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
+      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes), null);
       zoomFit();
     } catch (err) {
       window.alert(`Bad input file: ${err}`);
@@ -27,12 +28,17 @@
     }
   }
 
-  async function gotXml(e: CustomEvent<{ xml: string }>) {
+  async function gotXml(
+    e: CustomEvent<{ xml: string; boundary: Feature<Polygon> }>,
+  ) {
     try {
       loading = "Processing Overpass data";
       await refreshLoadingScreen();
       let bytes = new TextEncoder().encode(e.detail.xml);
-      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes));
+      $backend = new backendPkg.Speedwalk(
+        new Uint8Array(bytes),
+        e.detail.boundary,
+      );
       zoomFit();
     } catch (err) {
       window.alert(`Couldn't import from Overpass: ${err}`);

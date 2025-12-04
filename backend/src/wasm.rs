@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::sync::Once;
 
 use anyhow::Result;
-use geo::{Euclidean, Length, Point};
-use geojson::GeoJson;
+use geo::{Euclidean, Length, Point, Polygon};
+use geojson::{Feature, GeoJson, Geometry};
 use osm_reader::WayID;
 use serde::Serialize;
 use utils::{OffsetCurve, Tags};
@@ -16,19 +16,33 @@ static START: Once = Once::new();
 #[wasm_bindgen]
 impl Speedwalk {
     #[wasm_bindgen(constructor)]
-    pub fn new(input_bytes: &[u8]) -> Result<Speedwalk, JsValue> {
+    pub fn new(input_bytes: &[u8], boundary: JsValue) -> Result<Speedwalk, JsValue> {
         // Panics shouldn't happen, but if they do, console.log them.
         console_error_panic_hook::set_once();
         START.call_once(|| {
             console_log::init_with_level(log::Level::Info).unwrap();
         });
 
-        Speedwalk::new_from_osm(input_bytes).map_err(err_to_js)
+        let boundary_f: Option<Feature> = serde_wasm_bindgen::from_value(boundary)?;
+        let boundary_wgs84: Option<Polygon> = match boundary_f {
+            Some(f) => Some(f.try_into().map_err(err_to_js)?),
+            None => None,
+        };
+
+        Speedwalk::new_from_osm(input_bytes, boundary_wgs84).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = getOsmTimestamp)]
     pub fn get_osm_timestamp(&self) -> Option<i64> {
         self.timestamp
+    }
+
+    #[wasm_bindgen(js_name = getBoundary)]
+    pub fn get_boundary(&self) -> Result<String, JsValue> {
+        Ok(
+            serde_json::to_string(&Feature::from(Geometry::from(&self.boundary_wgs84)))
+                .map_err(err_to_js)?,
+        )
     }
 
     #[wasm_bindgen(js_name = getNodes)]
