@@ -8,8 +8,7 @@
 
   let loading = "";
 
-  function describeOsmTimestamp(): string {
-    let t = $backend!.getOsmTimestamp();
+  function describeOsmTimestamp(t: bigint | undefined): string {
     if (t) {
       let d = new Date(1000 * Number(t));
       return `${d.toLocaleString()} (${describeTimeSince(d)} ago)`;
@@ -72,5 +71,5 @@
 
 <Loading {loading} />
 
-<p>OSM data is from {describeOsmTimestamp()}</p>
-<button on:click={refreshData}>Refresh OSM data</button>
+<p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
+<button class="btn btn-secondary mb-3" on:click={refreshData}>Refresh OSM data</button>
