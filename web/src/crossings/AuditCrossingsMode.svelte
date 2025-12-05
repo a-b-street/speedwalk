@@ -7,8 +7,8 @@
     hoverStateFilter,
     Popup,
   } from "svelte-maplibre";
-  import { SplitComponent } from "svelte-utils/two_column_layout";
-  import { backend, mode } from "../";
+  import { SplitComponent } from "svelte-utils/top_bar_layout";
+  import { backend } from "../";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
 
@@ -38,10 +38,6 @@
 <SplitComponent>
   <div slot="sidebar">
     <h4>Crossings audit (experimental)</h4>
-
-    <button class="btn btn-secondary" on:click={() => ($mode = "main")}>
-      Back to main mode
-    </button>
 
     <p>
       {completeJunctions.toLocaleString()} / {data.features.length.toLocaleString()}

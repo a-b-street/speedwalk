@@ -1,6 +1,6 @@
 <script lang="ts">
   import { PolygonToolLayer } from "maplibre-draw-polygon";
-  import { SplitComponent } from "svelte-utils/two_column_layout";
+  import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { bbox } from "svelte-utils/map";
   import { Loading, notNull } from "svelte-utils";
   import { OverpassSelector } from "svelte-utils/overpass";

@@ -7,9 +7,9 @@
     type LayerClickInfo,
   } from "svelte-maplibre";
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
-  import { SplitComponent } from "svelte-utils/two_column_layout";
+  import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression } from "svelte-utils/map";
-  import { backend, map, mode } from "./";
+  import { backend, map } from "./";
 
   let gj = JSON.parse($backend!.findConnectedComponents());
 
@@ -53,10 +53,6 @@
 <SplitComponent>
   <div slot="sidebar">
     <h4>Network disconnections</h4>
-
-    <button class="btn btn-secondary" on:click={() => ($mode = "main")}>
-      Back to main mode
-    </button>
 
     <p>This shows where the separate sidewalk network is disconnected.</p>
 

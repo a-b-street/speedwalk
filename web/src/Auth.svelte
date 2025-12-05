@@ -37,14 +37,14 @@
 </script>
 
 {#if $loggedInUser}
-  <div class="dropdown mb-3">
+  <div class="nav-item dropdown">
     <button
       class="btn btn-outline-secondary dropdown-toggle"
       data-bs-toggle="dropdown"
       aria-expanded="false"
     >
       {#if $loggedInUser.avatarUrl}
-        <img src={$loggedInUser.avatarUrl} alt="OSM avatar" height="50" />
+        <img src={$loggedInUser.avatarUrl} alt="OSM avatar" height="30" />
       {/if}
       {$loggedInUser.name}
     </button>
@@ -56,5 +56,5 @@
     </ul>
   </div>
 {:else}
-  <button class="btn btn-primary mb-3" on:click={login}>Login to OSM</button>
+  <button class="btn btn-primary" on:click={login}>Login to OSM</button>
 {/if}

@@ -72,4 +72,6 @@
 <Loading {loading} />
 
 <p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
-<button class="btn btn-secondary mb-3" on:click={refreshData}>Refresh OSM data</button>
+<button class="btn btn-secondary mb-3" on:click={refreshData}>
+  Refresh OSM data
+</button>

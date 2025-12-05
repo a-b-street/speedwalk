@@ -7,7 +7,6 @@
     mutationCounter,
     refreshLoadingScreen,
     debugMode,
-    mode,
     map,
   } from "../";
   import {
@@ -27,7 +26,7 @@
     Control,
     Popup,
   } from "svelte-maplibre";
-  import { SplitComponent } from "svelte-utils/two_column_layout";
+  import { SplitComponent } from "svelte-utils/top_bar_layout";
   import {
     isPoint,
     isLine,
@@ -248,23 +247,6 @@
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {:else}
       <BulkOperations />
-
-      <div class="mt-3">
-        <button
-          class="btn btn-secondary"
-          on:click={() => ($mode = "crossings")}
-        >
-          Audit crossings (experimental)
-        </button>
-      </div>
-      <div class="mt-3">
-        <button
-          class="btn btn-secondary"
-          on:click={() => ($mode = "disconnections")}
-        >
-          Network disconnections
-        </button>
-      </div>
     {/if}
   </div>
 
