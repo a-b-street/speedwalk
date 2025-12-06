@@ -2,7 +2,7 @@
   import "bootstrap/dist/css/bootstrap.min.css";
   import "bootstrap/dist/js/bootstrap.min.js";
   import "@fortawesome/fontawesome-free/css/all.min.css";
-  import ReportProblem from "./ReportProblem.svelte";
+  import ReportProblem from "./common/ReportProblem.svelte";
   import Loader from "./Loader.svelte";
   import favicon from "../assets/favicon.ico?url";
   import arrow from "../assets/arrow.png?url";
@@ -11,18 +11,18 @@
   import { basemapStyles, backend, mode, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
   import { Geocoder, StandardControls } from "svelte-utils/map";
-  import Basemaps from "./Basemaps.svelte";
+  import Basemaps from "./common/Basemaps.svelte";
   import {
     mapContents,
     sidebarContents,
     Layout,
   } from "svelte-utils/top_bar_layout";
   import * as backendPkg from "../../backend/pkg";
-  import MainMode from "./main/MainMode.svelte";
+  import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
-  import StudyAreaFade from "./StudyAreaFade.svelte";
-  import NavBar from "./NavBar.svelte";
+  import StudyAreaFade from "./common/StudyAreaFade.svelte";
+  import NavBar from "./common/NavBar.svelte";
 
   let map: Map | undefined;
   let basemap = "Maptiler OpenStreetMap";
@@ -86,8 +86,8 @@
         {#if $backend}
           <StudyAreaFade />
 
-          {#if $mode == "main"}
-            <MainMode />
+          {#if $mode == "sidewalks"}
+            <SidewalksMode />
           {:else if $mode == "crossings"}
             <AuditCrossingsMode />
           {:else if $mode == "disconnections"}

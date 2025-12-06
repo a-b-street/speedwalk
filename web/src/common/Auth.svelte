@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as OSM from "osm-api";
   import { onMount } from "svelte";
-  import { loggedInUser } from "./";
+  import { loggedInUser } from "../";
 
   onMount(handleLogin);
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { basemapStyles } from "./";
+  import { basemapStyles } from "../";
   import AddBasemap from "./AddBasemap.svelte";
 
   export let basemap: string;

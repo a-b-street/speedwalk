@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { StyleSpecification } from "maplibre-gl";
-  import { basemapStyles } from "./";
+  import { basemapStyles } from "../";
   import { Modal } from "svelte-utils";
 
   export let show: boolean;

@@ -1,13 +1,13 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
-  import logo from "../assets/logo.svg?url";
-  import { type Mode, mode, backend } from "./";
+  import logo from "../../assets/logo.svg?url";
+  import { type Mode, mode, backend } from "../";
   import { Modal } from "svelte-utils";
 
   let showInfo = false;
 
   let actions = [
-    ["main", "Sidewalks"],
+    ["sidewalks", "Sidewalks"],
     ["crossings", "Crossings"],
     ["disconnections", "Network disconnections"],
   ] as [Mode, string][];
