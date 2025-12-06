@@ -20,6 +20,14 @@ export type Mode =
       problem:
         | "missing crossing node"
         | "separate sidewalks should be continued here";
+    }
+  | {
+      kind: "way_problems";
+      problem:
+        | "missing footway=crossing"
+        | "possible separate sidewalk near way without it tagged"
+        | "sidewalk=separate is ambiguous about the side"
+        | "sidewalk:left and sidewalk:right should each be tagged as separate or no";
     };
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });

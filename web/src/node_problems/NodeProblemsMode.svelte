@@ -1,5 +1,10 @@
 <script lang="ts">
-  import { GeoJSON, hoverStateFilter, CircleLayer, Popup } from "svelte-maplibre";
+  import {
+    GeoJSON,
+    hoverStateFilter,
+    CircleLayer,
+    Popup,
+  } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { backend } from "../";
   import WaysLayer from "./WaysLayer.svelte";
@@ -60,23 +65,23 @@
           "circle-stroke-width": hoverStateFilter(1, 5),
         }}
       >
-    {#if problem == "missing crossing node"}
-        <Popup openOn="hover" let:data>
-          {@const props = data?.properties ?? {}}
+        {#if problem == "missing crossing node"}
+          <Popup openOn="hover" let:data>
+            {@const props = data?.properties ?? {}}
 
-          <h4>Node {props.id}</h4>
-          <table class="table table-bordered">
-            <tbody>
-              {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
-                <tr>
-                  <td>{key}</td>
-                  <td>{value}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
-        </Popup>
-    {/if}
+            <h4>Node {props.id}</h4>
+            <table class="table table-bordered">
+              <tbody>
+                {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
+                  <tr>
+                    <td>{key}</td>
+                    <td>{value}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </Popup>
+        {/if}
       </CircleLayer>
     </GeoJSON>
   </div>
