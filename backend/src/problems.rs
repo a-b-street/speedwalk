@@ -26,7 +26,7 @@ impl Speedwalk {
                 if node.way_ids.iter().any(|other_way_id| {
                     !matches!(
                         self.derived_ways[other_way_id].kind,
-                        Kind::Sidewalk | Kind::Other
+                        Kind::Sidewalk | Kind::Crossing | Kind::Other
                     )
                 }) {
                     problem_nodes.push((*node_id, "missing crossing node", Vec::new()));

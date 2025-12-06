@@ -11,8 +11,18 @@ export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
 > = writable();
 
-export type Mode = "sidewalks" | "crossings" | "disconnections";
-export let mode: Writable<Mode> = writable("sidewalks");
+export type Mode =
+  | { kind: "sidewalks" }
+  | { kind: "crossings" }
+  | { kind: "disconnections" }
+  | {
+      kind: "node_problems";
+      problem:
+        | "missing crossing node"
+        | "separate sidewalks should be continued here";
+    };
+
+export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);

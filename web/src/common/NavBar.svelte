@@ -7,9 +7,20 @@
   let showInfo = false;
 
   let actions = [
-    ["sidewalks", "Sidewalks"],
-    ["crossings", "Crossings"],
-    ["disconnections", "Network disconnections"],
+    [{ kind: "sidewalks" }, "Sidewalks"],
+    [{ kind: "crossings" }, "Crossings"],
+    [{ kind: "disconnections" }, "Network disconnections"],
+    [
+      { kind: "node_problems", problem: "missing crossing node" },
+      "Fix missing crossing nodes",
+    ],
+    [
+      {
+        kind: "node_problems",
+        problem: "separate sidewalks should be continued here",
+      },
+      "Fix sidewalks that end",
+    ],
   ] as [Mode, string][];
 </script>
 
@@ -25,7 +36,7 @@
           class="nav-link"
           href="#"
           on:click={() => ($mode = setMode)}
-          class:active={$mode == setMode}
+          class:active={JSON.stringify($mode) == JSON.stringify(setMode)}
         >
           {label}
         </a>
