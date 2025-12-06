@@ -9,7 +9,7 @@
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression } from "svelte-utils/map";
-  import { backend, map } from "./";
+  import { backend, map, prettyPrintDistance } from "./";
 
   let gj = JSON.parse($backend!.findConnectedComponents());
 
@@ -54,12 +54,26 @@
   <div slot="sidebar">
     <h4>Network disconnections</h4>
 
-    <p>This shows where the separate sidewalk network is disconnected.</p>
+    <p>
+      This shows where the separate sidewalk network is disconnected. Click a
+      piece to see it:
+    </p>
 
-    <p>Component sizes:</p>
     <ul>
-      {#each gj.components as size, idx}
-        <li style:color={colors[idx % colors.length]}>{size}</li>
+      {#each gj.component_lengths as length, idx}
+        <li>
+          <!-- svelte-ignore a11y-invalid-attribute -->
+          <a
+            style:color={colors[idx % colors.length]}
+            href="#"
+            on:click|preventDefault={() => {
+              $map?.fitBounds(gj.component_bboxes[idx]);
+              showComponent = idx;
+            }}
+          >
+            {prettyPrintDistance(length)}
+          </a>
+        </li>
       {/each}
     </ul>
   </div>

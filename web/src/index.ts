@@ -22,6 +22,7 @@ export let basemapStyles = writable(
   JSON.parse(JSON.stringify(originalBasemapStyles)),
 );
 
+// TODO Upstream several of these
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
 }
