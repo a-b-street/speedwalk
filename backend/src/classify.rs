@@ -40,6 +40,7 @@ impl Kind {
         if tags.is_any(
             "highway",
             vec![
+                "corridor",
                 "cycleway",
                 "footway",
                 "path",
