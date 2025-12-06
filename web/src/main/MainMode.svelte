@@ -218,6 +218,22 @@
     return ["all", ...all] as ExpressionSpecification;
   }
 
+  function filterNodes(
+    _a: boolean,
+    _b: any,
+  ): ExpressionSpecification | undefined {
+    if (!showProblems) {
+      return undefined;
+    }
+    let any = [];
+    for (let [key, value] of Object.entries(showProblemTypes)) {
+      if (value) {
+        any.push(["in", key, ["get", "problem_types"]]);
+      }
+    }
+    return ["any", ...any] as ExpressionSpecification;
+  }
+
   function clear() {
     if (
       anyEdits &&
@@ -320,6 +336,7 @@
         id="nodes"
         beforeId="Road labels"
         manageHoverState
+        filter={filterNodes(showProblems, showProblemTypes)}
         paint={{
           "circle-radius": 7,
           "circle-color": ["case", ["get", "is_crossing"], "yellow", "grey"],
@@ -338,6 +355,8 @@
       >
         <Popup openOn="hover" let:data>
           {@const props = data?.properties ?? {}}
+          {@const problems = JSON.parse(props.problems)}
+
           <h4>Node {props.id}</h4>
           <p>Ways: {props.way_ids}</p>
           <table class="table table-bordered">
@@ -350,6 +369,14 @@
               {/each}
             </tbody>
           </table>
+
+          {#if problems.length}
+            <u>Problems:</u>
+
+            {#each problems as problem}
+              <p>{problem.note}</p>
+            {/each}
+          {/if}
         </Popup>
       </CircleLayer>
     </GeoJSON>

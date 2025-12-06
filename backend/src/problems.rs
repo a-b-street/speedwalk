@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use geo::{Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point};
 use geojson::Feature;
 use osm_reader::WayID;
@@ -96,6 +98,33 @@ impl Speedwalk {
                 problem_ways.push((
                     *way_id,
                     "sidewalk:left and sidewalk:right should each be tagged as separate or no",
+                    Vec::new(),
+                ));
+            }
+        }
+
+        for (node_id, node) in &self.derived_nodes {
+            let mut good_road_names = BTreeSet::new();
+            let mut bad_road_names = BTreeSet::new();
+            for w in &node.way_ids {
+                let way = &self.derived_ways[w];
+                let Some(name) = way.tags.get("name") else {
+                    continue;
+                };
+                if way.kind == Kind::RoadWithSeparate {
+                    good_road_names.insert(name);
+                } else if matches!(
+                    way.kind,
+                    Kind::RoadWithTags | Kind::RoadWithoutSidewalksImplicit | Kind::RoadUnknown
+                ) {
+                    bad_road_names.insert(name);
+                }
+            }
+
+            if good_road_names.intersection(&bad_road_names).next().is_some() {
+                problem_nodes.push((
+                    *node_id,
+                    "separate sidewalks should be continued here",
                     Vec::new(),
                 ));
             }
