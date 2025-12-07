@@ -32,6 +32,7 @@
     "bootstrap": "^5.3.8",
     "osm-api": "^3.3.0",
     "svelte-maplibre": "github:dabreegster/svelte-maplibre#svelte4_popups",
-    "svelte-utils": "github:a-b-street/svelte-utils"
+    "svelte-utils": "github:a-b-street/svelte-utils",
+    "uuid": "^13.0.0"
   }
 }

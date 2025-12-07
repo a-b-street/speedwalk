@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import OsmProvenance from "./OsmProvenance.svelte";
   import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
@@ -261,9 +262,9 @@
 
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
-    {:else}
-      <BulkOperations />
     {/if}
+
+    <BulkOperations />
   </div>
 
   <div slot="map">
@@ -440,9 +441,9 @@
     </GeoJSON>
 
     <Control position="top-right">
-      <div class="card" style:width="250px" style:padding="8px">
-        <div class="card-header">Filters</div>
-        <div class="card-body">
+      <CollapsibleCard>
+        <div slot="header">Filters</div>
+        <div slot="body">
           <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
 
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
@@ -476,7 +477,7 @@
 
           <Metrics bind:showKinds />
         </div>
-      </div>
+      </CollapsibleCard>
     </Control>
   </div>
 </SplitComponent>

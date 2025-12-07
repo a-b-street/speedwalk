@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import { downloadGeneratedFile, Loading } from "svelte-utils";
   import {
     backend,
@@ -111,12 +112,12 @@
 
 <Loading {loading} />
 
-<div class="card mb-3">
-  <div class="card-header">
+<CollapsibleCard>
+  <div slot="header">
     {cmds.length}
     {cmds.length == 1 ? "edit" : "edits"}
   </div>
-  <div class="card-body">
+  <div slot="body">
     {#if cmds.length > 0}
       <div class="mb-1">
         <button class="btn btn-danger" on:click={clear}>Clear edits</button>
@@ -155,4 +156,4 @@
       <p>{JSON.stringify(cmds[idx])}</p>
     {/if}
   </div>
-</div>
+</CollapsibleCard>

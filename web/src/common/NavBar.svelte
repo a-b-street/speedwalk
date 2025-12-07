@@ -91,6 +91,7 @@
               class="dropdown-item"
               href="#"
               on:click={() => ($mode = setMode)}
+              class:active={JSON.stringify($mode) == JSON.stringify(setMode)}
             >
               {label}
             </a>

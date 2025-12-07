@@ -1,4 +1,5 @@
 <script lang="ts">
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import { Checkbox, Modal, Loading } from "svelte-utils";
   import {
     backend,
@@ -60,9 +61,9 @@
 <Loading {loading} />
 
 {#if $enabledBulkOps}
-  <div class="card">
-    <div class="card-header">Bulk operations</div>
-    <div class="card-body">
+  <CollapsibleCard>
+    <div slot="header">Bulk operations</div>
+    <div slot="body">
       <div class="card mb-3">
         <div class="card-header">Assume old-style tags on one-ways</div>
         <div class="card-body">
@@ -89,7 +90,7 @@
         Connect all crossings over major roads
       </button>
     </div>
-  </div>
+  </CollapsibleCard>
 {:else}
   <button class="btn btn-secondary" on:click={() => (show = true)}>
     Bulk operations
