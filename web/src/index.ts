@@ -14,21 +14,7 @@ export let loggedInUser: Writable<
 export type Mode =
   | { kind: "sidewalks" }
   | { kind: "crossings" }
-  | { kind: "disconnections" }
-  | {
-      kind: "node_problems";
-      problem:
-        | "missing crossing node"
-        | "separate sidewalks should be continued here";
-    }
-  | {
-      kind: "way_problems";
-      problem:
-        | "missing footway=crossing"
-        | "possible separate sidewalk near way without it tagged"
-        | "sidewalk=separate is ambiguous about the side"
-        | "sidewalk:left and sidewalk:right should each be tagged as separate or no";
-    };
+  | { kind: "disconnections" };
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 

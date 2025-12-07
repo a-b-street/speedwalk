@@ -1,12 +1,7 @@
 <script lang="ts">
-  import { backend, debugMode, map, mutationCounter } from "../";
-  import {
-    roadLineWidth,
-    colors,
-    type WayProps,
-    type NodeProps,
-  } from "../sidewalks";
-  import type { MapMouseEvent } from "maplibre-gl";
+  import { backend, debugMode, map } from "../";
+  import { roadLineWidth, colors, type WayProps, type NodeProps } from "./";
+  import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import {
     GeoJSON,
     CircleLayer,
@@ -30,26 +25,18 @@
 
   // This is meant as a deeply interactive layer
 
-  export let pinnedWay: Feature<LineString, WayProps> | null = null;
+  // Input and output
+  export let pinnedWay: Feature<LineString, WayProps> | null;
+  // Output
   export let drawProblemDetails: FeatureCollection<
     Geometry,
     { label: string; color: string }
   >;
+  // Input
   export let showProblemDetails: boolean;
-
-  let nodes = emptyGeojson() as FeatureCollection<Point, NodeProps>;
-  let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
-
-  $: update($mutationCounter);
-  function update(_: number) {
-    nodes = JSON.parse($backend!.getNodes());
-    ways = JSON.parse($backend!.getWays());
-
-    if (pinnedWay) {
-      let findId = pinnedWay.id;
-      pinnedWay = ways.features.find((f) => f.id == findId)!;
-    }
-  }
+  export let nodes: FeatureCollection<Point, NodeProps>;
+  export let ways: FeatureCollection<LineString, WayProps>;
+  export let filterWays: ExpressionSpecification;
 
   function onMapClick(e: CustomEvent<MapMouseEvent>) {
     pinnedWay = null;
@@ -167,6 +154,7 @@
     beforeId="Road labels"
     manageHoverState
     hoverCursor="pointer"
+    filter={filterWays}
     paint={{
       "line-width": roadLineWidth(0),
       "line-color": constructMatchExpression(["get", "kind"], colors, "cyan"),

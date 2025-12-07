@@ -23,8 +23,6 @@
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
-  import NodeProblemsMode from "./node_problems/NodeProblemsMode.svelte";
-  import WayProblemsMode from "./way_problems/WayProblemsMode.svelte";
 
   let map: Map | undefined;
   let basemap = "Maptiler OpenStreetMap";
@@ -95,10 +93,6 @@
               <AuditCrossingsMode />
             {:else if $mode.kind == "disconnections"}
               <DisconnectionsMode />
-            {:else if $mode.kind == "node_problems"}
-              <NodeProblemsMode problem={$mode.problem} />
-            {:else if $mode.kind == "way_problems"}
-              <WayProblemsMode problem={$mode.problem} />
             {/if}
           {/key}
         {:else}
