@@ -442,21 +442,13 @@
 
     <Control position="top-right">
       <CollapsibleCard>
-        <div slot="header">Filters</div>
+        <div slot="header">Layers</div>
         <div slot="body">
           <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
 
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
-
-          <Checkbox bind:checked={onlySeverances}>
-            Only show major roads
-          </Checkbox>
-
-          <Checkbox bind:checked={showServiceRoads}>
-            Show service roads
-          </Checkbox>
 
           <div class="card mb-3">
             <div class="card-header">
@@ -475,7 +467,15 @@
             {/if}
           </div>
 
-          <Metrics bind:showKinds />
+          <Metrics bind:showKinds>
+            <Checkbox bind:checked={onlySeverances}>
+              Only show major roads
+            </Checkbox>
+
+            <Checkbox bind:checked={showServiceRoads}>
+              Show service roads
+            </Checkbox>
+          </Metrics>
         </div>
       </CollapsibleCard>
     </Control>

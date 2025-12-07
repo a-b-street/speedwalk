@@ -63,6 +63,9 @@
         </Checkbox>
       </div>
     {/each}
+
+    <div class="mb-3"></div>
+    <slot />
   </div>
 </div>
 
