@@ -8,6 +8,7 @@
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { backend } from "../";
   import WaysLayer from "./WaysLayer.svelte";
+  import Edits from "../sidewalks/Edits.svelte";
 
   // TODO Maybe these should be two separate modes -- popups are only useful in one. There's not
   // much shared.
@@ -19,6 +20,9 @@
   gj.features = gj.features.filter((f: any) =>
     f.properties.problems.some((p: any) => p.note == problem),
   );
+
+  // TODO This should be global state
+  let anyEdits = false;
 </script>
 
 <SplitComponent>
@@ -51,6 +55,8 @@
     {/if}
 
     <p>{gj.features.length} problems</p>
+
+    <Edits bind:anyEdits />
   </div>
 
   <div slot="map">

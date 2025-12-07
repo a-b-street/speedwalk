@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backend, debugMode, map } from "../";
+  import { backend, debugMode, map, mutationCounter } from "../";
   import {
     roadLineWidth,
     colors,
@@ -35,16 +35,21 @@
     Geometry,
     { label: string; color: string }
   >;
+  export let showProblemDetails: boolean;
 
-  // TODO Need to refresh when model changes, have loading screen, etc
-  let nodes: FeatureCollection<Point, NodeProps> = JSON.parse(
-    $backend!.getNodes(),
-  );
-  let ways: FeatureCollection<LineString, WayProps> = JSON.parse(
-    $backend!.getWays(),
-  );
+  let nodes = emptyGeojson() as FeatureCollection<Point, NodeProps>;
+  let ways = emptyGeojson() as FeatureCollection<LineString, WayProps>;
 
-  let showProblemDetails = true;
+  $: update($mutationCounter);
+  function update(_: number) {
+    nodes = JSON.parse($backend!.getNodes());
+    ways = JSON.parse($backend!.getWays());
+
+    if (pinnedWay) {
+      let findId = pinnedWay.id;
+      pinnedWay = ways.features.find((f) => f.id == findId)!;
+    }
+  }
 
   function onMapClick(e: CustomEvent<MapMouseEvent>) {
     pinnedWay = null;

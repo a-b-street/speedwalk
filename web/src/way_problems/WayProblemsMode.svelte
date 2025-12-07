@@ -1,7 +1,7 @@
 <script lang="ts">
   import { GeoJSON, LineLayer } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { backend } from "../";
+  import { backend, mutationCounter } from "../";
   import WaysLayer from "./WaysLayer.svelte";
   import WayDetails from "../sidewalks/WayDetails.svelte";
   import type {
@@ -12,6 +12,7 @@
   } from "geojson";
   import { roadLineWidth, type WayProps } from "../sidewalks";
   import { emptyGeojson } from "svelte-utils/map";
+  import Edits from "../sidewalks/Edits.svelte";
 
   // TODO Maybe these should all be separate modes. Two of them can use editing directly.
   export let problem:
@@ -20,10 +21,16 @@
     | "sidewalk=separate is ambiguous about the side"
     | "sidewalk:left and sidewalk:right should each be tagged as separate or no";
 
-  let problemWays = JSON.parse($backend!.getWays());
-  problemWays.features = problemWays.features.filter((f: any) =>
-    f.properties.problems.some((p: any) => p.note == problem),
-  );
+  let problemWays = emptyGeojson();
+
+  $: update($mutationCounter);
+  function update(_: number) {
+    let gj = JSON.parse($backend!.getWays());
+    gj.features = gj.features.filter((f: any) =>
+      f.properties.problems.some((p: any) => p.note == problem),
+    );
+    problemWays = gj;
+  }
 
   let pinnedWay: Feature<LineString, WayProps> | null = null;
 
@@ -32,6 +39,9 @@
     Geometry,
     { label: string; color: string }
   >;
+
+  // TODO This should be global state
+  let anyEdits = false;
 
   // Animate the problems to call attention
   let opacity = 0.5;
@@ -72,6 +82,8 @@
 
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
+    {:else}
+      <Edits bind:anyEdits />
     {/if}
   </div>
 
@@ -85,6 +97,9 @@
           "line-opacity": opacity,
           "line-blur": 5,
         }}
+        layout={{
+          visibility: pinnedWay ? "none" : "visible",
+        }}
       />
 
       <LineLayer
@@ -96,9 +111,12 @@
           "line-opacity": opacity,
           "line-blur": 5,
         }}
+        layout={{
+          visibility: pinnedWay ? "none" : "visible",
+        }}
       />
     </GeoJSON>
 
-    <WaysLayer bind:pinnedWay bind:drawProblemDetails />
+    <WaysLayer bind:pinnedWay bind:drawProblemDetails {showProblemDetails} />
   </div>
 </SplitComponent>

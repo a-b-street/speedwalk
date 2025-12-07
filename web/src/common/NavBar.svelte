@@ -71,30 +71,34 @@
         </a>
       </li>
     {/each}
-  {/if}
 
-  <li class="nav-item dropdown">
-    <!-- svelte-ignore a11y-invalid-attribute -->
-    <a
-      class="nav-link dropdown-toggle"
-      data-bs-toggle="dropdown"
-      href="#"
-      role="button"
-      aria-expanded="false"
-    >
-      Fix problems
-    </a>
-    <ul class="dropdown-menu">
-      {#each problemActions as [setMode, label]}
-        <li>
-          <!-- svelte-ignore a11y-invalid-attribute -->
-          <a class="dropdown-item" href="#" on:click={() => ($mode = setMode)}>
-            {label}
-          </a>
-        </li>
-      {/each}
-    </ul>
-  </li>
+    <li class="nav-item dropdown">
+      <!-- svelte-ignore a11y-invalid-attribute -->
+      <a
+        class="nav-link dropdown-toggle"
+        data-bs-toggle="dropdown"
+        href="#"
+        role="button"
+        aria-expanded="false"
+      >
+        Fix problems
+      </a>
+      <ul class="dropdown-menu">
+        {#each problemActions as [setMode, label]}
+          <li>
+            <!-- svelte-ignore a11y-invalid-attribute -->
+            <a
+              class="dropdown-item"
+              href="#"
+              on:click={() => ($mode = setMode)}
+            >
+              {label}
+            </a>
+          </li>
+        {/each}
+      </ul>
+    </li>
+  {/if}
 
   <li class="nav-item ms-auto">
     <!-- svelte-ignore a11y-invalid-attribute -->
