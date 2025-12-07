@@ -40,7 +40,7 @@ export let colors = {
   RoadWithTags: "blue",
   RoadWithoutSidewalksExplicit: "#8B4000",
   RoadWithoutSidewalksImplicit: "orange",
-  RoadUnknown: "red",
+  RoadUnknown: "#ff69b4",
 
   Sidewalk: "black",
   Crossing: "green",
