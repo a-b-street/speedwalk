@@ -10,7 +10,7 @@
     Feature,
     LineString,
   } from "geojson";
-  import type { WayProps } from "../sidewalks";
+  import { roadLineWidth, type WayProps } from "../sidewalks";
   import { emptyGeojson } from "svelte-utils/map";
 
   // TODO Maybe these should all be separate modes. Two of them can use editing directly.
@@ -32,6 +32,20 @@
     Geometry,
     { label: string; color: string }
   >;
+
+  // Animate the problems to call attention
+  let opacity = 0.5;
+
+  function animate(time: DOMHighResTimeStamp) {
+    let duration = 2500;
+    let low = 0.35;
+    let high = 0.85;
+
+    let t = (Math.sin((time / duration) * Math.PI * 2) + 1) / 2;
+    opacity = low + t * (high - low);
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
 </script>
 
 <SplitComponent>
@@ -54,22 +68,37 @@
       <p></p>
     {/if}
 
+    <p>{problemWays.features.length} problems</p>
+
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {/if}
   </div>
 
   <div slot="map">
-    <WaysLayer bind:pinnedWay bind:drawProblemDetails />
-
     <GeoJSON data={problemWays}>
       <LineLayer
+        maxzoom={16}
         paint={{
-          "line-width": 20,
+          "line-width": roadLineWidth(15),
           "line-color": "red",
-          "line-opacity": 0.5,
+          "line-opacity": opacity,
+          "line-blur": 5,
+        }}
+      />
+
+      <LineLayer
+        beforeId="Road labels"
+        minzoom={16}
+        paint={{
+          "line-width": roadLineWidth(20),
+          "line-color": "red",
+          "line-opacity": opacity,
+          "line-blur": 5,
         }}
       />
     </GeoJSON>
+
+    <WaysLayer bind:pinnedWay bind:drawProblemDetails />
   </div>
 </SplitComponent>

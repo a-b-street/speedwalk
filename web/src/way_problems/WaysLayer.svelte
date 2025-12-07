@@ -162,7 +162,6 @@
     beforeId="Road labels"
     manageHoverState
     hoverCursor="pointer"
-    eventsIfTopMost
     paint={{
       "line-width": roadLineWidth(0),
       "line-color": constructMatchExpression(["get", "kind"], colors, "cyan"),

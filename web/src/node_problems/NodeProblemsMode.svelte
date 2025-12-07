@@ -49,6 +49,8 @@
         <li>Refresh the data here to verify</li>
       </ol>
     {/if}
+
+    <p>{gj.features.length} problems</p>
   </div>
 
   <div slot="map">
