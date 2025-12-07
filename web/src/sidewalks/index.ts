@@ -58,16 +58,6 @@ export let kindLabels = {
   Other: "Other",
 };
 
-// TODO Simpler to hardcode from backend
-export let problemTypes = [
-  "missing crossing node",
-  "missing footway=crossing",
-  "possible separate sidewalk near way without it tagged",
-  "sidewalk=separate is ambiguous about the side",
-  "sidewalk:left and sidewalk:right should each be tagged as separate or no",
-  "separate sidewalks should be continued here",
-];
-
 // Zoom-dependant line width, adapted from from the Minor road layer (secondary
 // road class) from https://api.maptiler.com/maps/streets-v2/style.json. At
 // high zoom, make sidewalks, crossings, and other roads thinner.

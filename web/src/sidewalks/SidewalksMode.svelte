@@ -12,13 +12,7 @@
     debugMode,
     map,
   } from "../";
-  import {
-    roadLineWidth,
-    problemTypes,
-    colors,
-    type NodeProps,
-    type WayProps,
-  } from "./";
+  import { roadLineWidth, colors, type NodeProps, type WayProps } from "./";
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import {
     GeoJSON,
@@ -71,10 +65,6 @@
     Geometry,
     { label: string; color: string }
   >;
-  let showProblems = false;
-  let showProblemTypes: Record<string, boolean> = Object.fromEntries(
-    problemTypes.map((k) => [k, true]),
-  );
 
   let anyEdits = false;
 
@@ -183,9 +173,7 @@
     _a: boolean,
     _b: boolean,
     _c: boolean,
-    _d: boolean,
-    _e: any,
-    _f: any,
+    _d: any,
   ): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
@@ -201,15 +189,6 @@
     if (onlyModified) {
       all.push(["get", "modified"]);
     }
-    if (showProblems) {
-      let any = [];
-      for (let [key, value] of Object.entries(showProblemTypes)) {
-        if (value) {
-          any.push(["in", key, ["get", "problem_types"]]);
-        }
-      }
-      all.push(["any", ...any]);
-    }
     all.push([
       "in",
       ["get", "kind"],
@@ -221,22 +200,6 @@
       ],
     ]);
     return ["all", ...all] as ExpressionSpecification;
-  }
-
-  function filterNodes(
-    _a: boolean,
-    _b: any,
-  ): ExpressionSpecification | undefined {
-    if (!showProblems) {
-      return undefined;
-    }
-    let any = [];
-    for (let [key, value] of Object.entries(showProblemTypes)) {
-      if (value) {
-        any.push(["in", key, ["get", "problem_types"]]);
-      }
-    }
-    return ["any", ...any] as ExpressionSpecification;
   }
 
   function clear() {
@@ -324,9 +287,7 @@
         filter={filterWays(
           onlySeverances,
           onlyModified,
-          showProblems,
           showServiceRoads,
-          showProblemTypes,
           showKinds,
         )}
         paint={{
@@ -345,7 +306,6 @@
         id="nodes"
         beforeId="Road labels"
         manageHoverState
-        filter={filterNodes(showProblems, showProblemTypes)}
         paint={{
           "circle-radius": 7,
           "circle-color": ["case", ["get", "is_crossing"], "yellow", "grey"],
@@ -457,23 +417,6 @@
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
 
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
-
-          <div class="card mb-3">
-            <div class="card-header">
-              <Checkbox bind:checked={showProblems}>
-                Only show problems
-              </Checkbox>
-            </div>
-            {#if showProblems}
-              <div class="card-body">
-                {#each problemTypes as key}
-                  <Checkbox bind:checked={showProblemTypes[key]}>
-                    {key}
-                  </Checkbox>
-                {/each}
-              </div>
-            {/if}
-          </div>
 
           <Metrics bind:showKinds>
             <Checkbox bind:checked={onlySeverances}>
