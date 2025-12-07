@@ -105,7 +105,7 @@
         <li>Split the way around the crossing</li>
         <li>
           Tag <i>footway=crossing</i>
-           on the smaller segment
+          on the smaller segment
         </li>
         <li>Refresh the data here to verify</li>
       </ol>
@@ -129,7 +129,7 @@
     {:else if show == "sidewalk=separate is ambiguous about the side"}
       <p>
         <i>sidewalk=separate</i>
-         is ambiguous. Update the tagging to specify if there are separate sidewalks
+        is ambiguous. Update the tagging to specify if there are separate sidewalks
         on both sides or just one.
       </p>
     {:else if show == "sidewalk:left and sidewalk:right should each be tagged as separate or no"}

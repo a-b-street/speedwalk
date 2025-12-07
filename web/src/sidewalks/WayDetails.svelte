@@ -86,7 +86,14 @@
     >
       Way {pinnedWay.properties.id}
     </a>
-    : {kindLabels[pinnedWay.properties.kind]}
+    (
+    <a
+      href="https://www.openstreetmap.org/edit?way={pinnedWay.properties.id}"
+      target="_blank"
+    >
+      <i class="fa-solid fa-pencil"></i>
+    </a>
+    ) : {kindLabels[pinnedWay.properties.kind]}
   </div>
 
   <div class="card-body">
