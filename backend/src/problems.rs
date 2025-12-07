@@ -91,6 +91,10 @@ impl Speedwalk {
             if way.tags.is_any("sidewalk:both", vec!["separate", "no"]) {
                 continue;
             }
+            if way.tags.is("sidewalk", "separate") {
+                // This is a separate problem; don't report as both
+                continue;
+            }
             let left_ok = way.tags.is_any("sidewalk:left", vec!["separate", "no"]);
             let right_ok = way.tags.is_any("sidewalk:right", vec!["separate", "no"]);
             if !left_ok || !right_ok {
