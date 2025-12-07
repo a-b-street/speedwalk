@@ -2,4 +2,5 @@
 target/
 node_modules/
 web/public
+web/dist
 web/src/sidewalks/ExtraContext.svelte
