@@ -2,7 +2,6 @@
   import "bootstrap/dist/css/bootstrap.min.css";
   import "bootstrap/dist/js/bootstrap.min.js";
   import "@fortawesome/fontawesome-free/css/all.min.css";
-  import ReportProblem from "./common/ReportProblem.svelte";
   import Loader from "./Loader.svelte";
   import favicon from "../assets/favicon.ico?url";
   import arrow from "../assets/arrow.png?url";
@@ -11,7 +10,7 @@
   import { basemapStyles, backend, mode, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
   import { Geocoder, StandardControls } from "svelte-utils/map";
-  import Basemaps from "./common/Basemaps.svelte";
+  import ActionBar from "./common/ActionBar.svelte";
   import {
     mapContents,
     sidebarContents,
@@ -76,10 +75,9 @@
       <StandardControls {map} />
       <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
       <!--<MapContextMenu {map} />-->
-      <Basemaps bind:basemap />
+      <ActionBar bind:basemap />
 
       {#if map}
-        <ReportProblem />
 
         <div bind:this={mapDiv} />
 

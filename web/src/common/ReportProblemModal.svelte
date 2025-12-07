@@ -8,6 +8,11 @@
   let submitting = false;
   let success = false;
 
+  export function triggerStart() {
+    if (!$map) return;
+    start();
+  }
+
   let details = "";
   let automaticDetails = {};
   let includeUsername = false;
@@ -214,20 +219,7 @@
   </div>
 </Modal>
 
-<div class="launcher">
-  <button class="btn btn-secondary" on:click={start} disabled={show}>
-    <i class="fa-solid fa-triangle-exclamation"></i>
-    Report problem
-  </button>
-</div>
-
 <style>
-  .launcher {
-    z-index: 100;
-    position: absolute;
-    left: 10px;
-    bottom: 140px;
-  }
 
   .img-container {
     width: 600px;
