@@ -242,7 +242,7 @@ impl Speedwalk {
                         }
                         {
                             let mut f = self.mercator.to_wgs84_gj(&midpt_line);
-                            f.set_property("color", "purple");
+                            f.set_property("color", "red");
                             f.set_property("label", "straight line between the road and sidewalk that doesn't hit a building");
                             details.push(f);
                         }

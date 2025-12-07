@@ -65,10 +65,14 @@
       {/each}
     </select>
 
+    {#if show}
+      <p>{problemCounts[show]} problems</p>
+    {/if}
+
     {#if show == "missing crossing node"}
       <p>
-        Here are nodes on crossing ways that aren't tagged as a crossing. You
-        should fix by...
+        When a crossing way hits a road, the node should be tagged as a
+        crossing. Instructions to fix are TODO.
       </p>
     {:else if show == "separate sidewalks should be continued here"}
       <p>
@@ -86,14 +90,53 @@
         </li>
         <li>Refresh the data here to verify</li>
       </ol>
+      <p>
+        (This problem is detected when the road names are the same, so there are
+        some false positives you can ignore.)
+      </p>
     {:else if show == "missing footway=crossing"}
-      <p>TODO</p>
+      <p>
+        Here are footways with a crossing node, but the way needs to be split
+        and tagged as <i>footway=crossing</i>
+        .
+      </p>
+      <ol>
+        <li>Open in another editor</li>
+        <li>Split the way around the crossing</li>
+        <li>
+          Tag <i>footway=crossing</i>
+           on the smaller segment
+        </li>
+        <li>Refresh the data here to verify</li>
+      </ol>
     {:else if show == "possible separate sidewalk near way without it tagged"}
-      <p>TODO</p>
+      <p>
+        These roads aren't tagged as having separate sidewalks, but it looks
+        like there's a parallel separate sidewalk already mapped.
+      </p>
+      <ol>
+        <li>
+          Check each segment. If separate sidewalks are already there, update
+          the tagging here.
+        </li>
+        <li>
+          If the separate sidewalks don't cover the entire length of the road,
+          ideally go finish drawing the separate sidewalks in another tool, then
+          update the tagging on the road.
+        </li>
+      </ol>
+      <p>There are false positives. Check the full length of the road.</p>
     {:else if show == "sidewalk=separate is ambiguous about the side"}
-      <p>TODO</p>
+      <p>
+        <i>sidewalk=separate</i>
+         is ambiguous. Update the tagging to specify if there are separate sidewalks
+        on both sides or just one.
+      </p>
     {:else if show == "sidewalk:left and sidewalk:right should each be tagged as separate or no"}
-      <p>TODO</p>
-    {/if}
+      <p>
+        These roads have separate sidewalks tagged on one side, but the other
+        side is unspecified or not drawn separately. Be consistent on each road
+        and use another editor to draw separate sidewalks on both sides.
+      </p>{/if}
   </div>
 </CollapsibleCard>
