@@ -2,6 +2,8 @@
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import type { FeatureCollection, LineString, Point } from "geojson";
   import type { NodeProps, WayProps } from "./";
+  import { map } from "../";
+  import { bbox } from "svelte-utils/map";
 
   export let nodes: FeatureCollection<Point, NodeProps>;
   export let ways: FeatureCollection<LineString, WayProps>;
@@ -21,8 +23,17 @@
   $: problemCounts = countProblems(nodes, ways);
 
   let show = "";
+  let currentProblemIndex = 0;
 
   $: drawProblems = filterProblems(nodes, ways, show);
+  $: if (show) {
+    // Reset index when problem type changes
+    currentProblemIndex = 0;
+  }
+  $: if (currentProblemIndex >= drawProblems.features.length && drawProblems.features.length > 0) {
+    // Reset index if it's out of bounds
+    currentProblemIndex = 0;
+  }
 
   function countProblems(_a: any, _b: any): Record<string, number> {
     let counts = {} as Record<string, number>;
@@ -51,6 +62,35 @@
     }
     return gj;
   }
+
+  function pickNextProblem() {
+    if (!$map || !show || drawProblems.features.length === 0) {
+      return;
+    }
+
+    // Cycle through problems
+    const feature = drawProblems.features[currentProblemIndex];
+    currentProblemIndex = (currentProblemIndex + 1) % drawProblems.features.length;
+
+    // Focus map on the feature
+    try {
+      if (feature.geometry.type === "Point") {
+        // For points, use flyTo with a reasonable zoom level
+        const coords = feature.geometry.coordinates;
+        $map.flyTo({
+          center: [coords[0], coords[1]],
+          zoom: 19,
+          animate: true,
+        });
+      } else {
+        // For lines, use fitBounds with padding
+        const bounds = bbox(feature);
+        $map.fitBounds(bounds, { animate: true, padding: 50 });
+      }
+    } catch (err) {
+      console.error("Error focusing on problem:", err);
+    }
+  }
 </script>
 
 <CollapsibleCard>
@@ -66,7 +106,17 @@
     </select>
 
     {#if show}
-      <p>{problemCounts[show]} problems</p>
+      <div class="problem-header">
+        <p class="problem-count">{problemCounts[show]} problems</p>
+        {#if drawProblems.features.length > 0}
+          <button
+            class="btn btn-sm btn-primary"
+            on:click={pickNextProblem}
+          >
+            Pick next
+          </button>
+        {/if}
+      </div>
     {/if}
 
     {#if show == "missing crossing node"}
@@ -140,3 +190,17 @@
       </p>{/if}
   </div>
 </CollapsibleCard>
+
+<style>
+  .problem-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .problem-count {
+    margin: 0;
+  }
+</style>
