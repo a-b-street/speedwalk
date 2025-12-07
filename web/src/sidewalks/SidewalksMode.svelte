@@ -1,4 +1,6 @@
 <script lang="ts">
+  import ProblemControls from "./ProblemControls.svelte";
+  import ProblemLayer from "./ProblemLayer.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import OsmProvenance from "./OsmProvenance.svelte";
   import Edits from "./Edits.svelte";
@@ -77,6 +79,8 @@
   let anyEdits = false;
 
   let loading = "";
+
+  let drawProblems = emptyGeojson();
 
   $: updateModel($mutationCounter);
   async function updateModel(mutationCounter: number) {
@@ -260,6 +264,8 @@
 
     <Edits bind:anyEdits />
 
+    <ProblemControls {nodes} {ways} bind:drawProblems />
+
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {/if}
@@ -305,6 +311,8 @@
         }}
       />
     </GeoJSON>
+
+    <ProblemLayer {drawProblems} {pinnedWay} />
 
     <GeoJSON data={ways}>
       <LineLayer
