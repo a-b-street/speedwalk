@@ -7,6 +7,7 @@
     getKiwidUrl,
     getRapidUrl,
     getJosmUrlFromMap,
+    getMapillaryUrl,
   } from "./osmEditorUrls";
 
   function getEditorUrls() {
@@ -19,6 +20,7 @@
       { label: "Kiwid", url: getKiwidUrl(viewport.zoom, viewport.lat, viewport.lng) },
       { label: "Rapid", url: getRapidUrl(viewport.zoom, viewport.lat, viewport.lng) },
       { label: "JOSM", url: getJosmUrlFromMap($map) },
+      { label: "Mapillary", url: getMapillaryUrl(viewport.zoom, viewport.lat, viewport.lng) },
     ];
   }
 

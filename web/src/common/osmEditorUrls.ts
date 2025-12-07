@@ -73,3 +73,15 @@ export function getJosmUrlFromMap(map: Map): string {
     bounds.getSouth(),
   );
 }
+
+export function getMapillaryUrl(
+  zoom: number,
+  lat: number,
+  lng: number,
+): string {
+  const url = new URL("https://www.mapillary.com/app/");
+  url.searchParams.set("lat", String(lat));
+  url.searchParams.set("lng", String(lng));
+  url.searchParams.set("z", String(Math.round(zoom)));
+  return url.toString();
+}
