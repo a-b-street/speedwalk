@@ -871,7 +871,7 @@ checksum = "daf8dba3b7eb870caf1ddeed7bc9d2a049f3cfdfae7cb521b087cc33ae4c49da"
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/a-b-street/utils#5d59bcd9022912874666833f075796ad1ac1c611"
+source = "git+https://github.com/a-b-street/utils#d0c8b353e1d486bbc32ae16fda98c41e4f34e8af"
 dependencies = [
  "anyhow",
  "fast_paths",
@@ -883,6 +883,7 @@ dependencies = [
  "osm-reader",
  "rstar",
  "serde",
+ "serde_json",
  "urlencoding",
  "wasm-bindgen",
  "web-sys",

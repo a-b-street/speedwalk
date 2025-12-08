@@ -79,7 +79,7 @@ impl Speedwalk {
         FeatureCollection {
             features,
             bbox: None,
-            foreign_members: Some(into_object_value(serde_json::json!({
+            foreign_members: Some(utils::into_object_value(serde_json::json!({
                 "component_lengths": component_lengths,
                 "component_bboxes": component_bboxes,
             }))),
@@ -96,9 +96,4 @@ fn nodes_to_ways(graph: &Graph, nodes: Vec<IntersectionID>) -> BTreeSet<WayID> {
         }
     }
     ways
-}
-
-// TODO Upstream
-fn into_object_value(value: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
-    value.as_object().unwrap().clone()
 }

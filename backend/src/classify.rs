@@ -104,7 +104,7 @@ mod tests {
             (vec!["highway=path", "footway=sidewalk"], Kind::Other),
             (vec!["highway=cycleway", "foot=yes"], Kind::Other),
         ] {
-            let actual = Kind::classify(&tags(&input));
+            let actual = Kind::classify(&Tags::new_from_pairs(&input));
             if actual != expected {
                 println!("For {input:?}, expected {expected:?} but got {actual:?}\n");
                 ok = false;
@@ -114,15 +114,5 @@ mod tests {
         if !ok {
             panic!("Some cases failed");
         }
-    }
-
-    // TODO Upstream as a test utility
-    fn tags(input: &Vec<&'static str>) -> Tags {
-        let mut tags = Tags::empty();
-        for kv in input {
-            let parts = kv.split("=").collect::<Vec<_>>();
-            tags.insert(parts[0], parts[1]);
-        }
-        tags
     }
 }
