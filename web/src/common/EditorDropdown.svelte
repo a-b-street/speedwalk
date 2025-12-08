@@ -15,15 +15,26 @@
     const viewport = getMapViewport($map);
     if (!viewport) return null;
     return [
-      { label: "OSM", url: getOsmUrl(viewport.zoom, viewport.lat, viewport.lng) },
+      {
+        label: "OSM",
+        url: getOsmUrl(viewport.zoom, viewport.lat, viewport.lng),
+      },
       { label: "iD", url: getIdUrl(viewport.zoom, viewport.lat, viewport.lng) },
-      { label: "Kiwid", url: getKiwidUrl(viewport.zoom, viewport.lat, viewport.lng) },
-      { label: "Rapid", url: getRapidUrl(viewport.zoom, viewport.lat, viewport.lng) },
+      {
+        label: "Kiwid",
+        url: getKiwidUrl(viewport.zoom, viewport.lat, viewport.lng),
+      },
+      {
+        label: "Rapid",
+        url: getRapidUrl(viewport.zoom, viewport.lat, viewport.lng),
+      },
       { label: "JOSM", url: getJosmUrlFromMap($map) },
-      { label: "Mapillary", url: getMapillaryUrl(viewport.zoom, viewport.lat, viewport.lng) },
+      {
+        label: "Mapillary",
+        url: getMapillaryUrl(viewport.zoom, viewport.lat, viewport.lng),
+      },
     ];
   }
-
 </script>
 
 {#if $map}
@@ -42,7 +53,12 @@
       <ul class="dropdown-menu">
         {#each urls as { label, url }}
           <li>
-            <a class="dropdown-item" href={url} target="_blank" rel="noopener noreferrer">
+            <a
+              class="dropdown-item"
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               {label}
             </a>
           </li>
