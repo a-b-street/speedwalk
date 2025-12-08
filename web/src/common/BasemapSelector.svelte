@@ -9,7 +9,9 @@
 
   $: defaultBasemaps = Object.keys(originalBasemapStyles);
   $: allBasemaps = Object.keys($basemapStyles);
-  $: customBasemaps = allBasemaps.filter((name) => !defaultBasemaps.includes(name));
+  $: customBasemaps = allBasemaps.filter(
+    (name) => !defaultBasemaps.includes(name),
+  );
   $: displayName = basemap || allBasemaps[0] || "";
 </script>
 

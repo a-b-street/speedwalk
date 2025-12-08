@@ -78,7 +78,6 @@
       <ActionBar bind:basemap />
 
       {#if map}
-
         <div bind:this={mapDiv} />
 
         {#if $backend}

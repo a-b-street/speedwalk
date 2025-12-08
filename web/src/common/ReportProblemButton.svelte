@@ -36,7 +36,9 @@
     width: 0;
     opacity: 0;
     overflow: hidden;
-    transition: opacity 0.2s, width 0.2s;
+    transition:
+      opacity 0.2s,
+      width 0.2s;
     white-space: nowrap;
   }
 
