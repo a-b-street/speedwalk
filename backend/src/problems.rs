@@ -125,7 +125,11 @@ impl Speedwalk {
                 }
             }
 
-            if good_road_names.intersection(&bad_road_names).next().is_some() {
+            if good_road_names
+                .intersection(&bad_road_names)
+                .next()
+                .is_some()
+            {
                 problem_nodes.push((
                     *node_id,
                     "separate sidewalks should be continued here",

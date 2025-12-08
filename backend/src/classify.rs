@@ -25,6 +25,8 @@ pub enum Kind {
 
 impl Kind {
     pub fn classify(tags: &Tags) -> Self {
+        // TODO Maybe count more combos as sidewalks.
+        // https://github.com/a-b-street/speedwalk/issues/23
         if tags.is("highway", "footway") && tags.is("footway", "sidewalk") {
             return Self::Sidewalk;
         }
@@ -59,15 +61,21 @@ impl Kind {
             return Self::RoadWithoutSidewalksExplicit;
         }
 
-        if tags.has("sidewalk:both")
-            || tags.has("sidewalk:left")
-            || tags.has("sidewalk:right")
+        // RoadWithSeparate doesn't mean both sides are consistently tagged as separate/no; there
+        // could be a mix
+        if tags.is("sidewalk:both", "separate")
+            || tags.is_any("sidewalk:left", vec!["separate", "no"])
+            || tags.is_any("sidewalk:right", vec!["separate", "no"])
             || tags.is("sidewalk", "separate")
         {
             return Self::RoadWithSeparate;
         }
 
-        if tags.has("sidewalk") {
+        if tags.has("sidewalk")
+            || tags.is("sidewalk:both", "yes")
+            || tags.is("sidewalk:left", "yes")
+            || tags.is("sidewalk:right", "yes")
+        {
             return Self::RoadWithTags;
         }
 
@@ -76,5 +84,45 @@ impl Kind {
         }
 
         Self::RoadUnknown
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_classify() {
+        let mut ok = true;
+        for (input, expected) in [
+            (vec!["sidewalk:both=yes"], Kind::RoadWithTags),
+            (
+                vec!["sidewealk:left=yes", "sidewalk:right=separate"],
+                Kind::RoadWithSeparate,
+            ),
+            // TODO Not sure about some of these: https://github.com/a-b-street/speedwalk/issues/23
+            (vec!["highway=path", "footway=sidewalk"], Kind::Other),
+            (vec!["highway=cycleway", "foot=yes"], Kind::Other),
+        ] {
+            let actual = Kind::classify(&tags(&input));
+            if actual != expected {
+                println!("For {input:?}, expected {expected:?} but got {actual:?}\n");
+                ok = false;
+            }
+        }
+
+        if !ok {
+            panic!("Some cases failed");
+        }
+    }
+
+    // TODO Upstream as a test utility
+    fn tags(input: &Vec<&'static str>) -> Tags {
+        let mut tags = Tags::empty();
+        for kv in input {
+            let parts = kv.split("=").collect::<Vec<_>>();
+            tags.insert(parts[0], parts[1]);
+        }
+        tags
     }
 }
