@@ -10,60 +10,48 @@
     getMapillaryUrl,
   } from "./osmEditorUrls";
 
-  function getEditorUrls() {
-    if (!$map) return null;
+  const options = ["OSM", "iD", "Kiwid", "Rapid", "JOSM", "Mapillary"];
+
+  // Instead of updating hrefs constantly as the viewport changes, lazily figure out the URL
+  function getUrl(label: string): string | undefined {
     const viewport = getMapViewport($map);
-    if (!viewport) return null;
-    return [
-      {
-        label: "OSM",
-        url: getOsmUrl(viewport.zoom, viewport.lat, viewport.lng),
-      },
-      { label: "iD", url: getIdUrl(viewport.zoom, viewport.lat, viewport.lng) },
-      {
-        label: "Kiwid",
-        url: getKiwidUrl(viewport.zoom, viewport.lat, viewport.lng),
-      },
-      {
-        label: "Rapid",
-        url: getRapidUrl(viewport.zoom, viewport.lat, viewport.lng),
-      },
-      { label: "JOSM", url: getJosmUrlFromMap($map) },
-      {
-        label: "Mapillary",
-        url: getMapillaryUrl(viewport.zoom, viewport.lat, viewport.lng),
-      },
-    ];
+    if (!$map || !viewport) {
+      return undefined;
+    }
+    return {
+      OSM: getOsmUrl(viewport.zoom, viewport.lat, viewport.lng),
+      iD: getIdUrl(viewport.zoom, viewport.lat, viewport.lng),
+      Kiwid: getKiwidUrl(viewport.zoom, viewport.lat, viewport.lng),
+      Rapid: getRapidUrl(viewport.zoom, viewport.lat, viewport.lng),
+      JOSM: getJosmUrlFromMap($map),
+      Mapillary: getMapillaryUrl(viewport.zoom, viewport.lat, viewport.lng),
+    }[label];
   }
 </script>
 
-{#if $map}
-  {@const urls = getEditorUrls()}
-  {#if urls}
-    <div class="btn-group">
-      <button
-        class="btn btn-outline-secondary dropdown-toggle"
-        type="button"
-        data-bs-toggle="dropdown"
-        aria-expanded="false"
-        title="Open in OSM editors"
-      >
-        <i class="fa-solid fa-pen"></i>
-      </button>
-      <ul class="dropdown-menu">
-        {#each urls as { label, url }}
-          <li>
-            <a
-              class="dropdown-item"
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {label}
-            </a>
-          </li>
-        {/each}
-      </ul>
-    </div>
-  {/if}
-{/if}
+<div class="btn-group">
+  <button
+    class="btn btn-outline-secondary dropdown-toggle"
+    type="button"
+    data-bs-toggle="dropdown"
+    aria-expanded="false"
+    title="Open in OSM editors"
+  >
+    <i class="fa-solid fa-pen"></i>
+  </button>
+  <ul class="dropdown-menu">
+    {#each options as label}
+      <li>
+        <!-- svelte-ignore a11y-invalid-attribute -->
+        <a
+          class="dropdown-item"
+          href="#"
+          on:click|preventDefault={() =>
+            window.open(getUrl(label), "_blank", "noopener,noreferrer")}
+        >
+          {label}
+        </a>
+      </li>
+    {/each}
+  </ul>
+</div>
