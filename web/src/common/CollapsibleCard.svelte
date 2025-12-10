@@ -1,6 +1,8 @@
 <script lang="ts">
   import { v4 as uuidv4 } from "uuid";
 
+  export let open = true;
+
   let id = uuidv4();
 </script>
 
@@ -18,7 +20,7 @@
         <slot name="header"></slot>
       </button>
     </div>
-    <div {id} class="accordion-collapse collapse show">
+    <div {id} class="accordion-collapse collapse" class:show={open}>
       <div class="accordion-body">
         <slot name="body"></slot>
       </div>

@@ -252,6 +252,12 @@ impl Speedwalk {
         let graph = crate::graph::Graph::new(self);
         Ok(serde_json::to_string(&self.find_connected_components(&graph)).map_err(err_to_js)?)
     }
+
+    #[wasm_bindgen(js_name = exportNetwork)]
+    pub fn export_network_wasm(&self, options: JsValue) -> Result<String, JsValue> {
+        let options: crate::export::Options = serde_wasm_bindgen::from_value(options)?;
+        self.export_network(options).map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {

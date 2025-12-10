@@ -9,6 +9,7 @@ mod classify;
 mod crossings;
 mod disconnected;
 mod edits;
+mod export;
 mod graph;
 mod make_sidewalks;
 mod problems;

@@ -20,6 +20,7 @@
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
+  import ExportMode from "./ExportMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
 
@@ -90,6 +91,8 @@
               <AuditCrossingsMode />
             {:else if $mode.kind == "disconnections"}
               <DisconnectionsMode />
+            {:else if $mode.kind == "export"}
+              <ExportMode />
             {/if}
           {/key}
         {:else}

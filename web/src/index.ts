@@ -14,7 +14,8 @@ export let loggedInUser: Writable<
 export type Mode =
   | { kind: "sidewalks" }
   | { kind: "crossings" }
-  | { kind: "disconnections" };
+  | { kind: "disconnections" }
+  | { kind: "export" };
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 
