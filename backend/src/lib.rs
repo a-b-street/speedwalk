@@ -88,9 +88,17 @@ pub struct Way {
 
 impl Node {
     pub fn is_crossing(&self) -> bool {
+        // Include any node with a crossing tag value != "no" (informal, traffic_signals, yes, etc.)
+        if let Some(value) = self.tags.get("crossing") {
+            return value != "no";
+        }
         self.tags.is("highway", "crossing")
             || (self.tags.is("highway", "traffic_signals")
                 && self.tags.is("crossing", "traffic_signals"))
+    }
+
+    pub fn is_explicit_crossing_no(&self) -> bool {
+        self.tags.is("crossing", "no")
     }
 }
 
