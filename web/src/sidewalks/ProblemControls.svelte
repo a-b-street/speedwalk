@@ -30,7 +30,10 @@
     // Reset index when problem type changes
     currentProblemIndex = 0;
   }
-  $: if (currentProblemIndex >= drawProblems.features.length && drawProblems.features.length > 0) {
+  $: if (
+    currentProblemIndex >= drawProblems.features.length &&
+    drawProblems.features.length > 0
+  ) {
     // Reset index if it's out of bounds
     currentProblemIndex = 0;
   }
@@ -70,7 +73,8 @@
 
     // Cycle through problems
     const feature = drawProblems.features[currentProblemIndex];
-    currentProblemIndex = (currentProblemIndex + 1) % drawProblems.features.length;
+    currentProblemIndex =
+      (currentProblemIndex + 1) % drawProblems.features.length;
 
     // Focus map on the feature
     try {
@@ -109,10 +113,7 @@
       <div class="problem-header">
         <p class="problem-count">{problemCounts[show]} problems</p>
         {#if drawProblems.features.length > 0}
-          <button
-            class="btn btn-sm btn-primary"
-            on:click={pickNextProblem}
-          >
+          <button class="btn btn-sm btn-primary" on:click={pickNextProblem}>
             Pick next
           </button>
         {/if}

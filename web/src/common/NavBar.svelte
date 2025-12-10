@@ -10,6 +10,7 @@
     [{ kind: "sidewalks" }, "Sidewalks"],
     [{ kind: "crossings" }, "Crossings"],
     [{ kind: "disconnections" }, "Network disconnections"],
+    [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 </script>
 
