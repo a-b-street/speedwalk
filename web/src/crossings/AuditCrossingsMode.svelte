@@ -12,7 +12,7 @@
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
 
-  let ignoreServiceRoads = false;
+  let ignoreServiceRoads = true;
 
   $: data = JSON.parse(
     $backend!.auditCrossings(ignoreServiceRoads),
