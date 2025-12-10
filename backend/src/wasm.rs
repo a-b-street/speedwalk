@@ -57,6 +57,7 @@ impl Speedwalk {
                 f.set_property("tags", serde_json::to_value(&node.tags).map_err(err_to_js)?);
             }
             f.set_property("is_crossing", node.is_crossing());
+            f.set_property("is_explicit_crossing_no", node.is_explicit_crossing_no());
             f.set_property("modified", node.modified);
             f.set_property(
                 "way_ids",

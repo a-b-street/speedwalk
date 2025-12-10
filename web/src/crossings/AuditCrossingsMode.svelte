@@ -28,10 +28,15 @@
   $: debugCrossings = hovered
     ? JSON.parse(hovered.properties!.crossings)
     : emptyGeojson();
+  $: debugExplicitNonCrossings = hovered
+    ? JSON.parse(hovered.properties!.explicit_non_crossings)
+    : emptyGeojson();
+  $: crossingCount = hovered?.properties?.crossing_count ?? 0;
+  $: explicitNonCrossingCount = hovered?.properties?.explicit_non_crossing_count ?? 0;
 
   let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
   crossingNodes.features = crossingNodes.features.filter(
-    (f) => f.properties!.is_crossing,
+    (f) => f.properties!.is_crossing || f.properties!.is_explicit_crossing_no,
   );
 </script>
 
@@ -48,8 +53,9 @@
 
     {#if hovered}
       <p class="mt-5">
-        Junction has {debugArms.features.length} arms, {debugCrossings.features
-          .length} crossings
+        Junction has {debugArms.features.length} arms,
+        {crossingCount} crossing{#if crossingCount !== 1}s{/if}
+        {#if explicitNonCrossingCount > 0}, {explicitNonCrossingCount} explicit non-crossing{#if explicitNonCrossingCount !== 1}s{/if}{/if}
       </p>
     {/if}
   </div>
@@ -78,7 +84,12 @@
         manageHoverState
         paint={{
           "circle-radius": 7,
-          "circle-color": "yellow",
+          "circle-color": [
+            "case",
+            ["get", "is_explicit_crossing_no"],
+            "purple",
+            "yellow",
+          ],
           "circle-opacity": hoverStateFilter(0.3, 1.0),
           "circle-stroke-color": "black",
           "circle-stroke-width": 1,
@@ -107,6 +118,17 @@
           "circle-radius": 10,
           "circle-opacity": 0,
           "circle-stroke-color": "red",
+          "circle-stroke-width": 3,
+        }}
+      />
+    </GeoJSON>
+
+    <GeoJSON data={debugExplicitNonCrossings}>
+      <CircleLayer
+        paint={{
+          "circle-radius": 10,
+          "circle-opacity": 0,
+          "circle-stroke-color": "purple",
           "circle-stroke-width": 3,
         }}
       />
