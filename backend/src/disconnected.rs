@@ -6,38 +6,34 @@ use osm_reader::WayID;
 use petgraph::graphmap::UnGraphMap;
 
 use crate::{
-    Kind, Speedwalk,
+    Speedwalk,
+    export::NetworkFilter,
     graph::{EdgeID, Graph, IntersectionID},
 };
 
 impl Speedwalk {
-    pub fn find_connected_components(&self, split_graph: &Graph) -> FeatureCollection {
-        let mut graph: UnGraphMap<IntersectionID, EdgeID> = UnGraphMap::new();
-        for edge in split_graph.edges.values() {
-            if matches!(
-                self.derived_ways[&edge.osm_way].kind,
-                Kind::Sidewalk | Kind::Crossing | Kind::Other
-            ) {
-                graph.add_edge(edge.src, edge.dst, edge.id);
+    pub fn find_connected_components(
+        &self,
+        graph: &Graph,
+        filter: &NetworkFilter,
+    ) -> FeatureCollection {
+        let mut scc_graph: UnGraphMap<IntersectionID, EdgeID> = UnGraphMap::new();
+        for edge in graph.edges.values() {
+            if self.filter_network(filter, graph, edge) {
+                scc_graph.add_edge(edge.src, edge.dst, edge.id);
             }
         }
 
         // (Ways, total length)
         let mut components: Vec<(BTreeSet<WayID>, usize)> = Vec::new();
-        for nodes in petgraph::algo::kosaraju_scc(&graph) {
-            let mut ways = nodes_to_ways(split_graph, nodes);
-            ways.retain(|w| {
-                matches!(
-                    self.derived_ways[w].kind,
-                    Kind::Sidewalk | Kind::Crossing | Kind::Other
-                )
-            });
-            // There might be a component only with Kind::Other. Ignore these; we need sidewalks.
-            if ways
-                .iter()
-                .all(|w| self.derived_ways[w].kind != Kind::Sidewalk)
-            {
-                continue;
+        for nodes in petgraph::algo::kosaraju_scc(&scc_graph) {
+            let mut ways = BTreeSet::new();
+            for i in nodes {
+                for e in &graph.intersections[&i].edges {
+                    if self.filter_network(filter, graph, &graph.edges[e]) {
+                        ways.insert(graph.edges[e].osm_way);
+                    }
+                }
             }
 
             let length = ways
@@ -85,15 +81,4 @@ impl Speedwalk {
             }))),
         }
     }
-}
-
-// Note this only works for connected components of nodes!
-fn nodes_to_ways(graph: &Graph, nodes: Vec<IntersectionID>) -> BTreeSet<WayID> {
-    let mut ways = BTreeSet::new();
-    for i in nodes {
-        for e in &graph.intersections[&i].edges {
-            ways.insert(graph.edges[e].osm_way);
-        }
-    }
-    ways
 }
