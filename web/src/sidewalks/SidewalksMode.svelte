@@ -52,6 +52,7 @@
     Geometry,
     { label: string; color: string }
   >;
+  let showRoadSides = false;
 
   let anyEdits = false;
 
@@ -150,6 +151,7 @@
       {showProblemDetails}
       {nodes}
       {ways}
+      {showRoadSides}
       filterWays={filterWays(
         onlySeverances,
         onlyModified,
@@ -226,6 +228,10 @@
 
             <Checkbox bind:checked={showServiceRoads}>
               Show service roads
+            </Checkbox>
+
+            <Checkbox bind:checked={showRoadSides}>
+              Show each side with sidewalks ✅ or not ❌
             </Checkbox>
           </Metrics>
         </div>

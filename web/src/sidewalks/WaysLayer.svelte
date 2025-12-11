@@ -34,6 +34,7 @@
   >;
   // Input
   export let showProblemDetails: boolean;
+  export let showRoadSides: boolean;
   export let nodes: FeatureCollection<Point, NodeProps>;
   export let ways: FeatureCollection<LineString, WayProps>;
   export let filterWays: ExpressionSpecification;
@@ -182,6 +183,7 @@
         "text-halo-width": 4,
       }}
       layout={{
+        visibility: showRoadSides ? "visible" : "none",
         "text-field": ["get", "sidewalks"],
         "text-size": 13,
         "symbol-placement": "line",
