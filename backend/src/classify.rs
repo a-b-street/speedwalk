@@ -64,17 +64,17 @@ impl Kind {
         // RoadWithSeparate doesn't mean both sides are consistently tagged as separate/no; there
         // could be a mix
         if tags.is("sidewalk:both", "separate")
-            || tags.is_any("sidewalk:left", vec!["separate", "no"])
-            || tags.is_any("sidewalk:right", vec!["separate", "no"])
+            || tags.is("sidewalk:left", "separate")
+            || tags.is("sidewalk:right", "separate")
             || tags.is("sidewalk", "separate")
         {
             return Self::RoadWithSeparate;
         }
 
         if tags.has("sidewalk")
-            || tags.is("sidewalk:both", "yes")
-            || tags.is("sidewalk:left", "yes")
-            || tags.is("sidewalk:right", "yes")
+            || tags.is_any("sidewalk:both", vec!["yes", "no"])
+            || tags.is_any("sidewalk:left", vec!["yes", "no"])
+            || tags.is_any("sidewalk:right", vec!["yes", "no"])
         {
             return Self::RoadWithTags;
         }
@@ -100,6 +100,12 @@ mod tests {
                 vec!["sidewealk:left=yes", "sidewalk:right=separate"],
                 Kind::RoadWithSeparate,
             ),
+            (
+                vec!["sidewalk:left=no", "sidewalk:right=yes"],
+                Kind::RoadWithTags,
+            ),
+            (vec!["sidewalk:left=no"], Kind::RoadWithTags),
+            (vec!["sidewalk:left=yes"], Kind::RoadWithTags),
             // TODO Not sure about some of these: https://github.com/a-b-street/speedwalk/issues/23
             (vec!["highway=path", "footway=sidewalk"], Kind::Other),
             (vec!["highway=cycleway", "foot=yes"], Kind::Other),
