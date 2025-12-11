@@ -31,8 +31,8 @@
   $: debugExplicitNonCrossings = hovered
     ? JSON.parse(hovered.properties!.explicit_non_crossings)
     : emptyGeojson();
-  $: crossingCount = hovered?.properties?.crossing_count ?? 0;
-  $: explicitNonCrossingCount = hovered?.properties?.explicit_non_crossing_count ?? 0;
+  $: crossingCount = debugCrossings.features.length;
+  $: explicitNonCrossingCount = debugExplicitNonCrossings.features.length;
 
   let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
   crossingNodes.features = crossingNodes.features.filter(
@@ -54,8 +54,13 @@
     {#if hovered}
       <p class="mt-5">
         Junction has {debugArms.features.length} arms,
-        {crossingCount} crossing{#if crossingCount !== 1}s{/if}
-        {#if explicitNonCrossingCount > 0}, {explicitNonCrossingCount} explicit non-crossing{#if explicitNonCrossingCount !== 1}s{/if}{/if}
+        {crossingCount}
+        {crossingCount == 1 ? "crossing" : "crossings"}
+        {#if explicitNonCrossingCount > 0}
+          , {explicitNonCrossingCount} explicit {explicitNonCrossingCount == 1
+            ? "non-crossing"
+            : "non-crossings"}
+        {/if}
       </p>
     {/if}
   </div>
