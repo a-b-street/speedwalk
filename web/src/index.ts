@@ -22,6 +22,14 @@ export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);
 
+export let networkFilter = writable<{
+  include: "Everything" | "OnlyExplicitFootways" | "RouteableNetwork";
+  ignore_deadends: boolean;
+}>({
+  include: "OnlyExplicitFootways",
+  ignore_deadends: false,
+});
+
 // TODO In svelte 4, it's simplest to copy this into a store instead of mutate an import
 export let basemapStyles = writable(
   JSON.parse(JSON.stringify(originalBasemapStyles)),

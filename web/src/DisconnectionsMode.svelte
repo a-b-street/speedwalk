@@ -9,9 +9,10 @@
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression } from "svelte-utils/map";
-  import { backend, map, prettyPrintDistance } from "./";
+  import { backend, map, prettyPrintDistance, networkFilter } from "./";
+  import NetworkFilter from "./common/NetworkFilter.svelte";
 
-  let gj = JSON.parse($backend!.findConnectedComponents());
+  $: gj = JSON.parse($backend!.findConnectedComponents($networkFilter));
 
   let colors = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e"];
   let colorByComponent = constructMatchExpression(
@@ -55,9 +56,10 @@
     <h4>Network disconnections</h4>
 
     <p>
-      This shows where the separate sidewalk network is disconnected. Click a
-      piece to see it:
+      This shows where the network is disconnected. Click a piece to see it.
     </p>
+
+    <NetworkFilter />
 
     <ul>
       {#each gj.component_lengths as length, idx}

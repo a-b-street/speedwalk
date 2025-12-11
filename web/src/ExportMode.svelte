@@ -4,17 +4,15 @@
   import {
     downloadGeneratedFile,
     notNull,
-    Checkbox,
     QualitativeLegend,
   } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression } from "svelte-utils/map";
-  import { backend } from "./";
+  import { backend, networkFilter } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
+  import NetworkFilter from "./common/NetworkFilter.svelte";
 
-  let ignore_deadends = true;
-
-  $: gj = JSON.parse($backend!.exportNetwork({ ignore_deadends }));
+  $: gj = JSON.parse($backend!.exportNetwork($networkFilter));
 
   function download() {
     downloadGeneratedFile("network.geojson", JSON.stringify(gj));
@@ -27,9 +25,7 @@
 
     <p>You can export the routeable walking network as a GeoJSON file.</p>
 
-    <Checkbox bind:checked={ignore_deadends}>
-      Ignore deadends under 10m
-    </Checkbox>
+    <NetworkFilter />
 
     <button class="btn btn-primary mt-3 mb-3" on:click={download}>
       Download GeoJSON
@@ -51,8 +47,8 @@
           </li>
           <li>
             <b>node2</b>
-            : The OSM node ID of the end of the edge. This is safer to use to
-            form a graph than the last coordinate.
+            : The OSM node ID of the end of the edge. This is safer to use to form
+            a graph than the last coordinate.
           </li>
           <li>
             <b>way</b>

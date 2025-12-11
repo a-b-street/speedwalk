@@ -248,15 +248,19 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = findConnectedComponents)]
-    pub fn find_connected_components_wasm(&self) -> Result<String, JsValue> {
+    pub fn find_connected_components_wasm(&self, filter: JsValue) -> Result<String, JsValue> {
         let graph = crate::graph::Graph::new(self);
-        Ok(serde_json::to_string(&self.find_connected_components(&graph)).map_err(err_to_js)?)
+        let filter: crate::export::NetworkFilter = serde_wasm_bindgen::from_value(filter)?;
+        Ok(
+            serde_json::to_string(&self.find_connected_components(&graph, &filter))
+                .map_err(err_to_js)?,
+        )
     }
 
     #[wasm_bindgen(js_name = exportNetwork)]
-    pub fn export_network_wasm(&self, options: JsValue) -> Result<String, JsValue> {
-        let options: crate::export::Options = serde_wasm_bindgen::from_value(options)?;
-        self.export_network(options).map_err(err_to_js)
+    pub fn export_network_wasm(&self, filter: JsValue) -> Result<String, JsValue> {
+        let filter: crate::export::NetworkFilter = serde_wasm_bindgen::from_value(filter)?;
+        self.export_network(filter).map_err(err_to_js)
     }
 }
 
