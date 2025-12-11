@@ -21,33 +21,38 @@ impl Speedwalk {
                 .mercator
                 .to_wgs84_gj(&graph.intersections[&junction.i].point);
 
-            let mut debug_arms = Vec::new();
+            let mut arms = Vec::new();
             for e in junction.arms {
                 let edge = &graph.edges[&e];
-                debug_arms.push(self.mercator.to_wgs84_gj(&edge.linestring));
+                arms.push(self.mercator.to_wgs84_gj(&edge.linestring));
             }
-            let crossing_count = junction.crossings.len();
-            let explicit_non_crossing_count = junction.explicit_non_crossings.len();
-            let mut debug_crossings = Vec::new();
+
+            let mut crossings = Vec::new();
             for n in &junction.crossings {
-                debug_crossings.push(
+                crossings.push(
                     self.mercator
                         .to_wgs84_gj(&Point::from(self.derived_nodes[n].pt)),
                 );
             }
-            let mut debug_explicit_non_crossings = Vec::new();
+
+            let mut explicit_non_crossings = Vec::new();
             for n in &junction.explicit_non_crossings {
-                debug_explicit_non_crossings.push(
+                explicit_non_crossings.push(
                     self.mercator
                         .to_wgs84_gj(&Point::from(self.derived_nodes[n].pt)),
                 );
             }
-            f.set_property("complete", debug_arms.len() == crossing_count + explicit_non_crossing_count);
-            f.set_property("arms", GeoJson::from(debug_arms));
-            f.set_property("crossings", GeoJson::from(debug_crossings));
-            f.set_property("explicit_non_crossings", GeoJson::from(debug_explicit_non_crossings));
-            f.set_property("crossing_count", crossing_count);
-            f.set_property("explicit_non_crossing_count", explicit_non_crossing_count);
+
+            f.set_property(
+                "complete",
+                arms.len() == crossings.len() + explicit_non_crossings.len(),
+            );
+            f.set_property("arms", GeoJson::from(arms));
+            f.set_property("crossings", GeoJson::from(crossings));
+            f.set_property(
+                "explicit_non_crossings",
+                GeoJson::from(explicit_non_crossings),
+            );
 
             features.push(f);
         }
@@ -89,8 +94,7 @@ impl Speedwalk {
                     // Iterate backward from dst to src
                     Box::new(edge.node_ids.iter().rev().skip(1))
                 } else {
-                    // Shouldn't happen, but fallback to all nodes
-                    Box::new(edge.node_ids.iter())
+                    unreachable!()
                 };
 
                 for n in node_iter {
@@ -102,6 +106,8 @@ impl Speedwalk {
                     }
                     if node.is_crossing() {
                         crossings.insert(*n);
+                        // Stop iterating along this edge when we hit the first crossing
+                        break;
                     }
                 }
             }
