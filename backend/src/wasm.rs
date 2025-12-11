@@ -134,6 +134,57 @@ impl Speedwalk {
         Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
     }
 
+    #[wasm_bindgen(js_name = getRoadSides)]
+    pub fn get_road_sides(&self) -> Result<String, JsValue> {
+        let mut features = Vec::new();
+
+        let offset_distance = 3.0;
+
+        for way in self.derived_ways.values() {
+            if !matches!(way.kind, Kind::RoadWithSeparate | Kind::RoadWithTags) {
+                continue;
+            }
+
+            if let Some(ls) = way.linestring.offset_curve(offset_distance) {
+                let mut f = self.mercator.to_wgs84_gj(&ls);
+                let sidewalks = if way.tags.is_any("sidewalk:right", vec!["yes", "separate"])
+                    || way
+                        .tags
+                        .is_any("sidewalk", vec!["both", "separate", "right"])
+                    || way.tags.is("sidewalk:both", "separate")
+                {
+                    "✓"
+                } else if way.tags.is("sidewalk:right", "no") || way.tags.is("sidewalk", "left") {
+                    "X"
+                } else {
+                    "?"
+                };
+                f.set_property("sidewalks", sidewalks);
+                features.push(f);
+            }
+
+            if let Some(ls) = way.linestring.offset_curve(-offset_distance) {
+                let mut f = self.mercator.to_wgs84_gj(&ls);
+                let sidewalks = if way.tags.is_any("sidewalk:left", vec!["yes", "separate"])
+                    || way
+                        .tags
+                        .is_any("sidewalk", vec!["both", "separate", "left"])
+                    || way.tags.is("sidewalk:both", "separate")
+                {
+                    "✓"
+                } else if way.tags.is("sidewalk:left", "no") || way.tags.is("sidewalk", "right") {
+                    "X"
+                } else {
+                    "?"
+                };
+                f.set_property("sidewalks", sidewalks);
+                features.push(f);
+            }
+        }
+
+        Ok(serde_json::to_string(&GeoJson::from(features)).map_err(err_to_js)?)
+    }
+
     #[wasm_bindgen(js_name = editMakeAllSidewalks)]
     pub fn edit_make_all_sidewalks(&mut self, only_severances: bool) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
