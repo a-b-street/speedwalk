@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backend, debugMode, map } from "../";
+  import { backend, debugMode, map, mutationCounter } from "../";
   import { roadLineWidth, colors, type WayProps, type NodeProps } from "./";
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import {
@@ -163,7 +163,7 @@
   />
 </GeoJSON>
 
-{#key ways}
+{#key $mutationCounter}
   <GeoJSON
     data={$backend ? JSON.parse($backend.getRoadSides()) : emptyGeojson()}
   >

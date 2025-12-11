@@ -328,8 +328,11 @@ struct Metrics {
 impl Metrics {
     fn new(model: &Speedwalk) -> Self {
         let mut metrics = Self::default();
+        for kind in Kind::all() {
+            metrics.total_length_meters.insert(kind, 0.0);
+        }
         for way in model.derived_ways.values() {
-            *metrics.total_length_meters.entry(way.kind).or_insert(0.0) +=
+            *metrics.total_length_meters.get_mut(&way.kind).unwrap() +=
                 Euclidean.length(&way.linestring);
         }
         metrics

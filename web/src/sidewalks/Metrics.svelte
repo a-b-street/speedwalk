@@ -27,6 +27,7 @@
     metrics = JSON.parse($backend.getMetrics());
   }
 
+  // TODO Bug: 0% still shows up
   $: total = sum(
     roads.map(([x, _]) => metrics.total_length_meters[castKey(x)]),
   );

@@ -88,6 +88,19 @@ impl Kind {
 
         Self::RoadUnknown
     }
+
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::RoadWithSeparate,
+            Self::RoadWithTags,
+            Self::RoadWithoutSidewalksExplicit,
+            Self::RoadWithoutSidewalksImplicit,
+            Self::RoadUnknown,
+            Self::Sidewalk,
+            Self::Crossing,
+            Self::Other,
+        ]
+    }
 }
 
 #[cfg(test)]
