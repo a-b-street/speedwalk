@@ -162,6 +162,37 @@
   />
 </GeoJSON>
 
+{#key ways}
+  <GeoJSON
+    data={$backend ? JSON.parse($backend.getRoadSides()) : emptyGeojson()}
+  >
+    <SymbolLayer
+      minzoom={16}
+      paint={{
+        "text-color": "white",
+        "text-halo-color": constructMatchExpression(
+          ["get", "sidewalks"],
+          {
+            "✓": "green",
+            X: "red",
+            "?": "pink",
+          },
+          "cyan",
+        ),
+        "text-halo-width": 4,
+      }}
+      layout={{
+        "text-field": ["get", "sidewalks"],
+        "text-size": 13,
+        "symbol-placement": "line",
+        "symbol-spacing": 30,
+        "text-allow-overlap": true,
+        "text-rotation-alignment": "viewport",
+      }}
+    />
+  </GeoJSON>
+{/key}
+
 <GeoJSON data={pinnedWaySides}>
   <SymbolLayer
     id="pinned-sides"
