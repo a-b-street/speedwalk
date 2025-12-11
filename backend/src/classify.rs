@@ -35,7 +35,10 @@ impl Kind {
         if tags.is("highway", "footway") && tags.is("footway", "crossing") {
             return Self::Crossing;
         }
-        if tags.is("highway", "cycleway") && tags.is("cycleway", "crossing") {
+        if tags.is("highway", "cycleway")
+            && tags.is("cycleway", "crossing")
+            && tags.is_any("foot", vec!["yes", "designated"])
+        {
             return Self::Crossing;
         }
 
