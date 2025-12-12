@@ -171,21 +171,13 @@
       minzoom={16}
       paint={{
         "text-color": "white",
-        "text-halo-color": constructMatchExpression(
-          ["get", "sidewalks"],
-          {
-            "✓": "green",
-            X: "red",
-            "?": "pink",
-          },
-          "cyan",
-        ),
-        "text-halo-width": 4,
+        "text-halo-color": "black",
+        "text-halo-width": 2,
       }}
       layout={{
         visibility: showRoadSides ? "visible" : "none",
         "text-field": ["get", "sidewalks"],
-        "text-size": 13,
+        "text-size": 15,
         "symbol-placement": "line",
         "symbol-spacing": 30,
         "text-allow-overlap": true,
