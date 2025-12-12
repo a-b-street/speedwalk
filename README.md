@@ -47,3 +47,5 @@ To run locally, you'll need [npm](https://docs.npmjs.com/downloading-and-install
   - Changes to the Svelte/CSS usually auto-reload in your browser
 - `npm run fmt` to auto-format code
 - `npm run check` to see TypeScript errors
+
+Check recent changesets using Speedwalk: https://changesets.mapki.com/?tags=created_by%3DSpeedwalk
