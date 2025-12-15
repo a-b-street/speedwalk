@@ -30,6 +30,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
     "bootstrap": "^5.3.8",
+    "nuqs-svelte": "^1.2.2",
     "osm-api": "^3.3.0",
     "svelte-maplibre": "github:dabreegster/svelte-maplibre#svelte4_popups",
     "svelte-utils": "github:a-b-street/svelte-utils",

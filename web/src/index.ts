@@ -11,14 +11,6 @@ export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
 > = writable();
 
-export type Mode =
-  | { kind: "sidewalks" }
-  | { kind: "crossings" }
-  | { kind: "disconnections" }
-  | { kind: "export" };
-
-export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
-
 export let enabledBulkOps = writable(false);
 export let debugMode = writable(false);
 

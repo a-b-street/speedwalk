@@ -1,17 +1,21 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
   import logo from "../../assets/logo.svg?url";
-  import { type Mode, mode, backend } from "../";
+  import { backend } from "../";
   import { Modal } from "svelte-utils";
+  import { useModeState, type ModeValue } from "../modeState";
 
   let showInfo = false;
 
-  let mainActions = [
-    [{ kind: "sidewalks" }, "Sidewalks"],
-    [{ kind: "crossings" }, "Crossings"],
-    [{ kind: "disconnections" }, "Network disconnections"],
-    [{ kind: "export" }, "Export"],
-  ] as [Mode, string][];
+  const modeState = useModeState();
+  $: currentMode = modeState.current;
+
+  let mainActions: [ModeValue, string][] = [
+    ["sidewalks", "Sidewalks"],
+    ["crossings", "Crossings"],
+    ["disconnections", "Network disconnections"],
+    ["export", "Export"],
+  ];
 </script>
 
 <ul class="nav nav-underline">
@@ -19,14 +23,14 @@
   <h3>Speedwalk</h3>
 
   {#if $backend}
-    {#each mainActions as [setMode, label]}
+    {#each mainActions as [modeValue, label]}
       <li class="nav-item">
         <!-- svelte-ignore a11y-invalid-attribute -->
         <a
           class="nav-link"
           href="#"
-          on:click={() => ($mode = setMode)}
-          class:active={JSON.stringify($mode) == JSON.stringify(setMode)}
+          on:click={() => modeState.set(modeValue)}
+          class:active={currentMode === modeValue}
         >
           {label}
         </a>

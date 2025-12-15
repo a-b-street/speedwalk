@@ -7,7 +7,7 @@
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
-  import { basemapStyles, backend, mode, map as mapStore } from "./";
+  import { basemapStyles, backend, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
   import { Geocoder, StandardControls } from "svelte-utils/map";
   import ActionBar from "./common/ActionBar.svelte";
@@ -23,17 +23,52 @@
   import ExportMode from "./ExportMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
+  import { useMapViewport } from "./mapViewport";
+  import { useModeState } from "./modeState";
 
   let map: Map | undefined;
   let basemap = "Maptiler OpenStreetMap";
+
+  const mapViewport = useMapViewport();
+  const modeState = useModeState();
 
   $: if (map) {
     mapStore.set(map);
   }
 
+  let moveEndHandler: (() => void) | null = null;
+  let mapInitialized = false;
+
+  $: currentMode = modeState.current;
+  $: currentMapViewport = mapViewport.current;
+
   onMount(async () => {
     await backendPkg.default();
   });
+
+  // Initialize map from URL if present
+  $: if (map && currentMapViewport && !mapInitialized) {
+    const { zoom, lat, lng } = currentMapViewport;
+    map.jumpTo({ center: [lng, lat], zoom });
+    mapInitialized = true;
+  }
+
+  // Listen to map moveend to update URL
+  $: if (map) {
+    if (moveEndHandler) {
+      map.off("moveend", moveEndHandler);
+    }
+    moveEndHandler = () => {
+      if (!map) return;
+      const center = map.getCenter();
+      mapViewport.set({
+        zoom: map.getZoom(),
+        lat: center.lat,
+        lng: center.lng,
+      });
+    };
+    map.on("moveend", moveEndHandler);
+  }
 
   let sidebarDiv: HTMLDivElement;
   let mapDiv: HTMLDivElement;
@@ -65,7 +100,6 @@
   <div slot="main" style="position:relative; width: 100%; height: 100vh;">
     <MapLibre
       style={$basemapStyles[basemap]}
-      hash
       bind:map
       on:error={(e) => {
         // @ts-ignore ErrorEvent isn't exported
@@ -84,14 +118,14 @@
         {#if $backend}
           <StudyAreaFade />
 
-          {#key $mode}
-            {#if $mode.kind == "sidewalks"}
+          {#key currentMode}
+            {#if currentMode === "sidewalks"}
               <SidewalksMode />
-            {:else if $mode.kind == "crossings"}
+            {:else if currentMode === "crossings"}
               <AuditCrossingsMode />
-            {:else if $mode.kind == "disconnections"}
+            {:else if currentMode === "disconnections"}
               <DisconnectionsMode />
-            {:else if $mode.kind == "export"}
+            {:else if currentMode === "export"}
               <ExportMode />
             {/if}
           {/key}
