@@ -11,6 +11,7 @@
   import { backend } from "../";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
+  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
 
   let ignoreServiceRoads = true;
 
@@ -63,6 +64,8 @@
         {/if}
       </p>
     {/if}
+
+    <SharedSidebarFooter />
   </div>
 
   <div slot="map">

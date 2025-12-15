@@ -4,7 +4,7 @@
   import { overpassQueryForPolygon } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
 
-  export let anyEdits: boolean;
+  export let anyEdits: boolean = false;
 
   let loading = "";
 
@@ -35,6 +35,18 @@
       return minutes == 1 ? "1 minute" : `${minutes} minutes`;
     }
     return "a few seconds";
+  }
+
+  function clear() {
+    if (
+      anyEdits &&
+      !window.confirm(
+        "Changing areas will discard your current edits. Do you want to clear the edits?",
+      )
+    ) {
+      return;
+    }
+    $backend = null;
   }
 
   async function refreshData() {
@@ -71,7 +83,18 @@
 
 <Loading {loading} />
 
-<p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
-<button class="btn btn-secondary mb-3" on:click={refreshData}>
-  Refresh OSM data
-</button>
+<hr class="my-4" />
+
+<div class="mt-4">
+  <div class="d-flex gap-2 mb-3">
+    <button class="btn btn-secondary" on:click={clear}>
+      Load another area
+    </button>
+
+    <button class="btn btn-secondary" on:click={refreshData}>
+      Refresh OSM data
+    </button>
+  </div>
+
+  <p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
+</div>
