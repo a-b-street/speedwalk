@@ -3,8 +3,8 @@
   import ProblemControls from "./ProblemControls.svelte";
   import ProblemLayer from "./ProblemLayer.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
-  import OsmProvenance from "./OsmProvenance.svelte";
   import Edits from "./Edits.svelte";
+  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import {
     backend,
@@ -109,30 +109,12 @@
     ]);
     return ["all", ...all] as ExpressionSpecification;
   }
-
-  function clear() {
-    if (
-      anyEdits &&
-      !window.confirm(
-        "Changing areas will discard your current edits. Do you want to clear the edits?",
-      )
-    ) {
-      return;
-    }
-    $backend = null;
-  }
 </script>
 
 <Loading {loading} />
 
 <SplitComponent>
   <div slot="sidebar">
-    <button class="btn btn-secondary" on:click={clear}>
-      Load another area
-    </button>
-
-    <OsmProvenance {anyEdits} />
-
     <Edits bind:anyEdits />
 
     <ProblemControls {nodes} {ways} bind:drawProblems />
@@ -142,6 +124,8 @@
     {/if}
 
     <BulkOperations />
+
+    <SharedSidebarFooter {anyEdits} />
   </div>
 
   <div slot="map">

@@ -11,6 +11,7 @@
   import { backend, networkFilter } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
   import NetworkFilter from "./common/NetworkFilter.svelte";
+  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
   $: gj = JSON.parse($backend!.exportNetwork($networkFilter));
 
@@ -73,6 +74,8 @@
         <QualitativeLegend labelColors={colors} itemsPerRow={1} />
       </div>
     </CollapsibleCard>
+
+    <SharedSidebarFooter />
   </div>
 
   <div slot="map">

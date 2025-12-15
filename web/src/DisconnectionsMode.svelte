@@ -11,6 +11,7 @@
   import { constructMatchExpression } from "svelte-utils/map";
   import { backend, map, prettyPrintDistance, networkFilter } from "./";
   import NetworkFilter from "./common/NetworkFilter.svelte";
+  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
   $: gj = JSON.parse($backend!.findConnectedComponents($networkFilter));
 
@@ -78,6 +79,8 @@
         </li>
       {/each}
     </ul>
+
+    <SharedSidebarFooter />
   </div>
 
   <div slot="map">
