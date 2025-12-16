@@ -6,6 +6,7 @@ import type { Map } from "maplibre-gl";
 export let map: Writable<Map | null> = writable(null);
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
 export let mutationCounter = writable(0);
+export let anyEdits = writable(false);
 
 export let loggedInUser: Writable<
   { name: string; uid: number; avatarUrl: string } | undefined
