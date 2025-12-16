@@ -1,10 +1,8 @@
 <script lang="ts">
   import * as backendPkg from "../../../backend/pkg";
-  import { backend, refreshLoadingScreen } from "../";
+  import { backend, refreshLoadingScreen, anyEdits } from "../";
   import { overpassQueryForPolygon } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
-
-  export let anyEdits: boolean = false;
 
   let loading = "";
 
@@ -39,7 +37,7 @@
 
   function clear() {
     if (
-      anyEdits &&
+      $anyEdits &&
       !window.confirm(
         "Changing areas will discard your current edits. Do you want to clear the edits?",
       )
@@ -47,11 +45,12 @@
       return;
     }
     $backend = null;
+    $anyEdits = false;
   }
 
   async function refreshData() {
     if (
-      anyEdits &&
+      $anyEdits &&
       !window.confirm(
         "Refreshing OSM data will discard your current edits. Do you want to clear the edits?",
       )

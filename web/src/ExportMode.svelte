@@ -7,13 +7,15 @@
     QualitativeLegend,
   } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { constructMatchExpression } from "svelte-utils/map";
+  import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
   import NetworkFilter from "./common/NetworkFilter.svelte";
   import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
-  $: gj = JSON.parse($backend!.exportNetwork($networkFilter));
+  $: gj = $backend
+    ? JSON.parse($backend!.exportNetwork($networkFilter))
+    : emptyGeojson();
 
   function download() {
     downloadGeneratedFile("network.geojson", JSON.stringify(gj));

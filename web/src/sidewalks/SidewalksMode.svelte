@@ -54,8 +54,6 @@
   >;
   let showRoadSides = false;
 
-  let anyEdits = false;
-
   let loading = "";
 
   let drawProblems = emptyGeojson();
@@ -115,7 +113,7 @@
 
 <SplitComponent>
   <div slot="sidebar">
-    <Edits bind:anyEdits />
+    <Edits />
 
     <ProblemControls {nodes} {ways} bind:drawProblems />
 
@@ -125,7 +123,7 @@
 
     <BulkOperations />
 
-    <SharedSidebarFooter {anyEdits} />
+    <SharedSidebarFooter />
   </div>
 
   <div slot="map">

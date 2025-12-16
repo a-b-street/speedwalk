@@ -15,9 +15,11 @@
 
   let ignoreServiceRoads = true;
 
-  $: data = JSON.parse(
-    $backend!.auditCrossings(ignoreServiceRoads),
-  ) as FeatureCollection;
+  $: data = $backend
+    ? (JSON.parse(
+        $backend!.auditCrossings(ignoreServiceRoads),
+      ) as FeatureCollection)
+    : emptyGeojson();
   $: completeJunctions = data.features.filter(
     (f) => f.properties!.complete,
   ).length;

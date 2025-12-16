@@ -8,12 +8,14 @@
   } from "svelte-maplibre";
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { constructMatchExpression } from "svelte-utils/map";
+  import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, map, prettyPrintDistance, networkFilter } from "./";
   import NetworkFilter from "./common/NetworkFilter.svelte";
   import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
-  $: gj = JSON.parse($backend!.findConnectedComponents($networkFilter));
+  $: gj = $backend
+    ? JSON.parse($backend!.findConnectedComponents($networkFilter))
+    : { ...emptyGeojson(), component_lengths: [] };
 
   let colors = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e"];
   let colorByComponent = constructMatchExpression(

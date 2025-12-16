@@ -6,10 +6,9 @@
     loggedInUser,
     mutationCounter,
     refreshLoadingScreen,
+    anyEdits,
   } from "../";
   import { uploadChangeset } from "osm-api";
-
-  export let anyEdits: boolean;
 
   let cmds: any[] = [];
   let idx = 0;
@@ -18,7 +17,7 @@
   $: if ($mutationCounter > 0) {
     cmds = $backend ? JSON.parse($backend.getEdits()) : [];
     idx = 0;
-    anyEdits = cmds.length > 0;
+    $anyEdits = cmds.length > 0;
   }
 
   function prev() {
@@ -96,6 +95,7 @@
       // Clear the entire state -- since upstream OSM was just updated, make
       // people re-import the area
       $backend = null;
+      $anyEdits = false;
     } catch (err) {
       window.alert(`Upload failed: ${err}`);
     }
