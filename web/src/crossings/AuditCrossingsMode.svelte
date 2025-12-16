@@ -13,11 +13,11 @@
   import { emptyGeojson } from "svelte-utils/map";
   import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
 
-  let ignoreServiceRoads = true;
+  let ignoreUtilityRoads = false;
 
   $: data = $backend
     ? (JSON.parse(
-        $backend!.auditCrossings(ignoreServiceRoads),
+        $backend!.auditCrossings(ignoreUtilityRoads),
       ) as FeatureCollection)
     : emptyGeojson();
   $: completeJunctions = data.features.filter(
@@ -52,7 +52,12 @@
       junctions have all possible crossings mapped
     </p>
 
-    <Checkbox bind:checked={ignoreServiceRoads}>Ignore service roads</Checkbox>
+    <Checkbox bind:checked={ignoreUtilityRoads}>
+      Ignore <code>service</code>
+      ,
+      <code>track</code>
+       roads
+    </Checkbox>
 
     {#if hovered}
       <p class="mt-5">
