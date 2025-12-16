@@ -294,9 +294,9 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = auditCrossings)]
-    pub fn audit_crossings_wasm(&self, ignore_utility_roads: bool) -> Result<String, JsValue> {
-        self.audit_crossings(ignore_utility_roads)
-            .map_err(err_to_js)
+    pub fn audit_crossings_wasm(&self, options: JsValue) -> Result<String, JsValue> {
+        let options: crate::audit::Options = serde_wasm_bindgen::from_value(options)?;
+        self.audit_crossings(options).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = findConnectedComponents)]

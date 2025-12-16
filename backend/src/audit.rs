@@ -4,19 +4,26 @@ use anyhow::Result;
 use geo::Point;
 use geojson::GeoJson;
 use osm_reader::NodeID;
+use serde::Deserialize;
 
 use crate::{
-    Speedwalk,
+    Kind, Speedwalk,
     graph::{EdgeID, Graph, IntersectionID},
 };
 
+#[derive(Deserialize)]
+pub struct Options {
+    only_major_roads: bool,
+    ignore_utility_roads: bool,
+}
+
 impl Speedwalk {
-    pub fn audit_crossings(&self, ignore_utility_roads: bool) -> Result<String> {
+    pub fn audit_crossings(&self, options: Options) -> Result<String> {
         let mut features = Vec::new();
 
         let graph = Graph::new(self);
 
-        for junction in self.find_junctions(ignore_utility_roads, &graph) {
+        for junction in self.find_junctions(options, &graph) {
             let mut f = self
                 .mercator
                 .to_wgs84_gj(&graph.intersections[&junction.i].point);
@@ -60,8 +67,8 @@ impl Speedwalk {
         Ok(serde_json::to_string(&GeoJson::from(features))?)
     }
 
-    /// Find all junctions along severances
-    fn find_junctions(&self, ignore_utility_roads: bool, graph: &Graph) -> Vec<Junction> {
+    /// Find all junctions
+    fn find_junctions(&self, options: Options, graph: &Graph) -> Vec<Junction> {
         let mut junctions = Vec::new();
         for (i, intersection) in &graph.intersections {
             if self.derived_nodes[&intersection.osm_node]
@@ -72,6 +79,7 @@ impl Speedwalk {
             }
 
             let mut any_severances = false;
+            let mut any_roads = false;
             let mut arms = Vec::new();
             let mut crossings = BTreeSet::new();
             let mut explicit_non_crossings = BTreeSet::new();
@@ -81,8 +89,13 @@ impl Speedwalk {
                 if way.is_severance() {
                     any_severances = true;
                 }
-                if ignore_utility_roads && way.tags.is_any("highway", vec!["service", "track"]) {
+                if options.ignore_utility_roads
+                    && way.tags.is_any("highway", vec!["service", "track"])
+                {
                     continue;
+                }
+                if !matches!(way.kind, Kind::Sidewalk | Kind::Crossing | Kind::Other) {
+                    any_roads = true;
                 }
                 arms.push(*e);
 
@@ -112,7 +125,7 @@ impl Speedwalk {
                 }
             }
 
-            if any_severances && arms.len() > 2 {
+            if any_roads && (any_severances || !options.only_major_roads) && arms.len() > 2 {
                 junctions.push(Junction {
                     i: *i,
                     arms,
