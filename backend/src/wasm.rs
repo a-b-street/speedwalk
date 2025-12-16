@@ -294,8 +294,8 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = auditCrossings)]
-    pub fn audit_crossings_wasm(&self, ignore_service_roads: bool) -> Result<String, JsValue> {
-        self.audit_crossings(ignore_service_roads)
+    pub fn audit_crossings_wasm(&self, ignore_utility_roads: bool) -> Result<String, JsValue> {
+        self.audit_crossings(ignore_utility_roads)
             .map_err(err_to_js)
     }
 

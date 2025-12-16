@@ -11,12 +11,12 @@ use crate::{
 };
 
 impl Speedwalk {
-    pub fn audit_crossings(&self, ignore_service_roads: bool) -> Result<String> {
+    pub fn audit_crossings(&self, ignore_utility_roads: bool) -> Result<String> {
         let mut features = Vec::new();
 
         let graph = Graph::new(self);
 
-        for junction in self.find_junctions(ignore_service_roads, &graph) {
+        for junction in self.find_junctions(ignore_utility_roads, &graph) {
             let mut f = self
                 .mercator
                 .to_wgs84_gj(&graph.intersections[&junction.i].point);
@@ -61,7 +61,7 @@ impl Speedwalk {
     }
 
     /// Find all junctions along severances
-    fn find_junctions(&self, ignore_service_roads: bool, graph: &Graph) -> Vec<Junction> {
+    fn find_junctions(&self, ignore_utility_roads: bool, graph: &Graph) -> Vec<Junction> {
         let mut junctions = Vec::new();
         for (i, intersection) in &graph.intersections {
             if self.derived_nodes[&intersection.osm_node]
@@ -81,7 +81,7 @@ impl Speedwalk {
                 if way.is_severance() {
                     any_severances = true;
                 }
-                if ignore_service_roads && way.tags.is("highway", "service") {
+                if ignore_utility_roads && way.tags.is_any("highway", vec!["service", "track"]) {
                     continue;
                 }
                 arms.push(*e);
