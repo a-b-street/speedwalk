@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox } from "svelte-utils";
+  import { Checkbox, QualitativeLegend } from "svelte-utils";
   import {
     LineLayer,
     GeoJSON,
@@ -13,7 +13,7 @@
   import { emptyGeojson } from "svelte-utils/map";
   import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
 
-  let ignoreUtilityRoads = false;
+  let ignoreUtilityRoads = true;
 
   $: data = $backend
     ? (JSON.parse(
@@ -41,6 +41,13 @@
   crossingNodes.features = crossingNodes.features.filter(
     (f) => f.properties!.is_crossing || f.properties!.is_explicit_crossing_no,
   );
+
+  let colors = {
+    "Junction to audit": "black",
+    "Fully mapped junction": "green",
+    Crossing: "yellow",
+    "crossing=no": "purple",
+  };
 </script>
 
 <SplitComponent>
@@ -56,11 +63,15 @@
       Ignore <code>service</code>
       ,
       <code>track</code>
-       roads
+      roads
     </Checkbox>
 
+    <div class="card card-body">
+      <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+    </div>
+
     {#if hovered}
-      <p class="mt-5">
+      <p class="mt-3 mb-3">
         Junction has {debugArms.features.length} arms,
         {crossingCount}
         {crossingCount == 1 ? "crossing" : "crossings"}
@@ -81,7 +92,12 @@
         manageHoverState
         paint={{
           "circle-radius": 15,
-          "circle-color": ["case", ["get", "complete"], "green", "black"],
+          "circle-color": [
+            "case",
+            ["get", "complete"],
+            colors["Fully mapped junction"],
+            colors["Junction to audit"],
+          ],
           "circle-opacity": hoverStateFilter(0.5, 1.0),
           "circle-stroke-color": "black",
           "circle-stroke-width": 3,
@@ -102,8 +118,8 @@
           "circle-color": [
             "case",
             ["get", "is_explicit_crossing_no"],
-            "purple",
-            "yellow",
+            colors["crossing=no"],
+            colors["Crossing"],
           ],
           "circle-opacity": hoverStateFilter(0.3, 1.0),
           "circle-stroke-color": "black",
