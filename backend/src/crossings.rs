@@ -192,7 +192,7 @@ fn average_angle(linestring: &LineString) -> f64 {
 
 /// Degrees for input/output. Returns [-180, 180]. See  //
 /// https://math.stackexchange.com/questions/110080/shortest-way-to-achieve-target-angle
-fn shortest_rotation(angle1: f64, angle2: f64) -> f64 {
+pub fn shortest_rotation(angle1: f64, angle2: f64) -> f64 {
     ((angle1 - angle2 + 540.0) % 360.0) - 180.0
 }
 

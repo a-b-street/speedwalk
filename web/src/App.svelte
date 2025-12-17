@@ -18,7 +18,7 @@
   } from "svelte-utils/top_bar_layout";
   import * as backendPkg from "../../backend/pkg";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
-  import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
+  import AuditCrossingsMode from "./AuditCrossingsMode.svelte";
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
   import ExportMode from "./ExportMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";

@@ -89,6 +89,10 @@ impl Kind {
         Self::RoadUnknown
     }
 
+    pub fn is_road(self) -> bool {
+        !matches!(self, Kind::Sidewalk | Kind::Crossing | Kind::Other)
+    }
+
     pub fn all() -> Vec<Self> {
         vec![
             Self::RoadWithSeparate,

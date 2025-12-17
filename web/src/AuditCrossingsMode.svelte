@@ -8,10 +8,10 @@
     Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { backend } from "../";
+  import { backend } from "./";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
-  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
+  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
   let options = {
     only_major_roads: true,
@@ -37,6 +37,9 @@
     : emptyGeojson();
   $: crossingCount = debugCrossings.features.length;
   $: explicitNonCrossingCount = debugExplicitNonCrossings.features.length;
+  $: numberDCSplits = hovered
+    ? hovered.properties!.number_dual_carriageway_splits
+    : 0;
 
   let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
   crossingNodes.features = crossingNodes.features.filter(
@@ -76,7 +79,12 @@
 
     {#if hovered}
       <p class="mt-3 mb-3">
-        Junction has {debugArms.features.length} arms,
+        Junction has {debugArms.features.length - numberDCSplits} arms
+        {#if numberDCSplits > 0}
+          ({numberDCSplits} dual carriageway {numberDCSplits == 1
+            ? "split"
+            : "splits"})
+        {/if},
         {crossingCount}
         {crossingCount == 1 ? "crossing" : "crossings"}
         {#if explicitNonCrossingCount > 0}
