@@ -87,7 +87,7 @@
       </div>
 
       <button class="btn btn-secondary" on:click={connectAllCrossings}>
-        Connect all crossings over major roads
+        Connect all crossing nodes
       </button>
     </div>
   </CollapsibleCard>

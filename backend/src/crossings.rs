@@ -62,8 +62,8 @@ impl Speedwalk {
             let crossing_pt = crossing_node.pt;
 
             // Make a perpendicular line at the node
-            let severance_linestring = &self.derived_ways[&crossing_node.way_ids[0]].linestring;
-            let angle = angle_of_pt_on_line(severance_linestring, crossing_pt);
+            let road_linestring = &self.derived_ways[&crossing_node.way_ids[0]].linestring;
+            let angle = angle_of_pt_on_line(road_linestring, crossing_pt);
 
             let test_line1 = Line::new(
                 crossing_pt,
