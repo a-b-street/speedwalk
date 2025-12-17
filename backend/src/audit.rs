@@ -33,8 +33,10 @@ impl Speedwalk {
                 .to_wgs84_gj(&graph.intersections[&junction.i].point);
 
             let mut arms = Vec::new();
-            for (_, ls) in junction.arms {
-                arms.push(self.mercator.to_wgs84_gj(&ls));
+            for (_, ls, has_crossing) in junction.arms {
+                let mut f = self.mercator.to_wgs84_gj(&ls);
+                f.set_property("has_crossing", has_crossing);
+                arms.push(f);
             }
 
             let mut crossings = Vec::new();
@@ -121,20 +123,24 @@ impl Speedwalk {
                     edge.src == *i,
                     options.max_distance,
                 );
-                arms.push((*e, arm_ls));
 
                 // Look for the first crossing (or crossing=no) along this arm
+                let mut has_crossing = false;
                 for n in nodes_reached {
                     let node = &self.derived_nodes[&n];
                     if node.is_explicit_crossing_no() {
                         explicit_non_crossings.insert(n);
+                        has_crossing = true;
                         break;
                     }
                     if node.is_crossing() {
                         crossings.insert(n);
+                        has_crossing = true;
                         break;
                     }
                 }
+
+                arms.push((*e, arm_ls, has_crossing));
             }
 
             let number_dual_carriageway_splits =
@@ -160,13 +166,13 @@ impl Speedwalk {
         &self,
         graph: &Graph,
         i: IntersectionID,
-        arms: &Vec<(EdgeID, LineString)>,
+        arms: &Vec<(EdgeID, LineString, bool)>,
     ) -> usize {
         // For each one-way road, track its (name, whether it points at the intersection (true)
         // or away from it (false), angle)
         let mut oneway_roads: Vec<(String, bool, f64)> = Vec::new();
         let mut num_splits = 0;
-        for (e, _) in arms {
+        for (e, _, _) in arms {
             let edge = &graph.edges[e];
             let way = &self.derived_ways[&edge.osm_way];
             if way.kind.is_road()
@@ -248,8 +254,9 @@ impl Speedwalk {
 
 struct Junction {
     i: IntersectionID,
-    // The LineString is up to options.max_distance along the edge's way
-    arms: Vec<(EdgeID, LineString)>,
+    // The LineString is up to options.max_distance along the edge's way. The bool is true if
+    // there's a crossing node on this arm.
+    arms: Vec<(EdgeID, LineString, bool)>,
     number_dual_carriageway_splits: usize,
     crossings: BTreeSet<NodeID>,
     explicit_non_crossings: BTreeSet<NodeID>,

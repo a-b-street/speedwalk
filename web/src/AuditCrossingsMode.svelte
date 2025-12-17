@@ -80,7 +80,9 @@
       Ignore cycleways
     </Checkbox>
     <Checkbox bind:checked={options.ignore_footways}>
-      Ignore <code>footway</code> and <code>path</code>
+      Ignore <code>footway</code>
+      and
+      <code>path</code>
     </Checkbox>
     <div>
       <label class="form-label">
@@ -152,7 +154,12 @@
     </GeoJSON>
 
     <GeoJSON data={debugArms}>
-      <LineLayer paint={{ "line-width": 6, "line-color": "blue" }} />
+      <LineLayer
+        paint={{
+          "line-width": 6,
+          "line-color": ["case", ["get", "has_crossing"], "blue", "red"],
+        }}
+      />
     </GeoJSON>
 
     <GeoJSON data={crossingNodes} generateId>
@@ -193,7 +200,7 @@
         paint={{
           "circle-radius": 10,
           "circle-opacity": 0,
-          "circle-stroke-color": "red",
+          "circle-stroke-color": "black",
           "circle-stroke-width": 3,
         }}
       />
