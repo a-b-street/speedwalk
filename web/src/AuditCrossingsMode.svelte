@@ -17,6 +17,7 @@
     only_major_roads: true,
     ignore_utility_roads: true,
     ignore_cycleways: true,
+    ignore_footways: true,
     max_distance: 30,
   };
 
@@ -77,6 +78,9 @@
     </Checkbox>
     <Checkbox bind:checked={options.ignore_cycleways}>
       Ignore cycleways
+    </Checkbox>
+    <Checkbox bind:checked={options.ignore_footways}>
+      Ignore <code>footway</code> and <code>path</code>
     </Checkbox>
     <div>
       <label class="form-label">

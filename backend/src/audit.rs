@@ -17,6 +17,7 @@ pub struct Options {
     only_major_roads: bool,
     ignore_utility_roads: bool,
     ignore_cycleways: bool,
+    ignore_footways: bool,
     max_distance: f64,
 }
 
@@ -102,6 +103,9 @@ impl Speedwalk {
                     continue;
                 }
                 if options.ignore_cycleways && way.tags.is("highway", "cycleway") {
+                    continue;
+                }
+                if options.ignore_footways && way.tags.is_any("highway", vec!["footway", "path"]) {
                     continue;
                 }
                 if way.kind.is_road() {
