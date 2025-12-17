@@ -17,11 +17,13 @@
     only_major_roads: true,
     ignore_utility_roads: true,
     ignore_cycleways: true,
+    max_distance: 30,
   };
 
-  $: data = $backend
-    ? (JSON.parse($backend!.auditCrossings(options)) as FeatureCollection)
-    : emptyGeojson();
+  $: data =
+    $backend && options.max_distance
+      ? (JSON.parse($backend!.auditCrossings(options)) as FeatureCollection)
+      : emptyGeojson();
   $: completeJunctions = data.features.filter(
     (f) => f.properties!.complete,
   ).length;
@@ -73,14 +75,32 @@
       <code>track</code>
       roads
     </Checkbox>
-    <Checkbox bind:checked={options.ignore_cycleways}>Ignore cycleways</Checkbox>
+    <Checkbox bind:checked={options.ignore_cycleways}>
+      Ignore cycleways
+    </Checkbox>
+    <div>
+      <label class="form-label">
+        How far away can a crossing be? (m):
+        <input
+          class="form-control"
+          type="number"
+          min="1"
+          max="100"
+          bind:value={options.max_distance}
+        />
+      </label>
+    </div>
 
     <div class="card card-body">
-      <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+      <QualitativeLegend
+        labelColors={colors}
+        itemsPerRow={1}
+        swatchClass="circle"
+      />
     </div>
 
     {#if hovered}
-      <p class="mt-3 mb-3">
+      <p class="mt-3">
         Junction has {debugArms.features.length - numberDCSplits} arms
         {#if numberDCSplits > 0}
           ({numberDCSplits} dual carriageway {numberDCSplits == 1
@@ -93,7 +113,14 @@
           , {explicitNonCrossingCount} explicit {explicitNonCrossingCount == 1
             ? "non-crossing"
             : "non-crossings"}
-        {/if}
+        {/if}.
+      </p>
+      <p class="mb-3">
+        <i>
+          Arms are up to {options.max_distance}m away from the junction along
+          the same OSM way. If the way is split before a crossing, the crossing
+          won't be counted. Only the first crossing is counted per arm.
+        </i>
       </p>
     {/if}
 

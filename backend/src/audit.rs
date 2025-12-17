@@ -1,13 +1,13 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
-use geo::{LineString, Point};
+use geo::{Distance, Euclidean, InterpolatePoint, LineString, Point};
 use geojson::GeoJson;
 use osm_reader::NodeID;
 use serde::Deserialize;
 
 use crate::{
-    Speedwalk,
+    Speedwalk, Way,
     crossings::shortest_rotation,
     graph::{EdgeID, Graph, IntersectionID},
 };
@@ -17,6 +17,7 @@ pub struct Options {
     only_major_roads: bool,
     ignore_utility_roads: bool,
     ignore_cycleways: bool,
+    max_distance: f64,
 }
 
 impl Speedwalk {
@@ -31,9 +32,8 @@ impl Speedwalk {
                 .to_wgs84_gj(&graph.intersections[&junction.i].point);
 
             let mut arms = Vec::new();
-            for e in junction.arms {
-                let edge = &graph.edges[&e];
-                arms.push(self.mercator.to_wgs84_gj(&edge.linestring));
+            for (_, ls) in junction.arms {
+                arms.push(self.mercator.to_wgs84_gj(&ls));
             }
 
             let mut crossings = Vec::new();
@@ -107,29 +107,27 @@ impl Speedwalk {
                 if way.kind.is_road() {
                     any_roads = true;
                 }
-                arms.push(*e);
 
-                // Iterate along the edge away from the intersection, stopping at crossing=no
-                let node_iter: Box<dyn Iterator<Item = &NodeID>> = if edge.src == *i {
-                    // Iterate forward from src to dst
-                    Box::new(edge.node_ids.iter().skip(1))
-                } else if edge.dst == *i {
-                    // Iterate backward from dst to src
-                    Box::new(edge.node_ids.iter().rev().skip(1))
-                } else {
-                    unreachable!()
-                };
+                // The edge belongs to an OSM way, and is usually just a subset of it. Crossings
+                // aren't always located directly on this first edge, so search a bit away. If the
+                // OSM way is split before the crossing (uncommon), then we'll miss it.
+                let (arm_ls, nodes_reached) = self.slice_way(
+                    way,
+                    intersection.osm_node,
+                    edge.src == *i,
+                    options.max_distance,
+                );
+                arms.push((*e, arm_ls));
 
-                for n in node_iter {
-                    let node = &self.derived_nodes[n];
+                // Look for the first crossing (or crossing=no) along this arm
+                for n in nodes_reached {
+                    let node = &self.derived_nodes[&n];
                     if node.is_explicit_crossing_no() {
-                        explicit_non_crossings.insert(*n);
-                        // Stop iterating along this edge when we hit crossing=no
+                        explicit_non_crossings.insert(n);
                         break;
                     }
                     if node.is_crossing() {
-                        crossings.insert(*n);
-                        // Stop iterating along this edge when we hit the first crossing
+                        crossings.insert(n);
                         break;
                     }
                 }
@@ -158,13 +156,13 @@ impl Speedwalk {
         &self,
         graph: &Graph,
         i: IntersectionID,
-        arms: &Vec<EdgeID>,
+        arms: &Vec<(EdgeID, LineString)>,
     ) -> usize {
         // For each one-way road, track its (name, whether it points at the intersection (true)
         // or away from it (false), angle)
         let mut oneway_roads: Vec<(String, bool, f64)> = Vec::new();
         let mut num_splits = 0;
-        for e in arms {
+        for (e, _) in arms {
             let edge = &graph.edges[e];
             let way = &self.derived_ways[&edge.osm_way];
             if way.kind.is_road()
@@ -190,11 +188,64 @@ impl Speedwalk {
         }
         num_splits
     }
+
+    // Starting from a node on a way, search backwards or forwards up to max_distance, returning
+    // the sliced LineString and all of the nodes reached (inclusive).
+    fn slice_way(
+        &self,
+        way: &Way,
+        start: NodeID,
+        forwards: bool,
+        max_distance: f64,
+    ) -> (LineString, Vec<NodeID>) {
+        let mut pts = Vec::new();
+        let mut nodes_reached = Vec::new();
+        let mut length_so_far = 0.0;
+
+        let node_iter: Box<dyn Iterator<Item = &NodeID>> = if forwards {
+            Box::new(way.node_ids.iter())
+        } else {
+            Box::new(way.node_ids.iter().rev())
+        };
+
+        for n in node_iter {
+            let pt = Point::from(self.derived_nodes[n].pt);
+            if nodes_reached.is_empty() {
+                // We haven't found the start node yet
+                if *n == start {
+                    nodes_reached.push(*n);
+                    pts.push(pt);
+                }
+            } else {
+                let length_this_step = Euclidean.distance(*pts.last().unwrap(), pt);
+                if length_so_far + length_this_step <= max_distance {
+                    nodes_reached.push(*n);
+                    pts.push(pt);
+                    length_so_far += length_this_step;
+                } else {
+                    // Don't add this node -- it's too far away
+                    // Stop somewhere between these two nodes
+                    pts.push(Euclidean.point_at_distance_between(
+                        *pts.last().unwrap(),
+                        pt,
+                        max_distance - length_so_far,
+                    ));
+                    break;
+                }
+            }
+        }
+
+        (
+            LineString::new(pts.into_iter().map(|pt| pt.into()).collect()),
+            nodes_reached,
+        )
+    }
 }
 
 struct Junction {
     i: IntersectionID,
-    arms: Vec<EdgeID>,
+    // The LineString is up to options.max_distance along the edge's way
+    arms: Vec<(EdgeID, LineString)>,
     number_dual_carriageway_splits: usize,
     crossings: BTreeSet<NodeID>,
     explicit_non_crossings: BTreeSet<NodeID>,
