@@ -58,6 +58,10 @@ impl Speedwalk {
             }
             f.set_property("is_crossing", node.is_crossing());
             f.set_property("is_explicit_crossing_no", node.is_explicit_crossing_no());
+            f.set_property(
+                "is_imaginary_crossing",
+                node.tags.is("crossing", "imaginary"),
+            );
             f.set_property("modified", node.modified);
             f.set_property(
                 "way_ids",
@@ -297,6 +301,15 @@ impl Speedwalk {
     pub fn audit_crossings_wasm(&self, options: JsValue) -> Result<String, JsValue> {
         let options: crate::audit::Options = serde_wasm_bindgen::from_value(options)?;
         self.audit_crossings(options).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = editGenerateMissingCrossings)]
+    pub fn edit_generate_missing_crossings_wasm(
+        &mut self,
+        options: JsValue,
+    ) -> Result<(), JsValue> {
+        let options: crate::audit::Options = serde_wasm_bindgen::from_value(options)?;
+        self.generate_missing_crossings(options).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = findConnectedComponents)]

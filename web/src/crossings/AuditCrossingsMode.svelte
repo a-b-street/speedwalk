@@ -8,10 +8,11 @@
     Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { backend } from "./";
+  import { backend, mutationCounter } from "../";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
-  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
+  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
+  import BulkOperations from "./BulkOperations.svelte";
 
   let options = {
     only_major_roads: true,
@@ -23,7 +24,7 @@
   };
 
   $: data =
-    $backend && options.max_distance
+    $backend && options.max_distance && $mutationCounter >= 0
       ? (JSON.parse($backend!.auditCrossings(options)) as FeatureCollection)
       : emptyGeojson();
   $: completeJunctions = data.features.filter(
@@ -44,16 +45,24 @@
   $: explicitNonCrossingCount = debugExplicitNonCrossings.features.length;
   $: numberIgnoredArms = hovered ? hovered.properties!.number_ignored_arms : 0;
 
-  let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
-  crossingNodes.features = crossingNodes.features.filter(
-    (f) => f.properties!.is_crossing || f.properties!.is_explicit_crossing_no,
-  );
+  $: crossingNodes = getCrossings($mutationCounter);
+  function getCrossings(_: number): FeatureCollection {
+    if (!$backend) {
+      return emptyGeojson();
+    }
+    let gj = JSON.parse($backend.getNodes()) as FeatureCollection;
+    gj.features = gj.features.filter(
+      (f) => f.properties!.is_crossing || f.properties!.is_explicit_crossing_no,
+    );
+    return gj;
+  }
 
   let colors = {
     "Junction to audit": "black",
     "Fully mapped junction": "green",
     Crossing: "yellow",
     "crossing=no": "purple",
+    "crossing=imaginary": "cyan",
   };
 </script>
 
@@ -99,7 +108,7 @@
       </label>
     </div>
 
-    <div class="card card-body">
+    <div class="card card-body mb-3">
       <QualitativeLegend
         labelColors={colors}
         itemsPerRow={1}
@@ -108,7 +117,7 @@
     </div>
 
     {#if hovered}
-      <p class="mt-3">
+      <p>
         Junction has {debugArms.features.length - numberIgnoredArms} arms
         {#if numberIgnoredArms > 0}
           (plus {numberIgnoredArms}
@@ -130,6 +139,8 @@
         </i>
       </p>
     {/if}
+
+    <BulkOperations {options} />
 
     <SharedSidebarFooter />
   </div>
@@ -172,6 +183,8 @@
             "case",
             ["get", "is_explicit_crossing_no"],
             colors["crossing=no"],
+            ["get", "is_imaginary_crossing"],
+            colors["crossing=imaginary"],
             colors["Crossing"],
           ],
           "circle-opacity": hoverStateFilter(0.3, 1.0),

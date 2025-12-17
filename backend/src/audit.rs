@@ -1,13 +1,14 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
-use geo::{Distance, Euclidean, InterpolatePoint, LineString, Point};
+use geo::{Distance, Euclidean, InterpolatableLine, InterpolatePoint, LineString, Point};
 use geojson::GeoJson;
 use osm_reader::NodeID;
 use serde::Deserialize;
+use utils::Tags;
 
 use crate::{
-    Speedwalk, Way,
+    Speedwalk, UserCmd, Way,
     crossings::shortest_rotation,
     graph::{EdgeID, Graph, IntersectionID},
 };
@@ -78,6 +79,39 @@ impl Speedwalk {
         }
 
         Ok(serde_json::to_string(&GeoJson::from(features))?)
+    }
+
+    pub fn generate_missing_crossings(&mut self, options: Options) -> Result<()> {
+        let graph = Graph::new(self);
+
+        let mut pts = Vec::new();
+        for junction in self.find_junctions(options, &graph) {
+            for (_, ls, has_crossing) in junction.arms {
+                if !has_crossing {
+                    // Add the crossing close to the junction at a fixed position
+                    // TODO Especially if there are separate sidewalks there, line it up with the
+                    // "corner" of those
+                    if let Some(pt) = ls.point_at_distance_from_start(&Euclidean, 3.0) {
+                        pts.push(self.mercator.to_wgs84(&pt));
+                    }
+                }
+            }
+        }
+
+        info!("Adding {} imaginary crossings", pts.len());
+        // TODO It's slow, but do this one at a time, in case we modify the same way multiple
+        // times. Use CreateNewGeometry to do this all at once instead.
+        for pt in pts {
+            let mut tags = Tags::empty();
+            tags.insert("highway", "crossing");
+            // TODO Decide how to encode this
+            tags.insert("crossing", "imaginary");
+            let mut edits = self.edits.take().unwrap();
+            edits.apply_cmd(UserCmd::AddCrossing(pt, tags), self)?;
+            self.edits = Some(edits);
+            self.after_edit();
+        }
+        Ok(())
     }
 
     /// Find all junctions
