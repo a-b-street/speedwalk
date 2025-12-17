@@ -5,6 +5,7 @@ extern crate anyhow;
 extern crate log;
 
 mod audit;
+mod bundle;
 mod classify;
 mod crossings;
 mod disconnected;

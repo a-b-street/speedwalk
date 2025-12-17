@@ -314,6 +314,11 @@ impl Speedwalk {
         let filter: crate::export::NetworkFilter = serde_wasm_bindgen::from_value(filter)?;
         self.export_network(filter).map_err(err_to_js)
     }
+
+    #[wasm_bindgen(js_name = bundleFaces)]
+    pub fn bundle_faces_wasm(&self) -> Result<String, JsValue> {
+        self.bundle_faces().map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
