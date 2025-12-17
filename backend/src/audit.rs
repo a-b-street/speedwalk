@@ -1,13 +1,14 @@
 use std::collections::BTreeSet;
 
 use anyhow::Result;
-use geo::Point;
+use geo::{LineString, Point};
 use geojson::GeoJson;
 use osm_reader::NodeID;
 use serde::Deserialize;
 
 use crate::{
-    Kind, Speedwalk,
+    Speedwalk,
+    crossings::shortest_rotation,
     graph::{EdgeID, Graph, IntersectionID},
 };
 
@@ -52,9 +53,14 @@ impl Speedwalk {
 
             f.set_property(
                 "complete",
-                arms.len() == crossings.len() + explicit_non_crossings.len(),
+                crossings.len() + explicit_non_crossings.len()
+                    >= arms.len() - junction.number_dual_carriageway_splits,
             );
             f.set_property("arms", GeoJson::from(arms));
+            f.set_property(
+                "number_dual_carriageway_splits",
+                junction.number_dual_carriageway_splits,
+            );
             f.set_property("crossings", GeoJson::from(crossings));
             f.set_property(
                 "explicit_non_crossings",
@@ -94,7 +100,7 @@ impl Speedwalk {
                 {
                     continue;
                 }
-                if !matches!(way.kind, Kind::Sidewalk | Kind::Crossing | Kind::Other) {
+                if way.kind.is_road() {
                     any_roads = true;
                 }
                 arms.push(*e);
@@ -125,10 +131,17 @@ impl Speedwalk {
                 }
             }
 
-            if any_roads && (any_severances || !options.only_major_roads) && arms.len() > 2 {
+            let number_dual_carriageway_splits =
+                self.count_dual_carriageway_splits(graph, *i, &arms);
+
+            if any_roads
+                && (any_severances || !options.only_major_roads)
+                && (arms.len() - number_dual_carriageway_splits) > 2
+            {
                 junctions.push(Junction {
                     i: *i,
                     arms,
+                    number_dual_carriageway_splits,
                     crossings,
                     explicit_non_crossings,
                 });
@@ -136,11 +149,56 @@ impl Speedwalk {
         }
         junctions
     }
+
+    fn count_dual_carriageway_splits(
+        &self,
+        graph: &Graph,
+        i: IntersectionID,
+        arms: &Vec<EdgeID>,
+    ) -> usize {
+        // For each one-way road, track its (name, whether it points at the intersection (true)
+        // or away from it (false), angle)
+        let mut oneway_roads: Vec<(String, bool, f64)> = Vec::new();
+        let mut num_splits = 0;
+        for e in arms {
+            let edge = &graph.edges[e];
+            let way = &self.derived_ways[&edge.osm_way];
+            if way.kind.is_road()
+                && way.tags.is("oneway", "yes")
+                && let Some(name) = way.tags.get("name")
+            {
+                let dir = edge.dst == i;
+                let angle = angle_ls_directional(&edge.linestring);
+
+                if oneway_roads
+                    .iter()
+                    .any(|(other_name, other_dir, other_angle)| {
+                        name == other_name
+                            && dir == !other_dir
+                            && shortest_rotation(angle, *other_angle).abs() > 45.0
+                    })
+                {
+                    num_splits += 1;
+                } else {
+                    oneway_roads.push((name.to_string(), dir, angle));
+                }
+            }
+        }
+        num_splits
+    }
 }
 
 struct Junction {
     i: IntersectionID,
     arms: Vec<EdgeID>,
+    number_dual_carriageway_splits: usize,
     crossings: BTreeSet<NodeID>,
     explicit_non_crossings: BTreeSet<NodeID>,
+}
+
+// Angle in degrees from first to last point. Includes the "direction" of the line.
+fn angle_ls_directional(ls: &LineString) -> f64 {
+    let pt1 = ls.coords().next().unwrap();
+    let pt2 = ls.coords().last().unwrap();
+    (pt2.y - pt1.y).atan2(pt2.x - pt1.x).to_degrees()
 }

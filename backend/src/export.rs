@@ -30,7 +30,7 @@ impl Speedwalk {
         match filter.include {
             NetworkFilterType::Everything => {}
             NetworkFilterType::OnlyExplicitFootways => {
-                if !matches!(way.kind, Kind::Sidewalk | Kind::Crossing | Kind::Other) {
+                if way.kind.is_road() {
                     return false;
                 }
             }
