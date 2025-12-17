@@ -88,10 +88,12 @@ impl Speedwalk {
         for junction in self.find_junctions(options, &graph) {
             for (_, ls, has_crossing) in junction.arms {
                 if !has_crossing {
-                    // Add the crossing close to the junction at a fixed position
+                    // Add the crossing close to the junction at a fixed position. Make it slightly
+                    // past the buffer distance where we generate sidewalks, so that if we later
+                    // create crossing ways, there's a sidewalk to hit.
                     // TODO Especially if there are separate sidewalks there, line it up with the
                     // "corner" of those
-                    if let Some(pt) = ls.point_at_distance_from_start(&Euclidean, 3.0) {
+                    if let Some(pt) = ls.point_at_distance_from_start(&Euclidean, 4.0) {
                         pts.push(self.mercator.to_wgs84(&pt));
                     }
                 }

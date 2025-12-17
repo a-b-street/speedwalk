@@ -127,6 +127,11 @@ impl Edits {
     fn create_new_geometry(&mut self, results: CreateNewGeometry, model: &Speedwalk) {
         // TODO Or use+modify new_nodes immediately or something?
         let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
+        // Insert all existing nodes. When we create crossing ways from a crossing node, we don't
+        // want to overwrite the crossing node.
+        for (id, node) in &model.derived_nodes {
+            node_mapping.insert(HashedPoint::new(node.pt), *id);
+        }
 
         // Modify existing ways first
         for (way_id, mut insert_points) in results.modify_existing_nodes {
