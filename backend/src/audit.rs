@@ -16,6 +16,7 @@ use crate::{
 pub struct Options {
     only_major_roads: bool,
     ignore_utility_roads: bool,
+    ignore_cycleways: bool,
 }
 
 impl Speedwalk {
@@ -98,6 +99,9 @@ impl Speedwalk {
                 if options.ignore_utility_roads
                     && way.tags.is_any("highway", vec!["service", "track"])
                 {
+                    continue;
+                }
+                if options.ignore_cycleways && way.tags.is("highway", "cycleway") {
                     continue;
                 }
                 if way.kind.is_road() {

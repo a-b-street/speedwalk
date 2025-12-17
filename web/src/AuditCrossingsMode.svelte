@@ -16,6 +16,7 @@
   let options = {
     only_major_roads: true,
     ignore_utility_roads: true,
+    ignore_cycleways: true,
   };
 
   $: data = $backend
@@ -72,6 +73,7 @@
       <code>track</code>
       roads
     </Checkbox>
+    <Checkbox bind:checked={options.ignore_cycleways}>Ignore cycleways</Checkbox>
 
     <div class="card card-body">
       <QualitativeLegend labelColors={colors} itemsPerRow={1} />
