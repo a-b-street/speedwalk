@@ -18,6 +18,7 @@
     ignore_utility_roads: true,
     ignore_cycleways: true,
     ignore_footways: true,
+    ignore_roundabouts: true,
     max_distance: 30,
   };
 
@@ -41,9 +42,7 @@
     : emptyGeojson();
   $: crossingCount = debugCrossings.features.length;
   $: explicitNonCrossingCount = debugExplicitNonCrossings.features.length;
-  $: numberDCSplits = hovered
-    ? hovered.properties!.number_dual_carriageway_splits
-    : 0;
+  $: numberIgnoredArms = hovered ? hovered.properties!.number_ignored_arms : 0;
 
   let crossingNodes = JSON.parse($backend!.getNodes()) as FeatureCollection;
   crossingNodes.features = crossingNodes.features.filter(
@@ -84,6 +83,9 @@
       and
       <code>path</code>
     </Checkbox>
+    <Checkbox bind:checked={options.ignore_roundabouts}>
+      Don't expect crossings on roundabouts
+    </Checkbox>
     <div>
       <label class="form-label">
         How far away can a crossing be? (m):
@@ -107,11 +109,10 @@
 
     {#if hovered}
       <p class="mt-3">
-        Junction has {debugArms.features.length - numberDCSplits} arms
-        {#if numberDCSplits > 0}
-          ({numberDCSplits} dual carriageway {numberDCSplits == 1
-            ? "split"
-            : "splits"})
+        Junction has {debugArms.features.length - numberIgnoredArms} arms
+        {#if numberIgnoredArms > 0}
+          (plus {numberIgnoredArms}
+          {numberIgnoredArms == 1 ? "arm" : "arms"} not expected to have crossings)
         {/if},
         {crossingCount}
         {crossingCount == 1 ? "crossing" : "crossings"}

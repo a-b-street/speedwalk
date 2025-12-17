@@ -18,6 +18,7 @@ pub struct Options {
     ignore_utility_roads: bool,
     ignore_cycleways: bool,
     ignore_footways: bool,
+    ignore_roundabouts: bool,
     max_distance: f64,
 }
 
@@ -58,12 +59,14 @@ impl Speedwalk {
             f.set_property(
                 "complete",
                 crossings.len() + explicit_non_crossings.len()
-                    >= arms.len() - junction.number_dual_carriageway_splits,
+                    >= arms.len()
+                        - junction.number_dual_carriageway_splits
+                        - junction.number_roundabout_arms,
             );
             f.set_property("arms", GeoJson::from(arms));
             f.set_property(
-                "number_dual_carriageway_splits",
-                junction.number_dual_carriageway_splits,
+                "number_ignored_arms",
+                junction.number_dual_carriageway_splits + junction.number_roundabout_arms,
             );
             f.set_property("crossings", GeoJson::from(crossings));
             f.set_property(
@@ -93,6 +96,7 @@ impl Speedwalk {
             let mut arms = Vec::new();
             let mut crossings = BTreeSet::new();
             let mut explicit_non_crossings = BTreeSet::new();
+            let mut number_roundabout_arms = 0;
             for e in &intersection.edges {
                 let edge = &graph.edges[e];
                 let way = &self.derived_ways[&edge.osm_way];
@@ -140,6 +144,11 @@ impl Speedwalk {
                     }
                 }
 
+                if options.ignore_roundabouts && way.tags.is("junction", "roundabout") {
+                    has_crossing = true;
+                    number_roundabout_arms += 1;
+                }
+
                 arms.push((*e, arm_ls, has_crossing));
             }
 
@@ -154,6 +163,7 @@ impl Speedwalk {
                     i: *i,
                     arms,
                     number_dual_carriageway_splits,
+                    number_roundabout_arms,
                     crossings,
                     explicit_non_crossings,
                 });
@@ -258,6 +268,7 @@ struct Junction {
     // there's a crossing node on this arm.
     arms: Vec<(EdgeID, LineString, bool)>,
     number_dual_carriageway_splits: usize,
+    number_roundabout_arms: usize,
     crossings: BTreeSet<NodeID>,
     explicit_non_crossings: BTreeSet<NodeID>,
 }
