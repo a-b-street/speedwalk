@@ -123,7 +123,8 @@
         crossing=no
       </a>
       to indicate a lack of a crossing. Please ignore cases where you would not expect
-      any crossing to be (and report a bug to improve this tool).
+      any crossing to be (and report a bug to improve this tool). And note that there
+      might be mid-block crossings anywhere along a road; this tool only audits junctions.
     </p>
 
     <BulkOperations {options} />
