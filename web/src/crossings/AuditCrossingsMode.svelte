@@ -6,6 +6,7 @@
     CircleLayer,
     hoverStateFilter,
     Popup,
+    Control,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { backend, mutationCounter, map } from "../";
@@ -125,55 +126,6 @@
       any crossing to be (and report a bug to improve this tool).
     </p>
 
-    <CollapsibleCard>
-      <div slot="header">Settings</div>
-      <div slot="body">
-        <Checkbox bind:checked={options.only_major_roads}>
-          Only junctions on major roads
-        </Checkbox>
-        <Checkbox bind:checked={options.ignore_utility_roads}>
-          Ignore <code>service</code>
-          ,
-          <code>track</code>
-          roads
-        </Checkbox>
-        <Checkbox bind:checked={options.ignore_cycleways}>
-          Ignore cycleways
-        </Checkbox>
-        <Checkbox bind:checked={options.ignore_footways}>
-          Ignore <code>footway</code>
-          and
-          <code>path</code>
-        </Checkbox>
-        <Checkbox bind:checked={options.ignore_roundabouts}>
-          Don't expect crossings on roundabouts
-        </Checkbox>
-        <div>
-          <label class="form-label">
-            How far away can a crossing be? (m):
-            <input
-              class="form-control"
-              type="number"
-              min="1"
-              max="100"
-              bind:value={options.max_distance}
-            />
-          </label>
-        </div>
-      </div>
-    </CollapsibleCard>
-
-    <CollapsibleCard>
-      <div slot="header">Legend</div>
-      <div slot="body">
-        <QualitativeLegend
-          labelColors={colors}
-          itemsPerRow={1}
-          swatchClass="circle"
-        />
-      </div>
-    </CollapsibleCard>
-
     <BulkOperations {options} />
 
     <SharedSidebarFooter />
@@ -266,5 +218,53 @@
         }}
       />
     </GeoJSON>
+
+    <Control position="top-right">
+      <CollapsibleCard>
+        <div slot="header">Settings</div>
+        <div slot="body">
+          <Checkbox bind:checked={options.only_major_roads}>
+            Only junctions on major roads
+          </Checkbox>
+          <Checkbox bind:checked={options.ignore_utility_roads}>
+            Ignore <code>service</code>
+            ,
+            <code>track</code>
+            roads
+          </Checkbox>
+          <Checkbox bind:checked={options.ignore_cycleways}>
+            Ignore cycleways
+          </Checkbox>
+          <Checkbox bind:checked={options.ignore_footways}>
+            Ignore <code>footway</code>
+            and
+            <code>path</code>
+          </Checkbox>
+          <Checkbox bind:checked={options.ignore_roundabouts}>
+            Don't expect crossings on roundabouts
+          </Checkbox>
+          <div>
+            <label class="form-label">
+              How far away can a crossing be? (m):
+              <input
+                class="form-control"
+                type="number"
+                min="1"
+                max="100"
+                bind:value={options.max_distance}
+              />
+            </label>
+          </div>
+
+          <div class="card card-body mt-3">
+            <QualitativeLegend
+              labelColors={colors}
+              itemsPerRow={1}
+              swatchClass="circle"
+            />
+          </div>
+        </div>
+      </CollapsibleCard>
+    </Control>
   </div>
 </SplitComponent>
