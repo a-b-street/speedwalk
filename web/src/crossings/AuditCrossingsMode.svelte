@@ -8,11 +8,13 @@
     Popup,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
-  import { backend, mutationCounter } from "../";
+  import { backend, mutationCounter, map } from "../";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
   import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import BulkOperations from "./BulkOperations.svelte";
+  import { getMapViewport, getIdUrl } from "../common/osmEditorUrls";
 
   let options = {
     only_major_roads: true,
@@ -57,6 +59,14 @@
     return gj;
   }
 
+  function clickJunction() {
+    let viewport = getMapViewport($map);
+    if (viewport) {
+      let url = getIdUrl(viewport.zoom, viewport.lat, viewport.lng);
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }
+
   let colors = {
     "Junction to audit": "black",
     "Fully mapped junction": "green",
@@ -68,53 +78,12 @@
 
 <SplitComponent>
   <div slot="sidebar">
-    <h4>Crossings audit (experimental)</h4>
+    <h4>Crossings audit</h4>
 
     <p>
       {completeJunctions.toLocaleString()} / {data.features.length.toLocaleString()}
       junctions have all possible crossings mapped
     </p>
-
-    <Checkbox bind:checked={options.only_major_roads}>
-      Only junctions on major roads
-    </Checkbox>
-    <Checkbox bind:checked={options.ignore_utility_roads}>
-      Ignore <code>service</code>
-      ,
-      <code>track</code>
-      roads
-    </Checkbox>
-    <Checkbox bind:checked={options.ignore_cycleways}>
-      Ignore cycleways
-    </Checkbox>
-    <Checkbox bind:checked={options.ignore_footways}>
-      Ignore <code>footway</code>
-      and
-      <code>path</code>
-    </Checkbox>
-    <Checkbox bind:checked={options.ignore_roundabouts}>
-      Don't expect crossings on roundabouts
-    </Checkbox>
-    <div>
-      <label class="form-label">
-        How far away can a crossing be? (m):
-        <input
-          class="form-control"
-          type="number"
-          min="1"
-          max="100"
-          bind:value={options.max_distance}
-        />
-      </label>
-    </div>
-
-    <div class="card card-body mb-3">
-      <QualitativeLegend
-        labelColors={colors}
-        itemsPerRow={1}
-        swatchClass="circle"
-      />
-    </div>
 
     {#if hovered}
       <p>
@@ -140,6 +109,71 @@
       </p>
     {/if}
 
+    <hr />
+
+    <p>
+      For each junction shown, this tool looks for crossing nodes on each arm
+      (road) of the junction. Please map a crossing node on each arm by clicking
+      to open in iD, then refreshing data here to check. If there's no way to
+      cross an arm, use <a
+        href="https://wiki.openstreetmap.org/wiki/Tag:crossing=no"
+        target="_blank"
+      >
+        crossing=no
+      </a>
+      to indicate a lack of a crossing. Please ignore cases where you would not expect
+      any crossing to be (and report a bug to improve this tool).
+    </p>
+
+    <CollapsibleCard>
+      <div slot="header">Settings</div>
+      <div slot="body">
+        <Checkbox bind:checked={options.only_major_roads}>
+          Only junctions on major roads
+        </Checkbox>
+        <Checkbox bind:checked={options.ignore_utility_roads}>
+          Ignore <code>service</code>
+          ,
+          <code>track</code>
+          roads
+        </Checkbox>
+        <Checkbox bind:checked={options.ignore_cycleways}>
+          Ignore cycleways
+        </Checkbox>
+        <Checkbox bind:checked={options.ignore_footways}>
+          Ignore <code>footway</code>
+          and
+          <code>path</code>
+        </Checkbox>
+        <Checkbox bind:checked={options.ignore_roundabouts}>
+          Don't expect crossings on roundabouts
+        </Checkbox>
+        <div>
+          <label class="form-label">
+            How far away can a crossing be? (m):
+            <input
+              class="form-control"
+              type="number"
+              min="1"
+              max="100"
+              bind:value={options.max_distance}
+            />
+          </label>
+        </div>
+      </div>
+    </CollapsibleCard>
+
+    <CollapsibleCard>
+      <div slot="header">Legend</div>
+      <div slot="body">
+        <QualitativeLegend
+          labelColors={colors}
+          itemsPerRow={1}
+          swatchClass="circle"
+        />
+      </div>
+    </CollapsibleCard>
+
     <BulkOperations {options} />
 
     <SharedSidebarFooter />
@@ -162,6 +196,8 @@
           "circle-stroke-width": 3,
         }}
         bind:hovered
+        hoverCursor="pointer"
+        on:click={clickJunction}
       />
     </GeoJSON>
 
