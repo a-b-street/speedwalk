@@ -28,10 +28,20 @@ impl Speedwalk {
         let mut roads = Vec::new();
         let mut roads_with_ways = Vec::new();
         for (id, way) in &self.derived_ways {
-            if !matches!(way.kind, Kind::RoadWithTags | Kind::RoadUnknown) {
+            if !matches!(
+                way.kind,
+                Kind::RoadWithSeparate | Kind::RoadWithTags | Kind::RoadUnknown
+            ) {
                 continue;
             }
             if only_severances && !way.is_severance() {
+                continue;
+            }
+            // Specialize some RoadWithSeparate cases more -- only generate if one side is tagged
+            // as yes
+            if way.kind == Kind::RoadWithSeparate
+                && !(way.tags.is("sidewalk:left", "yes") || way.tags.is("sidewalk:right", "yes"))
+            {
                 continue;
             }
             // This is ambiguous, but generally seems to mean both
@@ -82,12 +92,26 @@ impl Speedwalk {
         let mut roads_with_new_right = HashSet::new();
         for sidewalk in raw_new_sidewalks {
             for (ls, way, side) in split_new_sidewalks(sidewalk, &closest_road) {
-                // If the road lacks sidewalks on this side, skip
-                if self.derived_ways[&way].tags.is("sidewalk", "left") && side == Side::Right {
-                    continue;
-                }
-                if self.derived_ways[&way].tags.is("sidewalk", "right") && side == Side::Left {
-                    continue;
+                if self.derived_ways[&way].kind == Kind::RoadWithSeparate {
+                    // If there are already separate sidewalks on this side, skip
+                    if !self.derived_ways[&way].tags.is("sidewalk:right", "yes")
+                        && side == Side::Right
+                    {
+                        continue;
+                    }
+                    if !self.derived_ways[&way].tags.is("sidewalk:left", "yes")
+                        && side == Side::Left
+                    {
+                        continue;
+                    }
+                } else {
+                    // If the road lacks sidewalks on this side, skip
+                    if self.derived_ways[&way].tags.is("sidewalk", "left") && side == Side::Right {
+                        continue;
+                    }
+                    if self.derived_ways[&way].tags.is("sidewalk", "right") && side == Side::Left {
+                        continue;
+                    }
                 }
 
                 let mut tags = new_tags.clone();
@@ -141,8 +165,18 @@ impl Speedwalk {
         for way in roads_with_new_left {
             // All existing sidewalk tags will get cleaned up by edits.rs, unless the user
             // previously did AssumeTags. It's always safe to forcibly clean up this tag.
-            let mut tags = vec![TagCmd::Remove("sidewalk".to_string())];
-            if roads_with_new_right.remove(&way) {
+            let mut tags = vec![
+                TagCmd::Remove("sidewalk".to_string()),
+                TagCmd::Remove("sidewalk:left".to_string()),
+                TagCmd::Remove("sidewalk:right".to_string()),
+            ];
+            // In case the road was a partial RoadWithSeparate, check if the other side already had
+            // separate sidewalks
+            if roads_with_new_right.remove(&way)
+                || self.derived_ways[&way]
+                    .tags
+                    .is("sidewalk:right", "separate")
+            {
                 tags.push(TagCmd::Set(
                     "sidewalk:both".to_string(),
                     "separate".to_string(),
@@ -157,11 +191,23 @@ impl Speedwalk {
             modify_existing_tags.insert(way, tags);
         }
         for way in roads_with_new_right {
-            let tags = vec![
+            let mut tags = vec![
                 TagCmd::Remove("sidewalk".to_string()),
-                TagCmd::Set("sidewalk:left".to_string(), "no".to_string()),
-                TagCmd::Set("sidewalk:right".to_string(), "separate".to_string()),
+                TagCmd::Remove("sidewalk:left".to_string()),
+                TagCmd::Remove("sidewalk:right".to_string()),
             ];
+            if self.derived_ways[&way].tags.is("sidewalk:left", "separate") {
+                tags.push(TagCmd::Set(
+                    "sidewalk:both".to_string(),
+                    "separate".to_string(),
+                ));
+            } else {
+                tags.push(TagCmd::Set("sidewalk:left".to_string(), "no".to_string()));
+                tags.push(TagCmd::Set(
+                    "sidewalk:right".to_string(),
+                    "separate".to_string(),
+                ));
+            }
             modify_existing_tags.insert(way, tags);
         }
 
