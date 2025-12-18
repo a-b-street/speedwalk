@@ -50,14 +50,7 @@ impl Speedwalk {
                     // We have to assume yes
                     Kind::RoadUnknown => true,
                     Kind::Sidewalk | Kind::Crossing => true,
-                    Kind::Other => {
-                        if way.tags.is("highway", "cycleway") {
-                            way.tags.is_any("foot", vec!["yes", "designated"])
-                        } else {
-                            // All other cases are routeable
-                            true
-                        }
-                    }
+                    Kind::Other => way.is_walkable_other(),
                 };
                 if !include {
                     return false;

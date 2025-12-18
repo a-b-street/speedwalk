@@ -120,6 +120,19 @@ impl Way {
             ],
         )
     }
+
+    /// For Kind::Other cases (often cycleways or paths), is the way usable for walking?
+    pub fn is_walkable_other(&self) -> bool {
+        if self.kind != Kind::Other {
+            return false;
+        }
+        if self.tags.is("highway", "cycleway") {
+            self.tags.is_any("foot", vec!["yes", "designated"])
+        } else {
+            // All other cases are routeable
+            true
+        }
+    }
 }
 
 #[derive(Clone, Serialize)]

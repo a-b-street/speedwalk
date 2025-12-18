@@ -47,7 +47,7 @@ impl Speedwalk {
         let closest_sidewalk = RTree::bulk_load(
             self.derived_ways
                 .iter()
-                .filter(|(_, way)| way.kind == Kind::Sidewalk)
+                .filter(|(_, way)| way.kind == Kind::Sidewalk || way.is_walkable_other())
                 .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
                 .collect(),
         );
