@@ -79,7 +79,7 @@ impl Edits {
                         && !way.tags.has("sidewalk:left")
                         && !way.tags.has("sidewalk:right")
                         && !way.tags.has("sidewalk")
-                        && (way.tags.is("oneway", "yes") || way.tags.is("junction", "roundabout"))
+                        && is_oneway(&way.tags)
                     {
                         let cmds = self.change_way_tags.entry(*id).or_insert_with(Vec::new);
                         cmds.push(TagCmd::Set(
@@ -447,4 +447,11 @@ pub struct CreateNewGeometry {
     // crossed point needs to be inserted
     pub modify_existing_nodes: HashMap<WayID, Vec<(Coord, usize)>>,
     pub modify_existing_tags: HashMap<WayID, Vec<TagCmd>>,
+}
+
+fn is_oneway(tags: &Tags) -> bool {
+    if tags.is("oneway", "no") {
+        return false;
+    }
+    tags.is("oneway", "yes") || tags.is_any("junction", vec!["circular", "roundabout"])
 }

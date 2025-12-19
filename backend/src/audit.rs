@@ -180,7 +180,9 @@ impl Speedwalk {
                     }
                 }
 
-                if options.ignore_roundabouts && way.tags.is("junction", "roundabout") {
+                if options.ignore_roundabouts
+                    && way.tags.is_any("junction", vec!["circular", "roundabout"])
+                {
                     has_crossing = true;
                     number_roundabout_arms += 1;
                 }
