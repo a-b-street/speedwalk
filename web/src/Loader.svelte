@@ -74,7 +74,10 @@
       map={notNull($map)}
       on:gotXml={gotXml}
       on:loading={(e) => (loading = e.detail)}
-      on:error={(e) => window.alert(e.detail)}
+      on:error={(e) => {
+        window.alert(e.detail);
+        loading = "";
+      }}
     />
   </div>
 
