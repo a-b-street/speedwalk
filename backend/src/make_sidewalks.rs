@@ -147,7 +147,7 @@ impl Speedwalk {
         for (new_sidewalk, _) in &mut new_sidewalks {
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
-                for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, obj.geom()) {
+                for (pt, idx1, _) in find_all_intersections(new_sidewalk, obj.geom()) {
                     // Modify the new sidewalk immediately
                     new_sidewalk.0.insert(idx1, pt);
 
@@ -155,7 +155,7 @@ impl Speedwalk {
                     insert_new_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
-                        .push((pt, idx2, Tags::empty()));
+                        .push((pt, Tags::empty()));
                 }
             }
         }

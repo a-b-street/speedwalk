@@ -117,18 +117,11 @@ impl Edits {
                     let Some(obj) = closest_road.nearest_neighbor(&pt) else {
                         bail!("Couldn't find the road to insert the crossing");
                     };
-                    let Some((idx, _)) =
-                        obj.geom().lines().enumerate().min_by_key(|(_, line)| {
-                            (Euclidean.distance(line, &pt) * 10e6) as usize
-                        })
-                    else {
-                        bail!("Couldn't find the line on a road to insert the crossing");
-                    };
 
                     insert_new_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
-                        .push((pt.into(), idx + 1, tags.clone()));
+                        .push((pt.into(), tags.clone()));
                 }
 
                 self.create_new_geometry(
@@ -156,14 +149,11 @@ impl Edits {
         }
 
         // Modify existing ways first
-        for (way_id, mut insert_points) in results.insert_new_nodes {
-            // When there are multiple points, insert the highest indices first, so nothing
-            // messes up
-            insert_points.sort_by(|a, b| b.1.cmp(&a.1));
-
+        for (way_id, insert_points) in results.insert_new_nodes {
             let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
+            let mut linestring = model.derived_ways[&way_id].linestring.clone();
 
-            for (pt, idx, tags) in insert_points {
+            for (pt, tags) in insert_points {
                 let node_id = self.new_node_id();
                 self.new_nodes.insert(
                     node_id,
@@ -180,7 +170,16 @@ impl Edits {
                 );
                 node_mapping.insert(HashedPoint::new(pt), node_id);
 
-                node_ids.insert(idx, node_id);
+                // Figure out where in this way to insert this node. insert_points could be in any
+                // order.
+                let Some((idx, _)) = linestring.lines().enumerate().min_by_key(|(_, line)| {
+                    (Euclidean.distance(line, &Point::from(pt)) * 10e6) as usize
+                }) else {
+                    unreachable!("Couldn't find the line on a way to insert a node");
+                };
+
+                node_ids.insert(idx + 1, node_id);
+                linestring.0.insert(idx + 1, pt);
             }
 
             self.change_way_nodes.insert(way_id, node_ids);
@@ -465,9 +464,8 @@ pub struct CreateNewGeometry {
     pub new_ways: Vec<(LineString, Tags)>,
     /// All of the new ways have the same Kind
     pub new_kind: Kind,
-    // Everywhere existing some new way crosses, find the index in the existing way where this
-    // crossed point needs to be inserted
-    pub insert_new_nodes: HashMap<WayID, Vec<(Coord, usize, Tags)>>,
+    /// Insert new nodes into an existing way
+    pub insert_new_nodes: HashMap<WayID, Vec<(Coord, Tags)>>,
     pub modify_existing_way_tags: HashMap<WayID, Vec<TagCmd>>,
 }
 

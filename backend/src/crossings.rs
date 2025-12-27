@@ -69,9 +69,7 @@ impl Speedwalk {
                 crossing_pt,
                 project_away(crossing_pt, angle + 90.0, project_away_meters),
             );
-            let Some((sidewalk1, endpt1, insert_idx1)) =
-                find_sidewalk_hit(&closest_sidewalk, test_line1)
-            else {
+            let Some((sidewalk1, endpt1)) = find_sidewalk_hit(&closest_sidewalk, test_line1) else {
                 continue;
             };
 
@@ -79,9 +77,7 @@ impl Speedwalk {
                 crossing_pt,
                 project_away(crossing_pt, angle - 90.0, project_away_meters),
             );
-            let Some((sidewalk2, endpt2, insert_idx2)) =
-                find_sidewalk_hit(&closest_sidewalk, test_line2)
-            else {
+            let Some((sidewalk2, endpt2)) = find_sidewalk_hit(&closest_sidewalk, test_line2) else {
                 continue;
             };
 
@@ -98,11 +94,11 @@ impl Speedwalk {
             insert_new_nodes
                 .entry(sidewalk1)
                 .or_insert_with(Vec::new)
-                .push((endpt1, insert_idx1, Tags::empty()));
+                .push((endpt1, Tags::empty()));
             insert_new_nodes
                 .entry(sidewalk2)
                 .or_insert_with(Vec::new)
-                .push((endpt2, insert_idx2, Tags::empty()));
+                .push((endpt2, Tags::empty()));
         }
 
         CreateNewGeometry {
@@ -117,7 +113,7 @@ impl Speedwalk {
 fn find_sidewalk_hit(
     closest_sidewalk: &RTree<GeomWithData<LineString, WayID>>,
     line1: Line,
-) -> Option<(WayID, Coord, usize)> {
+) -> Option<(WayID, Coord)> {
     // TODO Still cursed
     //let bbox = aabb(&line1);
     let bbox = line1.bounding_rect();
@@ -127,11 +123,11 @@ fn find_sidewalk_hit(
     );
 
     for obj in closest_sidewalk.locate_in_envelope_intersecting(&aabb) {
-        for (idx, line2) in obj.geom().lines().enumerate() {
+        for line2 in obj.geom().lines() {
             if let Some(LineIntersection::SinglePoint { intersection, .. }) =
                 line_intersection(line1, line2)
             {
-                return Some((obj.data, intersection, idx + 1));
+                return Some((obj.data, intersection));
             }
         }
     }
