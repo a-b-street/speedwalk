@@ -147,7 +147,7 @@ impl Speedwalk {
         for (new_sidewalk, _) in &mut new_sidewalks {
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
-                for (pt, idx1, idx2) in find_all_intersections(new_sidewalk, obj.geom()) {
+                for (pt, idx1, _) in find_all_intersections(new_sidewalk, obj.geom()) {
                     // Modify the new sidewalk immediately
                     new_sidewalk.0.insert(idx1, pt);
 
@@ -155,7 +155,7 @@ impl Speedwalk {
                     insert_new_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
-                        .push((pt, idx2, Tags::empty()));
+                        .push((pt, Tags::empty()));
                 }
             }
         }
@@ -255,7 +255,7 @@ fn split_new_sidewalks(
         let road = rtree
             .nearest_neighbor(&midpt)
             .expect("no closest road to a new sidewalk line");
-        let side = classify_side(midpt, road.geom());
+        let side = classify_side(midpt, road);
 
         lines.push((line, road.data, side));
     }
@@ -274,10 +274,14 @@ fn split_new_sidewalks(
     output
 }
 
-fn classify_side(pt: Point, ls: &LineString) -> Side {
+fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
     // TODO There's probably something much easier with Orient, but this works
-    let left = ls.offset_curve(-BUFFER_DISTANCE).expect("offset failed");
-    let right = ls.offset_curve(BUFFER_DISTANCE).expect("offset failed");
+    let Some(left) = road.geom().offset_curve(-BUFFER_DISTANCE) else {
+        panic!("offset failed for {}", road.data);
+    };
+    let Some(right) = road.geom().offset_curve(BUFFER_DISTANCE) else {
+        panic!("offset failed for {}", road.data);
+    };
     if distance(&left, pt).expect("snap failed") <= distance(&right, pt).expect("snap failed") {
         Side::Left
     } else {
