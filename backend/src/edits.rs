@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, LineString, Point};
+use geo::{Coord, Distance, Euclidean, LineString, Point};
 use osm_reader::{NodeID, WayID};
+use rstar::{RTree, primitives::GeomWithData};
 use serde::Serialize;
 use utils::Tags;
 
@@ -29,7 +30,7 @@ pub enum UserCmd {
     MakeAllSidewalks(bool),
     ConnectAllCrossings,
     AssumeTags(bool),
-    AddCrossing(Point, Tags),
+    AddCrossings(Vec<Point>, Tags),
 }
 
 pub enum TagCmd {
@@ -93,32 +94,53 @@ impl Edits {
                     }
                 }
             }
-            UserCmd::AddCrossing(pt_wgs84, tags) => {
-                let pt = model.mercator.to_mercator(&pt_wgs84);
-
-                let new_node_id = self.new_node_id();
-                self.new_nodes.insert(
-                    new_node_id,
-                    Node {
-                        pt: pt.into(),
-                        tags,
-                        version: 0,
-
-                        // Calculate later
-                        way_ids: Vec::new(),
-                        modified: true,
-                        problems: Vec::new(),
-                    },
+            UserCmd::AddCrossings(pts_wgs84, tags) => {
+                info!(
+                    "Building rtree for up to {} existing sidewalks",
+                    model.derived_ways.len()
+                );
+                let closest_road = RTree::bulk_load(
+                    model
+                        .derived_ways
+                        .iter()
+                        // TODO and not Crossing or Other?
+                        .filter(|(_, way)| way.kind != Kind::Sidewalk)
+                        .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                        .collect(),
                 );
 
-                // Find the one road this crossing should be on
-                let Some((way_id, idx)) = model.add_one_crossing(pt) else {
-                    bail!("Couldn't find the road to insert the crossing");
-                };
+                let mut insert_new_nodes = HashMap::new();
+                for pt in pts_wgs84 {
+                    let pt = model.mercator.to_mercator(&pt);
 
-                let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
-                node_ids.insert(idx, new_node_id);
-                self.change_way_nodes.insert(way_id, node_ids);
+                    // Find the one road this crossing should be on
+                    let Some(obj) = closest_road.nearest_neighbor(&pt) else {
+                        bail!("Couldn't find the road to insert the crossing");
+                    };
+                    let Some((idx, _)) =
+                        obj.geom().lines().enumerate().min_by_key(|(_, line)| {
+                            (Euclidean.distance(line, &pt) * 10e6) as usize
+                        })
+                    else {
+                        bail!("Couldn't find the line on a road to insert the crossing");
+                    };
+
+                    insert_new_nodes
+                        .entry(obj.data)
+                        .or_insert_with(Vec::new)
+                        .push((pt.into(), idx + 1, tags.clone()));
+                }
+
+                self.create_new_geometry(
+                    CreateNewGeometry {
+                        new_ways: Vec::new(),
+                        // Unused
+                        new_kind: Kind::Sidewalk,
+                        insert_new_nodes,
+                        modify_existing_way_tags: HashMap::new(),
+                    },
+                    model,
+                );
             }
         }
         Ok(())
@@ -141,13 +163,13 @@ impl Edits {
 
             let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
 
-            for (pt, idx) in insert_points {
+            for (pt, idx, tags) in insert_points {
                 let node_id = self.new_node_id();
                 self.new_nodes.insert(
                     node_id,
                     Node {
                         pt,
-                        tags: Tags::empty(),
+                        tags,
                         version: 0,
 
                         // Calculate later
@@ -445,7 +467,7 @@ pub struct CreateNewGeometry {
     pub new_kind: Kind,
     // Everywhere existing some new way crosses, find the index in the existing way where this
     // crossed point needs to be inserted
-    pub insert_new_nodes: HashMap<WayID, Vec<(Coord, usize)>>,
+    pub insert_new_nodes: HashMap<WayID, Vec<(Coord, usize, Tags)>>,
     pub modify_existing_way_tags: HashMap<WayID, Vec<TagCmd>>,
 }
 

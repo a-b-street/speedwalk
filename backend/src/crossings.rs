@@ -98,11 +98,11 @@ impl Speedwalk {
             insert_new_nodes
                 .entry(sidewalk1)
                 .or_insert_with(Vec::new)
-                .push((endpt1, insert_idx1));
+                .push((endpt1, insert_idx1, Tags::empty()));
             insert_new_nodes
                 .entry(sidewalk2)
                 .or_insert_with(Vec::new)
-                .push((endpt2, insert_idx2));
+                .push((endpt2, insert_idx2, Tags::empty()));
         }
 
         CreateNewGeometry {
@@ -111,31 +111,6 @@ impl Speedwalk {
             insert_new_nodes,
             modify_existing_way_tags: HashMap::new(),
         }
-    }
-
-    // Find the one road this crossing should be on
-    pub fn add_one_crossing(&self, pt: Point) -> Option<(WayID, usize)> {
-        info!(
-            "Building rtree for up to {} existing sidewalks",
-            self.derived_ways.len()
-        );
-        let closest_road = RTree::bulk_load(
-            self.derived_ways
-                .iter()
-                // TODO and not Crossing or Other?
-                .filter(|(_, way)| way.kind != Kind::Sidewalk)
-                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
-                .collect(),
-        );
-
-        let obj = closest_road.nearest_neighbor(&pt)?;
-
-        let (idx, _) = obj
-            .geom()
-            .lines()
-            .enumerate()
-            .min_by_key(|(_, line)| (Euclidean.distance(line, &pt) * 10e6) as usize)?;
-        Some((obj.data, idx + 1))
     }
 }
 

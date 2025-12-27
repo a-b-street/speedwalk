@@ -155,7 +155,7 @@ impl Speedwalk {
                     insert_new_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
-                        .push((pt, idx2));
+                        .push((pt, idx2, Tags::empty()));
                 }
             }
         }

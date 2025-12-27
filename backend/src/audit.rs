@@ -101,18 +101,16 @@ impl Speedwalk {
         }
 
         info!("Adding {} imaginary crossings", pts.len());
-        // TODO It's slow, but do this one at a time, in case we modify the same way multiple
-        // times. Use CreateNewGeometry to do this all at once instead.
-        for pt in pts {
-            let mut tags = Tags::empty();
-            tags.insert("highway", "crossing");
-            // TODO Decide how to encode this
-            tags.insert("crossing", "imaginary");
-            let mut edits = self.edits.take().unwrap();
-            edits.apply_cmd(UserCmd::AddCrossing(pt, tags), self)?;
-            self.edits = Some(edits);
-            self.after_edit();
-        }
+        let mut tags = Tags::empty();
+        tags.insert("highway", "crossing");
+        // TODO Decide how to encode this
+        tags.insert("crossing", "imaginary");
+
+        let mut edits = self.edits.take().unwrap();
+        edits.apply_cmd(UserCmd::AddCrossings(pts, tags), self)?;
+        self.edits = Some(edits);
+        self.after_edit();
+
         Ok(())
     }
 

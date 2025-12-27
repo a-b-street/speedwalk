@@ -247,7 +247,7 @@ impl Speedwalk {
         tags.insert("highway", "crossing");
         tags.insert("crossing", "traffic_signals");
         edits
-            .apply_cmd(UserCmd::AddCrossing(Point::new(x, y), tags), self)
+            .apply_cmd(UserCmd::AddCrossings(vec![Point::new(x, y)], tags), self)
             .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
