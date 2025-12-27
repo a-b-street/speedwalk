@@ -54,7 +54,7 @@ impl Speedwalk {
 
         info!("Generating {} crossings", crossings.len());
         let mut new_crossings = Vec::new();
-        let mut modify_existing_nodes = HashMap::new();
+        let mut insert_new_nodes = HashMap::new();
         for crossing_node in crossings {
             let project_away_meters = 10.0;
 
@@ -95,21 +95,21 @@ impl Speedwalk {
 
             new_crossings.push((LineString::new(vec![endpt1, crossing_pt, endpt2]), new_tags));
 
-            modify_existing_nodes
+            insert_new_nodes
                 .entry(sidewalk1)
                 .or_insert_with(Vec::new)
                 .push((endpt1, insert_idx1));
-            modify_existing_nodes
+            insert_new_nodes
                 .entry(sidewalk2)
                 .or_insert_with(Vec::new)
                 .push((endpt2, insert_idx2));
         }
 
         CreateNewGeometry {
-            new_objects: new_crossings,
+            new_ways: new_crossings,
             new_kind: Kind::Crossing,
-            modify_existing_nodes,
-            modify_existing_tags: HashMap::new(),
+            insert_new_nodes,
+            modify_existing_way_tags: HashMap::new(),
         }
     }
 

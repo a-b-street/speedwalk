@@ -134,7 +134,7 @@ impl Edits {
         }
 
         // Modify existing ways first
-        for (way_id, mut insert_points) in results.modify_existing_nodes {
+        for (way_id, mut insert_points) in results.insert_new_nodes {
             // When there are multiple points, insert the highest indices first, so nothing
             // messes up
             insert_points.sort_by(|a, b| b.1.cmp(&a.1));
@@ -165,7 +165,7 @@ impl Edits {
         }
 
         // Create new geometry
-        for (linestring, new_tags) in results.new_objects {
+        for (linestring, new_tags) in results.new_ways {
             let mut node_ids = Vec::new();
             for pt in linestring.coords() {
                 let id = node_mapping
@@ -207,7 +207,7 @@ impl Edits {
         }
 
         // Update tags
-        for (way_id, cmds) in results.modify_existing_tags {
+        for (way_id, cmds) in results.modify_existing_way_tags {
             self.change_way_tags
                 .entry(way_id)
                 .or_insert_with(Vec::new)
@@ -440,13 +440,13 @@ fn escape(v: &str) -> String {
 }
 
 pub struct CreateNewGeometry {
-    pub new_objects: Vec<(LineString, Tags)>,
-    /// All of the new objects have the same Kind
+    pub new_ways: Vec<(LineString, Tags)>,
+    /// All of the new ways have the same Kind
     pub new_kind: Kind,
-    // Everywhere existing some new object crosses, find the index in the existing way where this
+    // Everywhere existing some new way crosses, find the index in the existing way where this
     // crossed point needs to be inserted
-    pub modify_existing_nodes: HashMap<WayID, Vec<(Coord, usize)>>,
-    pub modify_existing_tags: HashMap<WayID, Vec<TagCmd>>,
+    pub insert_new_nodes: HashMap<WayID, Vec<(Coord, usize)>>,
+    pub modify_existing_way_tags: HashMap<WayID, Vec<TagCmd>>,
 }
 
 fn is_oneway(tags: &Tags) -> bool {

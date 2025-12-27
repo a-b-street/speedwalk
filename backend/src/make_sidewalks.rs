@@ -143,7 +143,7 @@ impl Speedwalk {
             "Finding existing roads these {} new sidewalks cross",
             new_sidewalks.len()
         );
-        let mut modify_existing_nodes = HashMap::new();
+        let mut insert_new_nodes = HashMap::new();
         for (new_sidewalk, _) in &mut new_sidewalks {
             let bbox = aabb(new_sidewalk);
             for obj in closest_way.locate_in_envelope_intersecting(&bbox) {
@@ -152,7 +152,7 @@ impl Speedwalk {
                     new_sidewalk.0.insert(idx1, pt);
 
                     // Remember to modify the existing way
-                    modify_existing_nodes
+                    insert_new_nodes
                         .entry(obj.data)
                         .or_insert_with(Vec::new)
                         .push((pt, idx2));
@@ -161,7 +161,7 @@ impl Speedwalk {
         }
 
         // Update tags on existing roads
-        let mut modify_existing_tags = HashMap::new();
+        let mut modify_existing_way_tags = HashMap::new();
         for way in roads_with_new_left {
             // All existing sidewalk tags will get cleaned up by edits.rs, unless the user
             // previously did AssumeTags. It's always safe to forcibly clean up this tag.
@@ -188,7 +188,7 @@ impl Speedwalk {
                 ));
                 tags.push(TagCmd::Set("sidewalk:right".to_string(), "no".to_string()));
             }
-            modify_existing_tags.insert(way, tags);
+            modify_existing_way_tags.insert(way, tags);
         }
         for way in roads_with_new_right {
             let mut tags = vec![
@@ -208,14 +208,14 @@ impl Speedwalk {
                     "separate".to_string(),
                 ));
             }
-            modify_existing_tags.insert(way, tags);
+            modify_existing_way_tags.insert(way, tags);
         }
 
         CreateNewGeometry {
-            new_objects: new_sidewalks,
+            new_ways: new_sidewalks,
             new_kind: Kind::Sidewalk,
-            modify_existing_nodes,
-            modify_existing_tags,
+            insert_new_nodes,
+            modify_existing_way_tags,
         }
     }
 }
