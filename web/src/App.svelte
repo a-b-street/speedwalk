@@ -11,11 +11,7 @@
   import type { Map } from "maplibre-gl";
   import { Geocoder, StandardControls } from "svelte-utils/map";
   import ActionBar from "./common/ActionBar.svelte";
-  import {
-    mapContents,
-    sidebarContents,
-    Layout,
-  } from "svelte-utils/top_bar_layout";
+  import { leftTarget, Layout } from "svelte-utils/top_bar_layout";
   import * as backendPkg from "../../backend/pkg";
   import SidewalksMode from "./sidewalks/SidewalksMode.svelte";
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
@@ -34,17 +30,6 @@
   onMount(async () => {
     await backendPkg.default();
   });
-
-  let sidebarDiv: HTMLDivElement;
-  let mapDiv: HTMLDivElement;
-  $: if (sidebarDiv && $sidebarContents) {
-    sidebarDiv.innerHTML = "";
-    sidebarDiv.appendChild($sidebarContents);
-  }
-  $: if (mapDiv && $mapContents) {
-    mapDiv.innerHTML = "";
-    mapDiv.appendChild($mapContents);
-  }
 </script>
 
 <svelte:head>
@@ -52,53 +37,55 @@
 </svelte:head>
 
 <Layout>
-  <div slot="top">
+  {#snippet top()}
     <NavBar />
-  </div>
+  {/snippet}
 
-  <div class="p-3" slot="left">
-    {#if map}
-      <div bind:this={sidebarDiv} />
-    {/if}
-  </div>
-
-  <div slot="main" style="position:relative; width: 100%; height: 100vh;">
-    <MapLibre
-      style={$basemapStyles[basemap]}
-      hash
-      bind:map
-      on:error={(e) => {
-        // @ts-ignore ErrorEvent isn't exported
-        console.log(e.detail.error);
-      }}
-      images={[{ id: "arrow", url: arrow }]}
-    >
-      <StandardControls {map} />
-      <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
-      <!--<MapContextMenu {map} />-->
-      <ActionBar bind:basemap />
-
+  {#snippet left()}
+    <div class="p-3">
       {#if map}
-        <div bind:this={mapDiv} />
-
-        {#if $backend}
-          <StudyAreaFade />
-
-          {#key $mode}
-            {#if $mode.kind == "sidewalks"}
-              <SidewalksMode />
-            {:else if $mode.kind == "crossings"}
-              <AuditCrossingsMode />
-            {:else if $mode.kind == "disconnections"}
-              <DisconnectionsMode />
-            {:else if $mode.kind == "export"}
-              <ExportMode />
-            {/if}
-          {/key}
-        {:else}
-          <Loader />
-        {/if}
+        <div bind:this={leftTarget.value}></div>
       {/if}
-    </MapLibre>
-  </div>
+    </div>
+  {/snippet}
+
+  {#snippet main()}
+    <div style="position:relative; width: 100%; height: 100vh;">
+      <MapLibre
+        style={$basemapStyles[basemap]}
+        hash
+        bind:map
+        on:error={(e) => {
+          // @ts-ignore ErrorEvent isn't exported
+          console.log(e.detail.error);
+        }}
+        images={[{ id: "arrow", url: arrow }]}
+      >
+        <StandardControls {map} />
+        <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
+        <!--<MapContextMenu {map} />-->
+        <ActionBar bind:basemap />
+
+        {#if map}
+          {#if $backend}
+            <StudyAreaFade />
+
+            {#key $mode}
+              {#if $mode.kind == "sidewalks"}
+                <SidewalksMode />
+              {:else if $mode.kind == "crossings"}
+                <AuditCrossingsMode />
+              {:else if $mode.kind == "disconnections"}
+                <DisconnectionsMode />
+              {:else if $mode.kind == "export"}
+                <ExportMode />
+              {/if}
+            {/key}
+          {:else}
+            <Loader />
+          {/if}
+        {/if}
+      </MapLibre>
+    </div>
+  {/snippet}
 </Layout>

@@ -23,7 +23,7 @@
 </script>
 
 <SplitComponent>
-  <div slot="sidebar">
+  {#snippet left()}
     <h4>Export network</h4>
 
     <p>You can export the routeable walking network as a GeoJSON file.</p>
@@ -78,9 +78,9 @@
     </CollapsibleCard>
 
     <SharedSidebarFooter />
-  </div>
+  {/snippet}
 
-  <div slot="map">
+  {#snippet main()}
     <GeoJSON data={gj} generateId>
       <LineLayer
         manageHoverState
@@ -108,5 +108,5 @@
         </Popup>
       </LineLayer>
     </GeoJSON>
-  </div>
+  {/snippet}
 </SplitComponent>

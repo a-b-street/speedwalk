@@ -55,7 +55,7 @@
 </script>
 
 <SplitComponent>
-  <div slot="sidebar">
+  {#snippet left()}
     <h4>Network disconnections</h4>
 
     <p>
@@ -83,9 +83,9 @@
     </ul>
 
     <SharedSidebarFooter />
-  </div>
+  {/snippet}
 
-  <div slot="map">
+  {#snippet main()}
     <MapEvents on:click={onMapClick} />
 
     <GeoJSON data={gj} generateId>
@@ -100,5 +100,5 @@
         on:click={onClickLine}
       />
     </GeoJSON>
-  </div>
+  {/snippet}
 </SplitComponent>

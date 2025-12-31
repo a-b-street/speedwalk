@@ -112,7 +112,7 @@
 <Loading {loading} />
 
 <SplitComponent>
-  <div slot="sidebar">
+  {#snippet left()}
     <Edits />
 
     <ProblemControls {nodes} {ways} bind:drawProblems />
@@ -124,9 +124,9 @@
     <BulkOperations />
 
     <SharedSidebarFooter />
-  </div>
+  {/snippet}
 
-  <div slot="map">
+  {#snippet main()}
     <WaysLayer
       bind:pinnedWay
       bind:drawProblemDetails
@@ -219,5 +219,5 @@
         </div>
       </CollapsibleCard>
     </Control>
-  </div>
+  {/snippet}
 </SplitComponent>
