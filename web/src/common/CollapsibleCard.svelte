@@ -1,7 +1,13 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import { v4 as uuidv4 } from "uuid";
 
-  export let open = true;
+  interface Props {
+    header: Snippet;
+    body: Snippet;
+    open?: boolean;
+  }
+  let { header, body, open = true }: Props = $props();
 
   let id = uuidv4();
 </script>
@@ -17,12 +23,12 @@
         aria-expanded="true"
         aria-controls={id}
       >
-        <slot name="header"></slot>
+        {@render header()}
       </button>
     </div>
     <div {id} class="accordion-collapse collapse" class:show={open}>
       <div class="accordion-body">
-        <slot name="body"></slot>
+        {@render body()}
       </div>
     </div>
   </div>

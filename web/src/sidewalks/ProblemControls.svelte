@@ -98,8 +98,8 @@
 </script>
 
 <CollapsibleCard>
-  <div slot="header">Problems</div>
-  <div slot="body">
+  {#snippet header()}Problems{/snippet}
+  {#snippet body()}
     <select class="form-select" bind:value={show}>
       <option value="">Show a type of problem</option>
       {#each Object.entries(problemCounts) as [problem, count]}
@@ -189,7 +189,7 @@
         side is unspecified or not drawn separately. Be consistent on each road
         and use another editor to draw separate sidewalks on both sides.
       </p>{/if}
-  </div>
+  {/snippet}
 </CollapsibleCard>
 
 <style>

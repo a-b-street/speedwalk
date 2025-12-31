@@ -81,7 +81,7 @@
     />
   {/snippet}
 
-  {#snippet left()}
+  {#snippet main()}
     <PolygonToolLayer />
   {/snippet}
 </SplitComponent>

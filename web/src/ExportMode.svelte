@@ -35,8 +35,8 @@
     </button>
 
     <CollapsibleCard open={false}>
-      <div slot="header">Details</div>
-      <div slot="body">
+      {#snippet header()}Details{/snippet}
+      {#snippet body()}
         <p>
           The output will have a LineString for each edge in the network. An
           edge goes between exactly two graph nodes, so one OSM way usually
@@ -67,14 +67,14 @@
           Note OSM IDs will be negative if you have run bulk operations and
           generated synthetic sidewalks or crossings.
         </p>
-      </div>
+      {/snippet}
     </CollapsibleCard>
 
     <CollapsibleCard>
-      <div slot="header">Legend</div>
-      <div slot="body">
+      {#snippet header()}Legend{/snippet}
+      {#snippet body()}
         <QualitativeLegend labelColors={colors} itemsPerRow={1} />
-      </div>
+      {/snippet}
     </CollapsibleCard>
 
     <SharedSidebarFooter />

@@ -222,8 +222,8 @@
 
     <Control position="top-right">
       <CollapsibleCard>
-        <div slot="header">Settings</div>
-        <div slot="body">
+        {#snippet header()}Settings{/snippet}
+        {#snippet body()}
           <Checkbox bind:checked={options.only_major_roads}>
             Only junctions on major roads
           </Checkbox>
@@ -264,7 +264,7 @@
               swatchClass="circle"
             />
           </div>
-        </div>
+        {/snippet}
       </CollapsibleCard>
     </Control>
   {/snippet}

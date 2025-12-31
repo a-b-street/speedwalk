@@ -113,11 +113,11 @@
 <Loading {loading} />
 
 <CollapsibleCard>
-  <div slot="header">
+  {#snippet header()}
     {cmds.length}
     {cmds.length == 1 ? "edit" : "edits"}
-  </div>
-  <div slot="body">
+  {/snippet}
+  {#snippet body()}
     {#if cmds.length > 0}
       <div class="mb-1">
         <button class="btn btn-danger" on:click={clear}>Clear edits</button>
@@ -155,5 +155,5 @@
 
       <p>{JSON.stringify(cmds[idx])}</p>
     {/if}
-  </div>
+  {/snippet}
 </CollapsibleCard>
