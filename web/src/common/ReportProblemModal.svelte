@@ -1,8 +1,7 @@
 <script lang="ts">
   import type { Map } from "maplibre-gl";
-  import { Checkbox } from "svelte-utils";
+  import { Checkbox, Modal } from "svelte-utils";
   import { loggedInUser, map } from "../";
-  import Modal from "./Modal.svelte";
 
   let show = false;
   let submitting = false;
