@@ -90,6 +90,7 @@
     <a
       href="https://www.openstreetmap.org/edit?way={pinnedWay.properties.id}"
       target="_blank"
+      title="Edit way"
     >
       <i class="fa-solid fa-pencil"></i>
     </a>

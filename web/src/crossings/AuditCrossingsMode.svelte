@@ -16,6 +16,7 @@
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import { getMapViewport, getIdUrl } from "../common/osmEditorUrls";
+  import type { MapGeoJSONFeature } from "maplibre-gl";
 
   let options = {
     only_major_roads: true,
@@ -34,7 +35,7 @@
     (f) => f.properties!.complete,
   ).length;
 
-  let hovered: Feature | null = null;
+  let hovered: (Feature & MapGeoJSONFeature) | undefined = undefined;
   $: debugArms = hovered
     ? JSON.parse(hovered.properties!.arms)
     : emptyGeojson();
@@ -150,7 +151,7 @@
         }}
         bind:hovered
         hoverCursor="pointer"
-        on:click={clickJunction}
+        onclick={clickJunction}
       />
     </GeoJSON>
 
