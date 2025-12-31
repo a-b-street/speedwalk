@@ -181,19 +181,21 @@
           "circle-stroke-width": 1,
         }}
       >
-        <Popup openOn="hover" let:data>
-          {@const props = data?.properties ?? {}}
-          <h4>Node {props.id}</h4>
-          <table class="table table-bordered">
-            <tbody>
-              {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
-                <tr>
-                  <td>{key}</td>
-                  <td>{value}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+        <Popup openOn="hover">
+          {#snippet children({ data })}
+            {@const props = data?.properties ?? {}}
+            <h4>Node {props.id}</h4>
+            <table class="table table-bordered">
+              <tbody>
+                {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
+                  <tr>
+                    <td>{key}</td>
+                    <td>{value}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/snippet}
         </Popup>
       </CircleLayer>
     </GeoJSON>
