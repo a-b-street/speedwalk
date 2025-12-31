@@ -1,11 +1,7 @@
 <script lang="ts">
   import { roadLineWidth, colors } from "./sidewalks";
   import { Popup, GeoJSON, hoverStateFilter, LineLayer } from "svelte-maplibre";
-  import {
-    downloadGeneratedFile,
-    notNull,
-    QualitativeLegend,
-  } from "svelte-utils";
+  import { downloadGeneratedFile, QualitativeLegend } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter } from "./";
@@ -94,17 +90,19 @@
           "line-opacity": hoverStateFilter(1.0, 0.5),
         }}
       >
-        <Popup openOn="hover" let:data>
-          <table class="table table-bordered">
-            <tbody>
-              {#each Object.entries(notNull(notNull(data).properties)) as [key, value]}
-                <tr>
-                  <td>{key}</td>
-                  <td>{value}</td>
-                </tr>
-              {/each}
-            </tbody>
-          </table>
+        <Popup openOn="hover">
+          {#snippet children({ data })}
+            <table class="table table-bordered">
+              <tbody>
+                {#each Object.entries(data!.properties!) as [key, value]}
+                  <tr>
+                    <td>{key}</td>
+                    <td>{value}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/snippet}
         </Popup>
       </LineLayer>
     </GeoJSON>

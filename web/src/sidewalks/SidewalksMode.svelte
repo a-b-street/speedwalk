@@ -165,30 +165,32 @@
           visibility: showNodes ? "visible" : "none",
         }}
       >
-        <Popup openOn="hover" let:data>
-          {@const props = data?.properties ?? {}}
-          {@const problems = JSON.parse(props.problems)}
+        <Popup openOn="hover">
+          {#snippet children({ data })}
+            {@const props = data?.properties ?? {}}
+            {@const problems = JSON.parse(props.problems)}
 
-          <h4>Node {props.id}</h4>
-          <p>Ways: {props.way_ids}</p>
-          <table class="table table-bordered">
-            <tbody>
-              {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
-                <tr>
-                  <td>{key}</td>
-                  <td>{value}</td>
-                </tr>
+            <h4>Node {props.id}</h4>
+            <p>Ways: {props.way_ids}</p>
+            <table class="table table-bordered">
+              <tbody>
+                {#each Object.entries(JSON.parse(props.tags || "{}")) as [key, value]}
+                  <tr>
+                    <td>{key}</td>
+                    <td>{value}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+
+            {#if problems.length}
+              <u>Problems:</u>
+
+              {#each problems as problem}
+                <p>{problem.note}</p>
               {/each}
-            </tbody>
-          </table>
-
-          {#if problems.length}
-            <u>Problems:</u>
-
-            {#each problems as problem}
-              <p>{problem.note}</p>
-            {/each}
-          {/if}
+            {/if}
+          {/snippet}
         </Popup>
       </CircleLayer>
     </GeoJSON>

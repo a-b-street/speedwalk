@@ -2,7 +2,7 @@
   import { PolygonToolLayer } from "maplibre-draw-polygon";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { bbox } from "svelte-utils/map";
-  import { Loading, notNull } from "svelte-utils";
+  import { Loading } from "svelte-utils";
   import { OverpassSelector } from "svelte-utils/overpass";
   import * as backendPkg from "../../backend/pkg";
   import { backend, refreshLoadingScreen, map } from "./";
@@ -71,7 +71,7 @@
     <p class="fst-italic my-3">or...</p>
 
     <OverpassSelector
-      map={notNull($map)}
+      map={$map!}
       on:gotXml={gotXml}
       on:loading={(e) => (loading = e.detail)}
       on:error={(e) => {
