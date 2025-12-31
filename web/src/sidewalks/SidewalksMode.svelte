@@ -204,17 +204,19 @@
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
 
           <Metrics bind:showKinds>
-            <Checkbox bind:checked={onlySeverances}>
-              Only show major roads
-            </Checkbox>
+            {#snippet extraControls()}
+              <Checkbox bind:checked={onlySeverances}>
+                Only show major roads
+              </Checkbox>
 
-            <Checkbox bind:checked={showServiceRoads}>
-              Show service roads
-            </Checkbox>
+              <Checkbox bind:checked={showServiceRoads}>
+                Show service roads
+              </Checkbox>
 
-            <Checkbox bind:checked={showRoadSides}>
-              Show each side with sidewalks ✅ or not ❌
-            </Checkbox>
+              <Checkbox bind:checked={showRoadSides}>
+                Show each side with sidewalks ✅ or not ❌
+              </Checkbox>
+            {/snippet}
           </Metrics>
         {/snippet}
       </CollapsibleCard>

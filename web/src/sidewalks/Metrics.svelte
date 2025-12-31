@@ -2,8 +2,12 @@
   import { Checkbox } from "svelte-utils";
   import { backend, mutationCounter, prettyPrintDistance, sum } from "../";
   import { colors } from "./";
+  import type { Snippet } from "svelte";
 
-  export let showKinds: Record<string, boolean>;
+  let {
+    showKinds = $bindable(),
+    extraControls,
+  }: { showKinds: Record<string, boolean>; extraControls: Snippet } = $props();
 
   let roads = [
     ["RoadWithSeparate", "With separate sidewalks"],
@@ -66,7 +70,7 @@
     {/each}
 
     <div class="mb-3"></div>
-    <slot />
+    {@render extraControls()}
   </div>
 </div>
 
