@@ -20,16 +20,19 @@
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
 
-  let map: Map | undefined;
-  let basemap = "Maptiler OpenStreetMap";
-
-  $: if (map) {
-    mapStore.set(map);
-  }
-
   onMount(async () => {
     await backendPkg.default();
   });
+
+  let map: Map | undefined = $state();
+  let loaded = $state(false);
+  $effect(() => {
+    if (map) {
+      mapStore.set(map);
+    }
+  });
+
+  let basemap = $state("Maptiler OpenStreetMap");
 </script>
 
 <svelte:head>
@@ -55,14 +58,14 @@
         style={$basemapStyles[basemap]}
         hash
         bind:map
-        on:error={(e) => {
-          // @ts-ignore ErrorEvent isn't exported
-          console.log(e.detail.error);
+        bind:loaded
+        onerror={(e) => {
+          console.log(e.error);
         }}
         images={[{ id: "arrow", url: arrow }]}
       >
         <StandardControls {map} />
-        <Geocoder {map} country={undefined} apiKey="MZEJTanw3WpxRvt7qDfo" />
+        <Geocoder {map} {loaded} />
         <!--<MapContextMenu {map} />-->
         <ActionBar bind:basemap />
 
