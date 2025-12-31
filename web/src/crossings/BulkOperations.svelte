@@ -36,12 +36,12 @@
 
 {#if $enabledBulkOps}
   <CollapsibleCard>
-    <div slot="header">Bulk operations</div>
-    <div slot="body">
+    {#snippet header()}Bulk operations{/snippet}
+    {#snippet body()}
       <button class="btn btn-secondary" on:click={generateCrossings}>
         Generate imaginary crossings where they're missing
       </button>
-    </div>
+    {/snippet}
   </CollapsibleCard>
 {:else}
   <button class="btn btn-secondary" on:click={() => (show = true)}>

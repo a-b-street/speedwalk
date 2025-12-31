@@ -62,8 +62,8 @@
 
 {#if $enabledBulkOps}
   <CollapsibleCard>
-    <div slot="header">Bulk operations</div>
-    <div slot="body">
+    {#snippet header()}Bulk operations{/snippet}
+    {#snippet body()}
       <div class="card mb-3">
         <div class="card-header">Assume old-style tags on one-ways</div>
         <div class="card-body">
@@ -89,7 +89,7 @@
       <button class="btn btn-secondary" on:click={connectAllCrossings}>
         Connect all crossing nodes
       </button>
-    </div>
+    {/snippet}
   </CollapsibleCard>
 {:else}
   <button class="btn btn-secondary" on:click={() => (show = true)}>

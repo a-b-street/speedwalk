@@ -195,8 +195,8 @@
 
     <Control position="top-right">
       <CollapsibleCard>
-        <div slot="header">Layers</div>
-        <div slot="body">
+        {#snippet header()}Layers{/snippet}
+        {#snippet body()}
           <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
 
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
@@ -216,7 +216,7 @@
               Show each side with sidewalks ✅ or not ❌
             </Checkbox>
           </Metrics>
-        </div>
+        {/snippet}
       </CollapsibleCard>
     </Control>
   {/snippet}
