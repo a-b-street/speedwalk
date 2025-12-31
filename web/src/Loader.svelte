@@ -25,17 +25,12 @@
     }
   }
 
-  async function gotXml(
-    e: CustomEvent<{ xml: string; boundary: Feature<Polygon> }>,
-  ) {
+  async function gotXml(xml: string, boundary: Feature<Polygon>) {
     try {
       loading = "Processing Overpass data";
       await refreshLoadingScreen();
-      let bytes = new TextEncoder().encode(e.detail.xml);
-      $backend = new backendPkg.Speedwalk(
-        new Uint8Array(bytes),
-        e.detail.boundary,
-      );
+      let bytes = new TextEncoder().encode(xml);
+      $backend = new backendPkg.Speedwalk(new Uint8Array(bytes), boundary);
       zoomFit();
     } catch (err) {
       window.alert(`Couldn't import from Overpass: ${err}`);
@@ -72,10 +67,10 @@
 
     <OverpassSelector
       map={$map!}
-      on:gotXml={gotXml}
-      on:loading={(e) => (loading = e.detail)}
-      on:error={(e) => {
-        window.alert(e.detail);
+      {gotXml}
+      onloading={(msg) => (loading = msg)}
+      onerror={(msg) => {
+        window.alert(msg);
         loading = "";
       }}
     />
