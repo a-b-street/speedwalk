@@ -45,8 +45,8 @@
         <ul>
           <li>
             <b>node1</b>
-            : The OSM node ID of the beginning of the edge. This is safer to use
-            to form a graph than the first coordinate.
+            : The OSM node ID of the beginning of the edge. This is safer to use to
+            form a graph than the first coordinate.
           </li>
           <li>
             <b>node2</b>
