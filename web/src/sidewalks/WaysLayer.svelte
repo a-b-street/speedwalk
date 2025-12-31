@@ -39,9 +39,9 @@
   export let ways: FeatureCollection<LineString, WayProps>;
   export let filterWays: ExpressionSpecification;
 
-  function onMapClick(e: CustomEvent<MapMouseEvent>) {
+  function onMapClick(e: MapMouseEvent) {
     pinnedWay = null;
-    for (let rendered of $map!.queryRenderedFeatures(e.detail.point, {
+    for (let rendered of $map!.queryRenderedFeatures(e.point, {
       layers: ["ways"],
     })) {
       // Find the original feature in the GJ, to avoid having to parse nested properties
@@ -111,7 +111,7 @@
   }
 </script>
 
-<MapEvents on:click={onMapClick} />
+<MapEvents onclick={onMapClick} />
 
 <GeoJSON data={pinnedWay || emptyGeojson()}>
   <LineLayer

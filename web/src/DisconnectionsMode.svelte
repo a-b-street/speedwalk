@@ -38,14 +38,14 @@
     ];
   }
 
-  function onClickLine(e: CustomEvent<LayerClickInfo>) {
-    showComponent = e.detail.features[0].properties!.component;
+  function onClickLine(e: LayerClickInfo) {
+    showComponent = e.features[0].properties!.component;
   }
 
-  function onMapClick(e: CustomEvent<MapMouseEvent>) {
+  function onMapClick(e: MapMouseEvent) {
     // If we click off a line, clear things
     if (
-      $map!.queryRenderedFeatures(e.detail.point, {
+      $map!.queryRenderedFeatures(e.point, {
         layers: ["disconnections"],
       }).length == 0
     ) {
@@ -71,7 +71,8 @@
           <a
             style:color={colors[idx % colors.length]}
             href="#"
-            on:click|preventDefault={() => {
+            onclick={(e) => {
+              e.preventDefault();
               $map?.fitBounds(gj.component_bboxes[idx]);
               showComponent = idx;
             }}
@@ -86,7 +87,7 @@
   {/snippet}
 
   {#snippet main()}
-    <MapEvents on:click={onMapClick} />
+    <MapEvents onclick={onMapClick} />
 
     <GeoJSON data={gj} generateId>
       <LineLayer
@@ -97,7 +98,7 @@
         }}
         manageHoverState
         hoverCursor="pointer"
-        on:click={onClickLine}
+        onclick={onClickLine}
       />
     </GeoJSON>
   {/snippet}
