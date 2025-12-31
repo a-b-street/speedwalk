@@ -55,7 +55,7 @@
 <Loading {loading} />
 
 <SplitComponent>
-  <div slot="sidebar">
+  {#snippet left()}
     <div>
       <label class="form-label">
         Load an osm.pbf or osm.xml file
@@ -79,9 +79,9 @@
         loading = "";
       }}
     />
-  </div>
+  {/snippet}
 
-  <div slot="map">
+  {#snippet left()}
     <PolygonToolLayer />
-  </div>
+  {/snippet}
 </SplitComponent>

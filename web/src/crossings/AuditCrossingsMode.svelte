@@ -78,7 +78,7 @@
 </script>
 
 <SplitComponent>
-  <div slot="sidebar">
+  {#snippet left()}
     <h4>Crossings audit</h4>
 
     <p>
@@ -130,9 +130,9 @@
     <BulkOperations {options} />
 
     <SharedSidebarFooter />
-  </div>
+  {/snippet}
 
-  <div slot="map">
+  {#snippet main()}
     <GeoJSON {data} generateId>
       <CircleLayer
         manageHoverState
@@ -267,5 +267,5 @@
         </div>
       </CollapsibleCard>
     </Control>
-  </div>
+  {/snippet}
 </SplitComponent>
