@@ -3,23 +3,23 @@
   import { Checkbox, Modal } from "svelte-utils";
   import { loggedInUser, map } from "../";
 
-  let show = false;
-  let submitting = false;
-  let success = false;
+  let show = $state(false);
+  let submitting = $state(false);
+  let success = $state(false);
 
   export function triggerStart() {
     if (!$map) return;
     start();
   }
 
-  let details = "";
-  let automaticDetails = {};
-  let includeUsername = false;
-  let includeScreenshot = true;
-  let screenshotBlob: Blob | undefined = undefined;
-  let screenshotURL: string | undefined = undefined;
+  let details = $state("");
+  let automaticDetails = $state({});
+  let includeUsername = $state(false);
+  let includeScreenshot = $state(true);
+  let screenshotBlob: Blob | undefined = $state();
+  let screenshotURL: string | undefined = $state();
 
-  $: filledOut = details || screenshotURL;
+  let filledOut = $derived(details || screenshotURL);
 
   async function start() {
     show = true;
@@ -150,13 +150,13 @@
       You may be contacted later when this problem has been fixed.
     {/if}
   </p>
-  <button class="btn btn-primary" on:click={() => (success = false)}>OK</button>
+  <button class="btn btn-primary" onclick={() => (success = false)}>OK</button>
 </Modal>
 
 <Modal bind:show closeable={false}>
   <div class="d-flex justify-content-between">
     <h2>Report a problem</h2>
-    <button class="btn-close" on:click={cancel} aria-label="Close"></button>
+    <button class="btn-close" onclick={cancel} aria-label="Close"></button>
   </div>
 
   <p>You can report a problem with Speedwalk.</p>
@@ -207,14 +207,14 @@
     {:else}
       <button
         class="btn btn-primary me-3"
-        on:click={submit}
+        onclick={submit}
         disabled={!filledOut}
       >
         Submit report
       </button>
     {/if}
 
-    <button class="btn btn-secondary" on:click={cancel}>Cancel</button>
+    <button class="btn btn-secondary" onclick={cancel}>Cancel</button>
   </div>
 </Modal>
 

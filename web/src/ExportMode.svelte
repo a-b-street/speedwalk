@@ -9,9 +9,11 @@
   import NetworkFilter from "./common/NetworkFilter.svelte";
   import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
-  $: gj = $backend
-    ? JSON.parse($backend!.exportNetwork($networkFilter))
-    : emptyGeojson();
+  let gj = $derived(
+    $backend
+      ? JSON.parse($backend.exportNetwork($networkFilter))
+      : emptyGeojson(),
+  );
 
   function download() {
     downloadGeneratedFile("network.geojson", JSON.stringify(gj));
@@ -26,7 +28,7 @@
 
     <NetworkFilter />
 
-    <button class="btn btn-primary mt-3 mb-3" on:click={download}>
+    <button class="btn btn-primary mt-3 mb-3" onclick={download}>
       Download GeoJSON
     </button>
 
