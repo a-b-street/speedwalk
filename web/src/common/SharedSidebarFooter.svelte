@@ -4,7 +4,7 @@
   import { overpassQueryForPolygon } from "svelte-utils/overpass";
   import { Loading } from "svelte-utils";
 
-  let loading = "";
+  let loading = $state("");
 
   function describeOsmTimestamp(t: bigint | undefined): string {
     if (t) {
@@ -86,11 +86,9 @@
 
 <div class="mt-4">
   <div class="d-flex gap-2 mb-3">
-    <button class="btn btn-secondary" on:click={clear}>
-      Load another area
-    </button>
+    <button class="btn btn-secondary" onclick={clear}>Load another area</button>
 
-    <button class="btn btn-secondary" on:click={refreshData}>
+    <button class="btn btn-secondary" onclick={refreshData}>
       Refresh OSM data
     </button>
   </div>

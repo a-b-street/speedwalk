@@ -4,11 +4,13 @@
   import type { FeatureCollection, Feature } from "geojson";
   import { isLine, isPoint } from "svelte-utils/map";
 
-  export let drawProblems: FeatureCollection;
-  export let pinnedWay: Feature | null;
+  let {
+    drawProblems,
+    pinnedWay,
+  }: { drawProblems: FeatureCollection; pinnedWay: Feature | null } = $props();
 
   // Animate the problems to call attention
-  let opacity = 0.5;
+  let opacity = $state(0.5);
 
   function animate(time: DOMHighResTimeStamp) {
     let duration = 2500;

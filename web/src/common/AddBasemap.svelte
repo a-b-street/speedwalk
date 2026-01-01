@@ -3,7 +3,7 @@
   import { basemapStyles } from "svelte-utils/map";
   import { Modal } from "svelte-utils";
 
-  export let show: boolean;
+  let { show = $bindable() }: { show: boolean } = $props();
 
   let localStorageKey = "speedwalk-custom-basemaps";
 
@@ -14,16 +14,17 @@
   }
 
   // Setup from local storage. Don't attempt any validation.
-  let customBasemaps: CustomBasemap[] = JSON.parse(
-    window.localStorage.getItem(localStorageKey) || "[]",
+  let customBasemaps: CustomBasemap[] = $state(
+    JSON.parse(window.localStorage.getItem(localStorageKey) || "[]"),
   );
+  // svelte-ignore state_referenced_locally
   for (let x of customBasemaps) {
     basemapStyles.set(x.name, makeStyle(x.tileURL, x.attribution));
   }
 
-  let name = "";
-  let tileURL = "";
-  let attribution = "";
+  let name = $state("");
+  let tileURL = $state("");
+  let attribution = $state("");
 
   function makeStyle(tileURL: string, attribution: string): StyleSpecification {
     let maptilerKey = "MZEJTanw3WpxRvt7qDfo";
@@ -60,7 +61,6 @@
 
   function addBasemap() {
     customBasemaps.push({ name, tileURL, attribution });
-    customBasemaps = customBasemaps;
     window.localStorage.setItem(
       localStorageKey,
       JSON.stringify(customBasemaps),
@@ -88,10 +88,7 @@
 
   {#each customBasemaps as x}
     <div>
-      <button
-        class="btn btn-danger mb-3"
-        on:click={() => removeBasemap(x.name)}
-      >
+      <button class="btn btn-danger mb-3" onclick={() => removeBasemap(x.name)}>
         Remove {x.name}
       </button>
     </div>
@@ -173,7 +170,7 @@
       <button
         class="btn btn-primary"
         disabled={!name || !tileURL || !attribution}
-        on:click={addBasemap}
+        onclick={addBasemap}
       >
         Add basemap
       </button>
@@ -181,8 +178,6 @@
   </div>
 
   <div class="mt-5">
-    <button class="btn btn-primary" on:click={() => (show = false)}>
-      Done
-    </button>
+    <button class="btn btn-primary" onclick={() => (show = false)}>Done</button>
   </div>
 </Modal>

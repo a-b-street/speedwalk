@@ -14,14 +14,20 @@
   import { Checkbox, Loading, QualitativeLegend } from "svelte-utils";
   import { kindLabels, type WayProps } from "./";
 
-  export let pinnedWay: Feature<LineString, WayProps>;
-  export let drawProblemDetails: FeatureCollection<
-    Geometry,
-    { label: string; color: string }
-  >;
-  export let showProblemDetails: boolean;
+  let {
+    pinnedWay,
+    drawProblemDetails,
+    showProblemDetails = $bindable(),
+  }: {
+    pinnedWay: Feature<LineString, WayProps>;
+    drawProblemDetails: FeatureCollection<
+      Geometry,
+      { label: string; color: string }
+    >;
+    showProblemDetails: boolean;
+  } = $props();
 
-  let loading = "";
+  let loading = $state("");
 
   async function setTags(tags: Array<string[]>) {
     loading = "Setting tags";
@@ -74,7 +80,7 @@
   }
 </script>
 
-<svelte:window on:keypress={onKeyPress} />
+<svelte:window onkeypress={onKeyPress} />
 
 <Loading {loading} />
 
@@ -136,7 +142,7 @@
 
       {#each roadFixTagChoices.entries() as [idx, tags]}
         <div>
-          <button class="btn btn-secondary mb-1" on:click={() => setTags(tags)}>
+          <button class="btn btn-secondary mb-1" onclick={() => setTags(tags)}>
             <kbd>{idx + 1}</kbd>
             {tags.map((pair) => `${pair[0]} = ${pair[1]}`).join(", ")}
           </button>
@@ -147,7 +153,7 @@
 
       {#each footwayFixTagChoices.entries() as [idx, tags]}
         <div>
-          <button class="btn btn-secondary mb-1" on:click={() => setTags(tags)}>
+          <button class="btn btn-secondary mb-1" onclick={() => setTags(tags)}>
             <kbd>{idx + 1}</kbd>
             {tags.map((pair) => `${pair[0]} = ${pair[1]}`).join(", ")}
           </button>

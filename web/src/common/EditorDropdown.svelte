@@ -42,12 +42,14 @@
   <ul class="dropdown-menu">
     {#each options as label}
       <li>
-        <!-- svelte-ignore a11y-invalid-attribute -->
+        <!-- svelte-ignore a11y_invalid_attribute -->
         <a
           class="dropdown-item"
           href="#"
-          on:click|preventDefault={() =>
-            window.open(getUrl(label), "_blank", "noopener,noreferrer")}
+          onclick={(e) => {
+            e.preventDefault();
+            window.open(getUrl(label), "_blank", "noopener,noreferrer");
+          }}
         >
           {label}
         </a>

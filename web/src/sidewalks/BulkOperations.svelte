@@ -8,15 +8,15 @@
     refreshLoadingScreen,
   } from "../";
 
-  let show = false;
+  let show = $state(false);
   function enableOps() {
     $enabledBulkOps = true;
     show = false;
   }
 
-  let loading = "";
-  let driveOnLeft = true;
-  let onlyMakeSeverances = true;
+  let loading = $state("");
+  let driveOnLeft = $state(true);
+  let onlyMakeSeverances = $state(true);
 
   async function makeAllSidewalks() {
     loading = "Generating sidewalks";
@@ -68,7 +68,7 @@
         <div class="card-header">Assume old-style tags on one-ways</div>
         <div class="card-body">
           <Checkbox bind:checked={driveOnLeft}>Drive on the left</Checkbox>
-          <button class="btn btn-secondary" on:click={assumeTags}>
+          <button class="btn btn-secondary" onclick={assumeTags}>
             Autoset tags on one-ways
           </button>
         </div>
@@ -80,19 +80,19 @@
           <Checkbox bind:checked={onlyMakeSeverances}>
             Only for major roads
           </Checkbox>
-          <button class="btn btn-secondary" on:click={makeAllSidewalks}>
+          <button class="btn btn-secondary" onclick={makeAllSidewalks}>
             Make sidewalks
           </button>
         </div>
       </div>
 
-      <button class="btn btn-secondary" on:click={connectAllCrossings}>
+      <button class="btn btn-secondary" onclick={connectAllCrossings}>
         Connect all crossing nodes
       </button>
     {/snippet}
   </CollapsibleCard>
 {:else}
-  <button class="btn btn-secondary" on:click={() => (show = true)}>
+  <button class="btn btn-secondary" onclick={() => (show = true)}>
     Bulk operations
   </button>
 {/if}
@@ -109,8 +109,8 @@
     out, but do not ever upload the results to OSM.
   </p>
 
-  <button class="btn btn-primary" on:click={enableOps}>I understand</button>
-  <button class="btn btn-secondary" on:click={() => (show = false)}>
+  <button class="btn btn-primary" onclick={enableOps}>I understand</button>
+  <button class="btn btn-secondary" onclick={() => (show = false)}>
     Cancel
   </button>
 </Modal>
