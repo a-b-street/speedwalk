@@ -3,8 +3,9 @@
   import EditorDropdown from "./EditorDropdown.svelte";
   import ReportProblemButton from "./ReportProblemButton.svelte";
 
-  export let basemap: string;
-  export let bottom = "60px";
+  let { basemap = $bindable() }: { basemap: string } = $props();
+
+  let bottom = "60px";
 </script>
 
 <div class="action-bar" style:bottom>
@@ -22,5 +23,6 @@
     display: flex;
     gap: 4px;
     align-items: center;
+    z-index: 10;
   }
 </style>

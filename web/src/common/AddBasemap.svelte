@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { StyleSpecification } from "maplibre-gl";
-  import { basemapStyles } from "../";
+  import { basemapStyles } from "svelte-utils/map";
   import { Modal } from "svelte-utils";
 
   export let show: boolean;
@@ -18,9 +18,8 @@
     window.localStorage.getItem(localStorageKey) || "[]",
   );
   for (let x of customBasemaps) {
-    $basemapStyles[x.name] = makeStyle(x.tileURL, x.attribution);
+    basemapStyles.set(x.name, makeStyle(x.tileURL, x.attribution));
   }
-  $basemapStyles = $basemapStyles;
 
   let name = "";
   let tileURL = "";
@@ -66,8 +65,7 @@
       localStorageKey,
       JSON.stringify(customBasemaps),
     );
-    $basemapStyles[name] = makeStyle(tileURL, attribution);
-    $basemapStyles = $basemapStyles;
+    basemapStyles.set(name, makeStyle(tileURL, attribution));
 
     name = "";
     tileURL = "";
@@ -80,8 +78,7 @@
       localStorageKey,
       JSON.stringify(customBasemaps),
     );
-    delete $basemapStyles[name];
-    $basemapStyles = $basemapStyles;
+    basemapStyles.delete(name);
     // TODO If the current basemap was set to this, it'll last till the user changes it
   }
 </script>

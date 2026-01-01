@@ -1,7 +1,7 @@
 import { type Writable, writable } from "svelte/store";
 import * as backendPkg from "../../backend/pkg";
-import { basemapStyles as originalBasemapStyles } from "svelte-utils/map";
 import type { Map } from "maplibre-gl";
+import { basemapStyles } from "svelte-utils/map";
 
 export let map: Writable<Map | null> = writable(null);
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
@@ -31,11 +31,6 @@ export let networkFilter = writable<{
   ignore_deadends: false,
 });
 
-// TODO In svelte 4, it's simplest to copy this into a store instead of mutate an import
-export let basemapStyles = writable(
-  JSON.parse(JSON.stringify(originalBasemapStyles)),
-);
-
 // TODO Upstream several of these
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
@@ -59,3 +54,6 @@ export async function refreshLoadingScreen(): Promise<void> {
     });
   });
 }
+
+// Store the original keys
+export let originalBasemapStyles = new Set(basemapStyles.keys());

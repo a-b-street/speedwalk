@@ -26,14 +26,14 @@
     total_length_meters: Record<keyof typeof colors, number>;
   }
 
-  let metrics: Metrics = JSON.parse($backend!.getMetrics());
-  $: if ($mutationCounter && $backend) {
-    metrics = JSON.parse($backend.getMetrics());
-  }
+  let metrics: Metrics = $derived.by(() => {
+    $mutationCounter;
+    return JSON.parse($backend!.getMetrics());
+  });
 
   // TODO Bug: 0% still shows up
-  $: total = sum(
-    roads.map(([x, _]) => metrics.total_length_meters[castKey(x)]),
+  let total = $derived(
+    sum(roads.map(([x, _]) => metrics.total_length_meters[castKey(x)])),
   );
 
   function castKey(key: string): keyof typeof colors {
