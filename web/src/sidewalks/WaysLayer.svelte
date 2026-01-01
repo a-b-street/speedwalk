@@ -25,19 +25,26 @@
 
   // This is meant as a deeply interactive layer
 
-  // Input and output
-  export let pinnedWay: Feature<LineString, WayProps> | null;
-  // Output
-  export let drawProblemDetails: FeatureCollection<
-    Geometry,
-    { label: string; color: string }
-  >;
-  // Input
-  export let showProblemDetails: boolean;
-  export let showRoadSides: boolean;
-  export let nodes: FeatureCollection<Point, NodeProps>;
-  export let ways: FeatureCollection<LineString, WayProps>;
-  export let filterWays: ExpressionSpecification;
+  let {
+    pinnedWay = $bindable(),
+    drawProblemDetails = $bindable(),
+    showProblemDetails,
+    showRoadSides,
+    nodes,
+    ways,
+    filterWays,
+  }: {
+    pinnedWay: Feature<LineString, WayProps> | null;
+    drawProblemDetails: FeatureCollection<
+      Geometry,
+      { label: string; color: string }
+    >;
+    showProblemDetails: boolean;
+    showRoadSides: boolean;
+    nodes: FeatureCollection<Point, NodeProps>;
+    ways: FeatureCollection<LineString, WayProps>;
+    filterWays: ExpressionSpecification;
+  } = $props();
 
   function onMapClick(e: MapMouseEvent) {
     pinnedWay = null;
@@ -50,24 +57,28 @@
     }
   }
 
-  $: pinnedWaySides =
+  let pinnedWaySides = $derived(
     $backend && pinnedWay
       ? JSON.parse($backend.getSideLocations(BigInt(pinnedWay.properties.id)))
-      : emptyGeojson();
+      : emptyGeojson(),
+  );
 
-  $: drawProblemDetails = problemDetails(pinnedWay);
-  function problemDetails(
-    pinnedWay: Feature<LineString, WayProps> | null,
-  ): FeatureCollection<Geometry, { label: string; color: string }> {
+  // Use an effect to update a bindable
+  $effect(() => {
     let gj = emptyGeojson();
     if (pinnedWay) {
       for (let problem of pinnedWay.properties.problems) {
         gj.features = [...gj.features, ...problem.details];
       }
     }
-    return gj as FeatureCollection<Geometry, { label: string; color: string }>;
-  }
+    drawProblemDetails = gj as FeatureCollection<
+      Geometry,
+      { label: string; color: string }
+    >;
+  });
 
+  // Note these take the dependency explicitly for clarity, but also implicitly depend on things
+  // like nodes
   function showNodeOrder(
     pinnedWay: Feature<LineString, WayProps> | null,
   ): FeatureCollection {

@@ -28,59 +28,61 @@
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
 
-  let nodes: FeatureCollection<Point, NodeProps> = {
+  // Don't make these deeply reactive; it's extremely slow
+  let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
     type: "FeatureCollection",
     features: [],
-  };
-  let ways: FeatureCollection<LineString, WayProps> = {
+  });
+  let ways: FeatureCollection<LineString, WayProps> = $state.raw({
     type: "FeatureCollection",
     features: [],
-  };
-  let pinnedWay: Feature<LineString, WayProps> | null = null;
+  });
+  let pinnedWay: Feature<LineString, WayProps> | null = $state(null);
 
-  let showNodes = false;
-  let onlyModified = false;
-  let onlySeverances = false;
-  let showServiceRoads = true;
+  let showNodes = $state(false);
+  let onlyModified = $state(false);
+  let onlySeverances = $state(false);
+  let showServiceRoads = $state(true);
 
-  let showKinds = Object.fromEntries(
-    Object.keys(colors).map((kind) => [kind, true]),
+  let showKinds = $state(
+    Object.fromEntries(Object.keys(colors).map((kind) => [kind, true])),
   );
 
-  let showProblemDetails = true;
-  let drawProblemDetails = emptyGeojson() as FeatureCollection<
-    Geometry,
-    { label: string; color: string }
-  >;
-  let showRoadSides = false;
+  let showProblemDetails = $state(true);
+  let drawProblemDetails = $state(
+    emptyGeojson() as FeatureCollection<
+      Geometry,
+      { label: string; color: string }
+    >,
+  );
+  let showRoadSides = $state(false);
 
-  let loading = "";
+  let loading = $state("");
 
-  let drawProblems = emptyGeojson();
+  let drawProblems = $state(emptyGeojson());
 
-  $: updateModel($mutationCounter);
-  async function updateModel(mutationCounter: number) {
+  $effect(() => {
+    // Re-run when this changes. Other values below aren't dependencies, because they're async.
+    // We're forced to use then() syntax.
+    $mutationCounter;
+
     loading = "Recalculating model";
-    await refreshLoadingScreen();
-    try {
-      nodes = JSON.parse($backend!.getNodes());
-      ways = JSON.parse($backend!.getWays());
-    } finally {
-      loading = "";
-    }
+    refreshLoadingScreen().then(() => {
+      try {
+        nodes = JSON.parse($backend!.getNodes());
+        ways = JSON.parse($backend!.getWays());
+      } finally {
+        loading = "";
+      }
 
-    if (pinnedWay) {
-      let findId = pinnedWay.id;
-      pinnedWay = ways.features.find((f) => f.id == findId)!;
-    }
-  }
+      if (pinnedWay) {
+        let findId = pinnedWay.id;
+        pinnedWay = ways.features.find((f) => f.id == findId)!;
+      }
+    });
+  });
 
-  function filterWays(
-    _a: boolean,
-    _b: boolean,
-    _c: boolean,
-    _d: any,
-  ): ExpressionSpecification {
+  function filterWays(): ExpressionSpecification {
     let all = [];
     if (onlySeverances) {
       all.push([
@@ -134,12 +136,7 @@
       {nodes}
       {ways}
       {showRoadSides}
-      filterWays={filterWays(
-        onlySeverances,
-        onlyModified,
-        showServiceRoads,
-        showKinds,
-      )}
+      filterWays={filterWays()}
     />
 
     <ProblemLayer {drawProblems} {pinnedWay} />
