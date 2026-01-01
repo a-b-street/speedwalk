@@ -7,9 +7,9 @@
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount } from "svelte";
-  import { basemapStyles, backend, mode, map as mapStore } from "./";
+  import { backend, mode, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
-  import { Geocoder, StandardControls } from "svelte-utils/map";
+  import { basemapStyles, Geocoder, StandardControls } from "svelte-utils/map";
   import ActionBar from "./common/ActionBar.svelte";
   import { leftTarget, Layout } from "svelte-utils/top_bar_layout";
   import * as backendPkg from "../../backend/pkg";
@@ -55,7 +55,7 @@
   {#snippet main()}
     <div style="position:relative; width: 100%; height: 100vh;">
       <MapLibre
-        style={$basemapStyles[basemap]}
+        style={basemapStyles.get(basemap)!}
         hash
         bind:map
         bind:loaded

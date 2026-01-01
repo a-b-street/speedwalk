@@ -1,18 +1,15 @@
 <script lang="ts">
-  import { basemapStyles } from "../";
-  import { basemapStyles as originalBasemapStyles } from "svelte-utils/map";
+  import { originalBasemapStyles } from "../";
+  import { basemapStyles } from "svelte-utils/map";
   import AddBasemap from "./AddBasemap.svelte";
 
-  export let basemap: string;
+  let { basemap = $bindable() }: { basemap: string } = $props();
 
-  let showBasemapAddBasemapModal = false;
+  let showModal = $state(false);
 
-  $: defaultBasemaps = Object.keys(originalBasemapStyles);
-  $: allBasemaps = Object.keys($basemapStyles);
-  $: customBasemaps = allBasemaps.filter(
-    (name) => !defaultBasemaps.includes(name),
-  );
-  $: displayName = basemap || allBasemaps[0] || "";
+  let customBasemaps = $derived([
+    ...basemapStyles.keys().filter((name) => !originalBasemapStyles.has(name)),
+  ]);
 </script>
 
 <div class="basemap-selector">
@@ -23,16 +20,16 @@
       data-bs-toggle="dropdown"
       aria-expanded="false"
     >
-      {displayName}
+      {basemap}
     </button>
     <ul class="dropdown-menu">
-      {#each defaultBasemaps as name}
+      {#each originalBasemapStyles as name}
         <li>
           <button
             class="dropdown-item"
             class:active={basemap === name}
             type="button"
-            on:click={() => (basemap = name)}
+            onclick={() => (basemap = name)}
           >
             {name}
           </button>
@@ -46,7 +43,7 @@
               class="dropdown-item"
               class:active={basemap === name}
               type="button"
-              on:click={() => (basemap = name)}
+              onclick={() => (basemap = name)}
             >
               {name}
             </button>
@@ -58,7 +55,7 @@
         <button
           class="dropdown-item"
           type="button"
-          on:click={() => (showBasemapAddBasemapModal = true)}
+          onclick={() => (showModal = true)}
         >
           <i class="fa-solid fa-square-plus me-2"></i>
           Add custom basemap
@@ -68,7 +65,7 @@
   </div>
 </div>
 
-<AddBasemap bind:show={showBasemapAddBasemapModal} />
+<AddBasemap bind:show={showModal} />
 
 <style>
   .basemap-selector {
