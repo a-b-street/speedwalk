@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import { downloadGeneratedFile, Loading } from "svelte-utils";
   import {
@@ -10,15 +11,19 @@
   } from "../";
   import { uploadChangeset } from "osm-api";
 
-  let cmds: any[] = [];
-  let idx = 0;
-  let loading = "";
+  let cmds: any[] = $state([]);
+  let idx = $state(0);
+  let loading = $state("");
 
-  $: if ($mutationCounter > 0) {
-    cmds = $backend ? JSON.parse($backend.getEdits()) : [];
-    idx = 0;
-    $anyEdits = cmds.length > 0;
-  }
+  // Bit messy, but deriveds don't work
+  $effect(() => {
+    $mutationCounter;
+    untrack(() => {
+      cmds = $backend ? JSON.parse($backend.getEdits()) : [];
+      idx = 0;
+      $anyEdits = cmds.length > 0;
+    });
+  });
 
   function prev() {
     idx--;
@@ -120,10 +125,10 @@
   {#snippet body()}
     {#if cmds.length > 0}
       <div class="mb-1">
-        <button class="btn btn-danger" on:click={clear}>Clear edits</button>
+        <button class="btn btn-danger" onclick={clear}>Clear edits</button>
         <button
           class="btn btn-danger"
-          on:click={undo}
+          onclick={undo}
           disabled={cmds.length == 0}
         >
           Undo ({cmds.length})
@@ -131,22 +136,22 @@
       </div>
 
       <div class="mb-1">
-        <button class="btn btn-secondary" on:click={downloadOsc}>
+        <button class="btn btn-secondary" onclick={downloadOsc}>
           Download .osc
         </button>
-        <button class="btn btn-secondary" on:click={uploadOsc}>
+        <button class="btn btn-secondary" onclick={uploadOsc}>
           Upload changeset
         </button>
       </div>
 
       <div style="display: flex; justify-content: space-between">
-        <button class="btn btn-secondary" on:click={prev} disabled={idx == 0}>
+        <button class="btn btn-secondary" onclick={prev} disabled={idx == 0}>
           Previous
         </button>
         <span>{idx + 1} / {cmds.length}</span>
         <button
           class="btn btn-secondary"
-          on:click={next}
+          onclick={next}
           disabled={idx == cmds.length - 1}
         >
           Next

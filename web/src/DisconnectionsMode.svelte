@@ -13,9 +13,11 @@
   import NetworkFilter from "./common/NetworkFilter.svelte";
   import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
-  $: gj = $backend
-    ? JSON.parse($backend!.findConnectedComponents($networkFilter))
-    : { ...emptyGeojson(), component_lengths: [] };
+  let gj = $derived(
+    $backend
+      ? JSON.parse($backend!.findConnectedComponents($networkFilter))
+      : { ...emptyGeojson(), component_lengths: [] },
+  );
 
   let colors = ["#1b9e77", "#d95f02", "#7570b3", "#e7298a", "#66a61e"];
   let colorByComponent = constructMatchExpression(
@@ -24,7 +26,7 @@
     "black",
   ) as ExpressionSpecification;
 
-  let showComponent: number | null = null;
+  let showComponent: number | null = $state(null);
 
   function lineColor(showComponent: number | null): ExpressionSpecification {
     if (showComponent == null) {
@@ -67,7 +69,7 @@
     <ul>
       {#each gj.component_lengths as length, idx}
         <li>
-          <!-- svelte-ignore a11y-invalid-attribute -->
+          <!-- svelte-ignore a11y_invalid_attribute -->
           <a
             style:color={colors[idx % colors.length]}
             href="#"

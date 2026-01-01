@@ -18,39 +18,46 @@
   import { getMapViewport, getIdUrl } from "../common/osmEditorUrls";
   import type { MapGeoJSONFeature } from "maplibre-gl";
 
-  let options = {
+  let options = $state({
     only_major_roads: true,
     ignore_utility_roads: true,
     ignore_cycleways: true,
     ignore_footways: true,
     ignore_roundabouts: true,
     max_distance: 30,
-  };
+  });
 
-  $: data =
+  let data = $derived(
     $backend && options.max_distance && $mutationCounter >= 0
       ? (JSON.parse($backend!.auditCrossings(options)) as FeatureCollection)
-      : emptyGeojson();
-  $: completeJunctions = data.features.filter(
-    (f) => f.properties!.complete,
-  ).length;
+      : emptyGeojson(),
+  );
+  let completeJunctions = $derived(
+    data.features.filter((f) => f.properties!.complete).length,
+  );
 
-  let hovered: (Feature & MapGeoJSONFeature) | undefined = undefined;
-  $: debugArms = hovered
-    ? JSON.parse(hovered.properties!.arms)
-    : emptyGeojson();
-  $: debugCrossings = hovered
-    ? JSON.parse(hovered.properties!.crossings)
-    : emptyGeojson();
-  $: debugExplicitNonCrossings = hovered
-    ? JSON.parse(hovered.properties!.explicit_non_crossings)
-    : emptyGeojson();
-  $: crossingCount = debugCrossings.features.length;
-  $: explicitNonCrossingCount = debugExplicitNonCrossings.features.length;
-  $: numberIgnoredArms = hovered ? hovered.properties!.number_ignored_arms : 0;
+  let hovered: (Feature & MapGeoJSONFeature) | undefined = $state();
+  let debugArms = $derived(
+    hovered ? JSON.parse(hovered.properties!.arms) : emptyGeojson(),
+  );
+  let debugCrossings = $derived(
+    hovered ? JSON.parse(hovered.properties!.crossings) : emptyGeojson(),
+  );
+  let debugExplicitNonCrossings = $derived(
+    hovered
+      ? JSON.parse(hovered.properties!.explicit_non_crossings)
+      : emptyGeojson(),
+  );
+  let crossingCount = $derived(debugCrossings.features.length);
+  let explicitNonCrossingCount = $derived(
+    debugExplicitNonCrossings.features.length,
+  );
+  let numberIgnoredArms = $derived(
+    hovered ? hovered.properties!.number_ignored_arms : 0,
+  );
 
-  $: crossingNodes = getCrossings($mutationCounter);
-  function getCrossings(_: number): FeatureCollection {
+  let crossingNodes = $derived.by(() => {
+    $mutationCounter;
     if (!$backend) {
       return emptyGeojson();
     }
@@ -59,7 +66,7 @@
       (f) => f.properties!.is_crossing || f.properties!.is_explicit_crossing_no,
     );
     return gj;
-  }
+  });
 
   function clickJunction() {
     let viewport = getMapViewport($map);

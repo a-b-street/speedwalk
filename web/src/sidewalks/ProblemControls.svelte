@@ -5,9 +5,15 @@
   import { map } from "../";
   import { bbox } from "svelte-utils/map";
 
-  export let nodes: FeatureCollection<Point, NodeProps>;
-  export let ways: FeatureCollection<LineString, WayProps>;
-  export let drawProblems: FeatureCollection;
+  let {
+    nodes,
+    ways,
+    drawProblems = $bindable(),
+  }: {
+    nodes: FeatureCollection<Point, NodeProps>;
+    ways: FeatureCollection<LineString, WayProps>;
+    drawProblems: FeatureCollection;
+  } = $props();
 
   let nodeProblems = [
     "missing crossing node",
@@ -20,25 +26,7 @@
     "sidewalk:left and sidewalk:right should each be tagged as separate or no",
   ];
 
-  $: problemCounts = countProblems(nodes, ways);
-
-  let show = "";
-  let currentProblemIndex = 0;
-
-  $: drawProblems = filterProblems(nodes, ways, show);
-  $: if (show) {
-    // Reset index when problem type changes
-    currentProblemIndex = 0;
-  }
-  $: if (
-    currentProblemIndex >= drawProblems.features.length &&
-    drawProblems.features.length > 0
-  ) {
-    // Reset index if it's out of bounds
-    currentProblemIndex = 0;
-  }
-
-  function countProblems(_a: any, _b: any): Record<string, number> {
+  let problemCounts = $derived.by(() => {
     let counts = {} as Record<string, number>;
     for (let x of [...nodeProblems, ...wayProblems]) {
       counts[x] = 0;
@@ -51,9 +39,13 @@
     }
 
     return counts;
-  }
+  });
 
-  function filterProblems(_a: any, _b: any, _c: any): FeatureCollection {
+  let show = $state("");
+  let currentProblemIndex = $state(0);
+
+  // TODO $derived.by makes more sense, but it needs to be bindable.
+  $effect(() => {
     let gj = {
       type: "FeatureCollection" as const,
       features: [],
@@ -63,8 +55,8 @@
         gj.features.push(f);
       }
     }
-    return gj;
-  }
+    drawProblems = gj;
+  });
 
   function pickNextProblem() {
     if (!$map || !show || drawProblems.features.length === 0) {
@@ -100,7 +92,16 @@
 <CollapsibleCard>
   {#snippet header()}Problems{/snippet}
   {#snippet body()}
-    <select class="form-select" bind:value={show}>
+    <select
+      class="form-select"
+      bind:value={
+        () => show,
+        (x) => {
+          // Reset index when problem type changes
+          currentProblemIndex = 0;
+        }
+      }
+    >
       <option value="">Show a type of problem</option>
       {#each Object.entries(problemCounts) as [problem, count]}
         <option value={problem} disabled={count == 0}>
@@ -113,7 +114,7 @@
       <div class="problem-header">
         <p class="problem-count">{problemCounts[show]} problems</p>
         {#if drawProblems.features.length > 0}
-          <button class="btn btn-sm btn-primary" on:click={pickNextProblem}>
+          <button class="btn btn-sm btn-primary" onclick={pickNextProblem}>
             Pick next
           </button>
         {/if}
