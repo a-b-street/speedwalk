@@ -4,7 +4,7 @@
   import { type Mode, mode, backend } from "../";
   import { Modal } from "svelte-utils";
 
-  let showInfo = false;
+  let showInfo = $state(false);
 
   let mainActions = [
     [{ kind: "sidewalks" }, "Sidewalks"],
@@ -21,11 +21,11 @@
   {#if $backend}
     {#each mainActions as [setMode, label]}
       <li class="nav-item">
-        <!-- svelte-ignore a11y-invalid-attribute -->
+        <!-- svelte-ignore a11y_invalid_attribute -->
         <a
           class="nav-link"
           href="#"
-          on:click={() => ($mode = setMode)}
+          onclick={() => ($mode = setMode)}
           class:active={JSON.stringify($mode) == JSON.stringify(setMode)}
         >
           {label}
@@ -35,8 +35,8 @@
   {/if}
 
   <li class="nav-item ms-auto">
-    <!-- svelte-ignore a11y-invalid-attribute -->
-    <a class="nav-link" href="#" on:click={() => (showInfo = true)}>
+    <!-- svelte-ignore a11y_invalid_attribute -->
+    <a class="nav-link" href="#" onclick={() => (showInfo = true)}>
       <i class="fa-solid fa-circle-info"></i>
       About
     </a>
@@ -76,7 +76,7 @@
     <b>This is an alpha tool; there will be problems!</b>
   </p>
 
-  <button class="btn btn-primary" on:click={() => (showInfo = false)}>
+  <button class="btn btn-primary" onclick={() => (showInfo = false)}>
     Start
   </button>
 </Modal>

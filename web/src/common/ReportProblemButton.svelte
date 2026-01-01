@@ -2,14 +2,14 @@
   import { map } from "../";
   import ReportProblemModal from "./ReportProblemModal.svelte";
 
-  let reportProblemRef: ReportProblemModal | null = null;
+  let reportProblemRef: ReportProblemModal | null = $state(null);
 </script>
 
 {#if $map}
   <div class="report-problem-wrapper">
     <button
       class="btn btn-secondary report-problem-btn"
-      on:click={() => {
+      onclick={() => {
         reportProblemRef?.triggerStart();
       }}
     >

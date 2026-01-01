@@ -8,9 +8,9 @@
   import { backend, refreshLoadingScreen, map } from "./";
   import type { Feature, Polygon } from "geojson";
 
-  let loading = "";
+  let loading = $state("");
 
-  let fileInput: HTMLInputElement | undefined;
+  let fileInput: HTMLInputElement | undefined = $state();
   async function loadFile(e: Event) {
     try {
       loading = "Loading from file";
@@ -57,7 +57,7 @@
         <input
           class="form-control"
           bind:this={fileInput}
-          on:change={loadFile}
+          onchange={loadFile}
           type="file"
         />
       </label>

@@ -8,15 +8,15 @@
     refreshLoadingScreen,
   } from "../";
 
-  export let options: any;
+  let { options }: { options: any } = $props();
 
-  let show = false;
+  let show = $state(false);
   function enableOps() {
     $enabledBulkOps = true;
     show = false;
   }
 
-  let loading = "";
+  let loading = $state("");
 
   async function generateCrossings() {
     loading = "Generating missing crossings";
@@ -38,13 +38,13 @@
   <CollapsibleCard>
     {#snippet header()}Bulk operations{/snippet}
     {#snippet body()}
-      <button class="btn btn-secondary" on:click={generateCrossings}>
+      <button class="btn btn-secondary" onclick={generateCrossings}>
         Generate imaginary crossings where they're missing
       </button>
     {/snippet}
   </CollapsibleCard>
 {:else}
-  <button class="btn btn-secondary" on:click={() => (show = true)}>
+  <button class="btn btn-secondary" onclick={() => (show = true)}>
     Bulk operations
   </button>
 {/if}
@@ -60,8 +60,8 @@
     Do not ever upload the results of this to OSM.
   </p>
 
-  <button class="btn btn-primary" on:click={enableOps}>I understand</button>
-  <button class="btn btn-secondary" on:click={() => (show = false)}>
+  <button class="btn btn-primary" onclick={enableOps}>I understand</button>
+  <button class="btn btn-secondary" onclick={() => (show = false)}>
     Cancel
   </button>
 </Modal>

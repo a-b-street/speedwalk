@@ -50,11 +50,11 @@
     </button>
     <ul class="dropdown-menu">
       <li>
-        <!-- svelte-ignore a11y-invalid-attribute -->
-        <a class="dropdown-item" href="#" on:click={logout}>Logout</a>
+        <!-- svelte-ignore a11y_invalid_attribute -->
+        <a class="dropdown-item" href="#" onclick={logout}>Logout</a>
       </li>
     </ul>
   </div>
 {:else}
-  <button class="btn btn-primary" on:click={login}>Login to OSM</button>
+  <button class="btn btn-primary" onclick={login}>Login to OSM</button>
 {/if}
