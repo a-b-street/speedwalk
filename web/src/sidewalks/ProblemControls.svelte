@@ -97,6 +97,7 @@
       bind:value={
         () => show,
         (x) => {
+          show = x;
           // Reset index when problem type changes
           currentProblemIndex = 0;
         }
