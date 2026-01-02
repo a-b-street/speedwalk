@@ -144,10 +144,15 @@
         manageHoverState
         paint={{
           "circle-radius": 7,
-          "circle-color": ["case", ["get", "is_crossing"], "yellow", "grey"],
+          "circle-color": [
+            "case",
+            ["any", ["get", "is_crossing"], ["get", "is_explicit_crossing_no"]],
+            "yellow",
+            "grey",
+          ],
           "circle-opacity": [
             "case",
-            ["boolean", ["get", "is_crossing"]],
+            ["any", ["get", "is_crossing"], ["get", "is_explicit_crossing_no"]],
             onlyModified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
             0,
           ],
