@@ -49,7 +49,7 @@
   function onMapClick(e: MapMouseEvent) {
     pinnedWay = null;
     for (let rendered of $map!.queryRenderedFeatures(e.point, {
-      layers: ["ways"],
+      layers: ["speedwalk-ways"],
     })) {
       // Find the original feature in the GJ, to avoid having to parse nested properties
       pinnedWay = ways.features.find((f) => f.id == rendered.id)!;
@@ -126,7 +126,6 @@
 
 <GeoJSON data={pinnedWay || emptyGeojson()}>
   <LineLayer
-    id="pinned"
     beforeId="Road labels"
     paint={{
       "line-width": roadLineWidth(10),
@@ -149,7 +148,6 @@
 
 <GeoJSON data={snappedRoad(pinnedWay, $debugMode)}>
   <LineLayer
-    id="snapped-to-pinned"
     beforeId="Road labels"
     paint={{
       "line-width": roadLineWidth(10),
@@ -162,7 +160,7 @@
 
 <GeoJSON data={ways}>
   <LineLayer
-    id="ways"
+    id="speedwalk-ways"
     beforeId="Road labels"
     manageHoverState
     hoverCursor="pointer"
@@ -200,7 +198,6 @@
 
 <GeoJSON data={pinnedWaySides}>
   <SymbolLayer
-    id="pinned-sides"
     paint={{
       "text-color": "black",
       "text-halo-color": "cyan",
@@ -216,7 +213,6 @@
 
 <GeoJSON data={showNodeOrder(pinnedWay)}>
   <SymbolLayer
-    id="pinned-node-order"
     paint={{
       "text-color": "white",
       "text-halo-color": "blue",
