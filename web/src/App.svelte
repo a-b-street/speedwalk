@@ -6,7 +6,7 @@
   import favicon from "../assets/favicon.ico?url";
   import arrow from "../assets/arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { backend, mode, map as mapStore } from "./";
   import type { Map } from "maplibre-gl";
   import { basemapStyles, Geocoder, StandardControls } from "svelte-utils/map";
@@ -33,6 +33,52 @@
   });
 
   let basemap = $state("Maptiler OpenStreetMap");
+
+  // svelte-ignore state_referenced_locally
+  let initialStyle = basemapStyles.get(basemap)!;
+  // TODO Upstream to svelte-maplibre. It's brittle how to detect the sources and layers that belong
+  // to the basemap vs other things
+  $effect(() => {
+    if (basemap) {
+      untrack(() => {
+        map?.setStyle(basemapStyles.get(basemap)!, {
+          transformStyle: (previousStyle, nextStyle) => {
+            if (!previousStyle) {
+              return nextStyle;
+            }
+
+            let customLayers = previousStyle.layers.filter((l) =>
+              [
+                "circle-",
+                "line-",
+                "fill-",
+                "heatmap-",
+                "symbol-",
+                "speedwalk-",
+                "edit-polygon-",
+              ].some((prefix) => l.id.startsWith(prefix)),
+            );
+            let layers = nextStyle.layers.concat(customLayers);
+            let sources = nextStyle.sources;
+
+            for (let [key, value] of Object.entries(
+              previousStyle.sources || {},
+            )) {
+              if (key.startsWith("geojson-") || key.startsWith("heatmap")) {
+                sources[key] = value;
+              }
+            }
+
+            return {
+              ...nextStyle,
+              sources: sources,
+              layers: layers,
+            };
+          },
+        });
+      });
+    }
+  });
 </script>
 
 <svelte:head>
@@ -55,7 +101,7 @@
   {#snippet main()}
     <div style="position:relative; width: 100%; height: 100vh;">
       <MapLibre
-        style={basemapStyles.get(basemap)!}
+        style={initialStyle}
         hash
         bind:map
         bind:loaded

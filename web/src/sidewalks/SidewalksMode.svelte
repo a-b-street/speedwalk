@@ -143,7 +143,6 @@
 
     <GeoJSON data={nodes}>
       <CircleLayer
-        id="nodes"
         beforeId="Road labels"
         manageHoverState
         paint={{

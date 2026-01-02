@@ -48,7 +48,7 @@
     // If we click off a line, clear things
     if (
       $map!.queryRenderedFeatures(e.point, {
-        layers: ["disconnections"],
+        layers: ["speedwalk-disconnections"],
       }).length == 0
     ) {
       showComponent = null;
@@ -93,7 +93,7 @@
 
     <GeoJSON data={gj} generateId>
       <LineLayer
-        id="disconnections"
+        id="speedwalk-disconnections"
         paint={{
           "line-width": hoverStateFilter(5, 10),
           "line-color": lineColor(showComponent),
