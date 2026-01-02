@@ -12,7 +12,6 @@
   import { uploadChangeset } from "osm-api";
 
   let cmds: any[] = $state([]);
-  let idx = $state(0);
   let loading = $state("");
 
   // Bit messy, but deriveds don't work
@@ -20,18 +19,9 @@
     $mutationCounter;
     untrack(() => {
       cmds = $backend ? JSON.parse($backend.getEdits()) : [];
-      idx = 0;
       $anyEdits = cmds.length > 0;
     });
   });
-
-  function prev() {
-    idx--;
-  }
-
-  function next() {
-    idx++;
-  }
 
   async function clear() {
     if (!window.confirm("Do you really want to clear your edits?")) {
@@ -143,22 +133,6 @@
           Upload changeset
         </button>
       </div>
-
-      <div style="display: flex; justify-content: space-between">
-        <button class="btn btn-secondary" onclick={prev} disabled={idx == 0}>
-          Previous
-        </button>
-        <span>{idx + 1} / {cmds.length}</span>
-        <button
-          class="btn btn-secondary"
-          onclick={next}
-          disabled={idx == cmds.length - 1}
-        >
-          Next
-        </button>
-      </div>
-
-      <p>{JSON.stringify(cmds[idx])}</p>
     {/if}
   {/snippet}
 </CollapsibleCard>
