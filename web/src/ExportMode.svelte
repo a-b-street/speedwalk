@@ -7,7 +7,6 @@
   import { backend, networkFilter } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
   import NetworkFilter from "./common/NetworkFilter.svelte";
-  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
   let gj = $derived(
     $backend
@@ -74,8 +73,6 @@
         <QualitativeLegend labelColors={colors} itemsPerRow={1} />
       {/snippet}
     </CollapsibleCard>
-
-    <SharedSidebarFooter />
   {/snippet}
 
   {#snippet main()}

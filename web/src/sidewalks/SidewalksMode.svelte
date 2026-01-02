@@ -4,7 +4,6 @@
   import ProblemLayer from "./ProblemLayer.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import Edits from "./Edits.svelte";
-  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import {
     backend,
@@ -124,8 +123,6 @@
     {/if}
 
     <BulkOperations />
-
-    <SharedSidebarFooter />
   {/snippet}
 
   {#snippet main()}

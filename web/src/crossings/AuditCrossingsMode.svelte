@@ -12,7 +12,6 @@
   import { backend, mutationCounter, map } from "../";
   import type { Feature, FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
-  import SharedSidebarFooter from "../common/SharedSidebarFooter.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import { getMapViewport, getIdUrl } from "../common/osmEditorUrls";
@@ -136,8 +135,6 @@
     </p>
 
     <BulkOperations {options} />
-
-    <SharedSidebarFooter />
   {/snippet}
 
   {#snippet main()}

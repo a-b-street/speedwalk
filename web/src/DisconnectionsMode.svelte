@@ -11,7 +11,6 @@
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, map, prettyPrintDistance, networkFilter } from "./";
   import NetworkFilter from "./common/NetworkFilter.svelte";
-  import SharedSidebarFooter from "./common/SharedSidebarFooter.svelte";
 
   let gj = $derived(
     $backend
@@ -84,8 +83,6 @@
         </li>
       {/each}
     </ul>
-
-    <SharedSidebarFooter />
   {/snippet}
 
   {#snippet main()}

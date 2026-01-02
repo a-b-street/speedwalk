@@ -2,9 +2,16 @@
   import * as backendPkg from "../../../backend/pkg";
   import { backend, refreshLoadingScreen, anyEdits } from "../";
   import { overpassQueryForPolygon } from "svelte-utils/overpass";
-  import { Loading } from "svelte-utils";
+  import {
+    downloadGeneratedFile,
+    Checkbox,
+    Loading,
+    Modal,
+  } from "svelte-utils";
 
+  let show = $state(false);
   let loading = $state("");
+  let saveCopy = $state(false);
 
   function describeOsmTimestamp(t: bigint | undefined): string {
     if (t) {
@@ -58,6 +65,9 @@
       return;
     }
 
+    // Loading should cover up the Modal, but it doesn't
+    show = false;
+
     try {
       loading = "Grabbing new OSM data from Overpass";
       let boundary = JSON.parse($backend!.getBoundary());
@@ -68,7 +78,11 @@
       }
       let osmXml = await resp.bytes();
 
-      // TODO Offer to save a copy?
+      if (saveCopy) {
+        let text = new TextDecoder().decode(osmXml);
+        downloadGeneratedFile("refreshed_import.osm.xml", text);
+      }
+
       loading = "Processing Overpass data";
       await refreshLoadingScreen();
       $backend = new backendPkg.Speedwalk(new Uint8Array(osmXml), boundary);
@@ -82,16 +96,28 @@
 
 <Loading {loading} />
 
-<hr class="my-4" />
+<Modal bind:show>
+  <h1>Choose an area to work on</h1>
 
-<div class="mt-4">
-  <div class="d-flex gap-2 mb-3">
-    <button class="btn btn-secondary" onclick={clear}>Load another area</button>
+  <div class="mb-3">
+    <button class="btn btn-secondary" onclick={clear}>Import a new area</button>
+  </div>
+
+  <div class="card card-body mb-3">
+    <p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
 
     <button class="btn btn-secondary" onclick={refreshData}>
       Refresh OSM data
     </button>
+
+    <Checkbox bind:checked={saveCopy}>
+      Save a copy of the latest osm.xml after refreshing
+    </Checkbox>
   </div>
 
-  <p>OSM data is from {describeOsmTimestamp($backend?.getOsmTimestamp())}</p>
-</div>
+  <button class="btn btn-primary" onclick={() => (show = false)}>Cancel</button>
+</Modal>
+
+<button class="btn btn-outline-secondary" onclick={() => (show = true)}>
+  &larr; Load another area
+</button>

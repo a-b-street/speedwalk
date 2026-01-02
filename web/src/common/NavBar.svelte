@@ -3,6 +3,7 @@
   import logo from "../../assets/logo.svg?url";
   import { type Mode, mode, backend } from "../";
   import { Modal } from "svelte-utils";
+  import LoadAnotherArea from "./LoadAnotherArea.svelte";
 
   let showInfo = $state(false);
 
@@ -19,6 +20,8 @@
   <h3>Speedwalk</h3>
 
   {#if $backend}
+    <LoadAnotherArea />
+
     {#each mainActions as [setMode, label]}
       <li class="nav-item">
         <!-- svelte-ignore a11y_invalid_attribute -->
