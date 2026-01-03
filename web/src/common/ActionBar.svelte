@@ -12,8 +12,8 @@
 <div class="action-bar" style:bottom>
   <BasemapSelector bind:basemap />
   <EditorDropdown />
-  <ReportProblemButton />
   <Mapillary />
+  <ReportProblemButton />
 </div>
 
 <style>

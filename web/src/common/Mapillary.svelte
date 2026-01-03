@@ -7,19 +7,20 @@
     LineLayer,
     CircleLayer,
     GeoJSON,
-    SymbolLayer,
+    FillLayer,
   } from "svelte-maplibre";
-  import { Checkbox } from "svelte-utils";
   import { emptyGeojson } from "svelte-utils/map";
-  import type { Feature } from "geojson";
   import { untrack, onDestroy } from "svelte";
+  import logo from "../../assets/Mapillary_logo.svg";
+  import lineArc from "@turf/line-arc";
+  import { point } from "@turf/helpers";
 
   let show = $state(false);
 
   let container: HTMLDivElement | undefined = $state();
   let viewer: Viewer | undefined = $state();
 
-  let cameraPosition: Feature | undefined = $state();
+  let cameraPosition: [number, number] | undefined = $state();
   let cameraBearing = $state(0);
 
   onDestroy(() => {
@@ -34,14 +35,7 @@
 
         viewer.on("position", async (e) => {
           let pos = await viewer!.getPosition();
-          cameraPosition = {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Point",
-              coordinates: [pos.lng, pos.lat],
-            },
-          };
+          cameraPosition = [pos.lng, pos.lat];
         });
         viewer.on("bearing", (e) => {
           cameraBearing = e.bearing;
@@ -57,21 +51,40 @@
   // read-only access, so really doesn't matter much.
   let accessToken = "MLY|25548189401504437|3c9576aa434c09888b5de1c28f13b1df";
 
-  function close() {
-    show = false;
-    viewer?.activateCover();
-    cameraPosition = undefined;
-    cameraBearing = 0;
-  }
-
   async function openImage(id: string) {
-    viewer?.deactivateCover();
     viewer?.resize();
     await viewer?.moveTo(id);
   }
+
+  let showCameraPosition = $derived.by(() => {
+    if (!cameraPosition) {
+      return emptyGeojson();
+    }
+    let radius = 30;
+    let arc = lineArc(
+      point(cameraPosition),
+      radius,
+      cameraBearing - 30,
+      cameraBearing + 30,
+      { units: "meters" },
+    );
+    // Make it a polygon
+    return {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "Polygon" as const,
+        coordinates: [
+          [cameraPosition, ...arc.geometry.coordinates, cameraPosition],
+        ],
+      },
+    };
+  });
 </script>
 
-<Checkbox bind:checked={show}>Mapillary</Checkbox>
+<button class="btn btn-secondary" onclick={() => (show = true)} disabled={show}>
+  <img src={logo} alt="Mapillary" height="30px" />
+</button>
 
 <VectorTileSource
   tiles={[
@@ -94,7 +107,7 @@
     sourceLayer="image"
     manageHoverState
     paint={{
-      "circle-radius": 10,
+      "circle-radius": 4,
       "circle-color": hoverStateFilter("green", "orange"),
       "circle-stroke-color": "black",
       "circle-stroke-width": 1,
@@ -107,18 +120,27 @@
   />
 </VectorTileSource>
 
-<GeoJSON data={cameraPosition || emptyGeojson()}>
-  <SymbolLayer
+<GeoJSON data={showCameraPosition}>
+  <FillLayer
+    paint={{
+      "fill-color": "orange",
+      "fill-opacity": 0.8,
+    }}
     layout={{
-      "icon-image": "mapillary_arrow",
-      "icon-rotate": cameraBearing,
+      visibility: show ? "visible" : "none",
+    }}
+  />
+
+  <LineLayer
+    paint={{ "line-width": 2, "line-color": "black" }}
+    layout={{
       visibility: show ? "visible" : "none",
     }}
   />
 </GeoJSON>
 
 <div class="viewer-container" style:visibility={show ? "visible" : "hidden"}>
-  <button class="btn btn-primary" onclick={close}>X</button>
+  <button class="btn btn-primary" onclick={() => (show = false)}>X</button>
   <div bind:this={container} style="width: 100%; height: 100%"></div>
 </div>
 

@@ -5,7 +5,6 @@
   import Loader from "./Loader.svelte";
   import favicon from "../assets/favicon.ico?url";
   import arrow from "../assets/arrow.png?url";
-  import mapillaryArrow from "../assets/mapillary_arrow.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount, untrack } from "svelte";
   import { backend, mode, map as mapStore } from "./";
@@ -109,10 +108,7 @@
         onerror={(e) => {
           console.log(e.error);
         }}
-        images={[
-          { id: "arrow", url: arrow },
-          { id: "mapillary_arrow", url: mapillaryArrow },
-        ]}
+        images={[{ id: "arrow", url: arrow }]}
       >
         <StandardControls {map} />
         <Geocoder {map} {loaded} />
