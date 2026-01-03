@@ -2,6 +2,7 @@
   import BasemapSelector from "./BasemapSelector.svelte";
   import EditorDropdown from "./EditorDropdown.svelte";
   import ReportProblemButton from "./ReportProblemButton.svelte";
+  import Mapillary from "./Mapillary.svelte";
 
   let { basemap = $bindable() }: { basemap: string } = $props();
 
@@ -12,6 +13,7 @@
   <BasemapSelector bind:basemap />
   <EditorDropdown />
   <ReportProblemButton />
+  <Mapillary />
 </div>
 
 <style>
