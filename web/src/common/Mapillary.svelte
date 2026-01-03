@@ -4,12 +4,50 @@
     VectorTileSource,
     LineLayer,
     CircleLayer,
+    GeoJSON,
+    SymbolLayer,
   } from "svelte-maplibre";
   import { Checkbox } from "svelte-utils";
-  import CollapsibleCard from "./CollapsibleCard.svelte";
+  import { emptyGeojson } from "svelte-utils/map";
+  import { Viewer } from "mapillary-js";
+  import type { Feature } from "geojson";
+  import { untrack, onDestroy } from "svelte";
 
   let show = $state(false);
-  let pinImage: number | null = $state(null);
+
+  let container: HTMLDivElement | undefined = $state();
+  let viewer: Viewer | undefined = $state();
+
+  let cameraPosition: Feature | undefined = $state();
+  let cameraBearing = $state(0);
+
+  onDestroy(() => {
+    viewer?.remove();
+  });
+
+  // TODO Or @attach?
+  $effect(() => {
+    if (container) {
+      untrack(() => {
+        viewer = new Viewer({ accessToken, container: container! });
+
+        viewer.on("position", async (e) => {
+          let pos = await viewer!.getPosition();
+          cameraPosition = {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Point",
+              coordinates: [pos.lng, pos.lat],
+            },
+          };
+        });
+        viewer.on("bearing", (e) => {
+          cameraBearing = e.bearing;
+        });
+      });
+    }
+  });
 
   // Making this public means anybody could burn through our quota. Embedding in git means it's
   // easier to scrape, but in any case, anybody using the app can just see the key in network
@@ -17,6 +55,19 @@
   // cared, we could proxy all requests through a server that hides the key. But it's free tier and
   // read-only access, so really doesn't matter much.
   let accessToken = "MLY|25548189401504437|3c9576aa434c09888b5de1c28f13b1df";
+
+  function close() {
+    show = false;
+    viewer?.activateCover();
+    cameraPosition = undefined;
+    cameraBearing = 0;
+  }
+
+  async function openImage(id: string) {
+    viewer?.deactivateCover();
+    viewer?.resize();
+    await viewer?.moveTo(id);
+  }
 </script>
 
 <Checkbox bind:checked={show}>Mapillary</Checkbox>
@@ -51,25 +102,23 @@
       visibility: show ? "visible" : "none",
     }}
     hoverCursor="pointer"
-    onclick={(e) => (pinImage = e.features[0].properties!.id)}
+    onclick={(e) => openImage(e.features[0].properties!.id)}
   />
 </VectorTileSource>
 
+<GeoJSON data={cameraPosition || emptyGeojson()}>
+  <SymbolLayer
+    layout={{
+      "icon-image": "mapillary_arrow",
+      "icon-rotate": cameraBearing,
+      visibility: show ? "visible" : "none",
+    }}
+  />
+</GeoJSON>
+
 <div class="viewer-container" style:visibility={show ? "visible" : "hidden"}>
-  <CollapsibleCard>
-    {#snippet header()}Mapillary{/snippet}
-    {#snippet body()}
-      {#if pinImage}
-        <iframe
-          title="Mapillary"
-          src={`https://www.mapillary.com/embed?image_key=${pinImage}&style=photo`}
-          height="240"
-          width="320"
-          frameborder="0"
-        ></iframe>
-      {/if}
-    {/snippet}
-  </CollapsibleCard>
+  <button class="btn btn-primary" onclick={close}>X</button>
+  <div bind:this={container}></div>
 </div>
 
 <style>
@@ -78,5 +127,9 @@
     position: absolute;
     left: 10px;
     bottom: 50px;
+
+    width: 300px;
+    height: 300px;
+    background: white;
   }
 </style>
