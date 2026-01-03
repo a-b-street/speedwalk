@@ -26,14 +26,17 @@ impl Speedwalk {
             // - if the node is attached to two ways AND those ways are nearly
             //   parallel/anti-parallel, then it needs a crossing
             if node.is_crossing() {
-                if node.way_ids.len() == 1 {
+                let ways = node
+                    .way_ids
+                    .iter()
+                    .map(|w| &self.derived_ways[w])
+                    .collect::<Vec<_>>();
+                if ways.len() == 1 && ways[0].kind.is_road() {
                     crossings.push(*id);
-                } else if node.way_ids.len() == 2
-                    && nearly_parallel(
-                        &self.derived_ways[&node.way_ids[0]].linestring,
-                        &self.derived_ways[&node.way_ids[1]].linestring,
-                        10.0,
-                    )
+                } else if ways.len() == 2
+                    && ways[0].kind.is_road()
+                    && ways[1].kind.is_road()
+                    && nearly_parallel(&ways[0].linestring, &ways[1].linestring, 10.0)
                 {
                     crossings.push(*id);
                 }
