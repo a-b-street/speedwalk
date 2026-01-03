@@ -1,4 +1,6 @@
 <script lang="ts">
+  import "mapillary-js/dist/mapillary.css";
+  import { Viewer } from "mapillary-js";
   import {
     hoverStateFilter,
     VectorTileSource,
@@ -9,7 +11,6 @@
   } from "svelte-maplibre";
   import { Checkbox } from "svelte-utils";
   import { emptyGeojson } from "svelte-utils/map";
-  import { Viewer } from "mapillary-js";
   import type { Feature } from "geojson";
   import { untrack, onDestroy } from "svelte";
 
@@ -118,7 +119,7 @@
 
 <div class="viewer-container" style:visibility={show ? "visible" : "hidden"}>
   <button class="btn btn-primary" onclick={close}>X</button>
-  <div bind:this={container}></div>
+  <div bind:this={container} style="width: 100%; height: 100%"></div>
 </div>
 
 <style>
@@ -126,10 +127,9 @@
     z-index: 100;
     position: absolute;
     left: 10px;
-    bottom: 50px;
+    bottom: 120px;
 
-    width: 300px;
+    width: 500px;
     height: 300px;
-    background: white;
   }
 </style>
