@@ -1,7 +1,7 @@
 <script lang="ts">
   import * as backendPkg from "../../../backend/pkg";
   import { backend, refreshLoadingScreen, anyEdits } from "../";
-  import { overpassQueryForPolygon } from "svelte-utils/overpass";
+  import { overpassQueryForPolygon } from "svelte-utils/osm";
   import {
     downloadGeneratedFile,
     Checkbox,
