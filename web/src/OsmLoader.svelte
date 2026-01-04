@@ -18,6 +18,7 @@
   let polygonTool: PolygonTool | null = $state(null);
   let saveCopy = $state(false);
   let fileInput: HTMLInputElement | undefined = $state();
+  let source = $state("Overpass");
 
   async function loadFile(e: Event) {
     try {
@@ -31,24 +32,62 @@
 
   async function importPolygon(boundaryGj: Feature<Polygon>) {
     try {
-      onloading?.("Loading from Overpass");
-      let resp = await fetch(overpassQueryForPolygon(boundaryGj));
-      if (!resp.ok) {
-        throw new Error(
-          `Overpass response is not OK: ${resp.status}. The API is often overloaded; try again in a few seconds.`,
-        );
-      }
-      let osmXml = await resp.bytes();
+      onloading?.(`Loading from ${source}`);
+      if (source == "Overpass") {
+        let resp = await fetch(overpassQueryForPolygon(boundaryGj));
+        if (!resp.ok) {
+          throw new Error(
+            `Overpass response is not OK: ${resp.status}. The API is often overloaded; try again in a few seconds.`,
+          );
+        }
+        let osmXml = await resp.bytes();
 
-      if (saveCopy) {
-        let text = new TextDecoder().decode(osmXml);
-        downloadGeneratedFile("osm.xml", text);
-      }
+        if (saveCopy) {
+          let text = new TextDecoder().decode(osmXml);
+          downloadGeneratedFile("osm.xml", text);
+        }
 
-      onload(new Uint8Array(osmXml), boundaryGj);
+        onload(new Uint8Array(osmXml), boundaryGj);
+      } else {
+        let resp = await fetch("http://localhost:3000", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(boundaryGj),
+        });
+        if (!resp.ok) {
+          throw new Error(`OSM extractor response is not OK: ${resp.status}`);
+        }
+        let osmPbf = await resp.bytes();
+
+        if (saveCopy) {
+          // @ts-expect-error TODO Types are wrong, but it works
+          downloadBinaryFile(osmPbf, "osm.pbf");
+        }
+
+        onload(new Uint8Array(osmPbf), boundaryGj);
+      }
     } catch (err: any) {
       onerror?.(err.toString());
     }
+  }
+
+  // TODO Put in utils generally
+  function downloadBinaryFile(bytes: ArrayBuffer, filename: string) {
+    let blob = new Blob([bytes], { type: "application/octet-stream" });
+    let url = URL.createObjectURL(blob);
+
+    let link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.style.display = "none";
+
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   function latLngToGeojson(pt: LngLat): [number, number] {
@@ -117,6 +156,37 @@
 
 <p class="fst-italic my-3">or...</p>
 
+<u>Import from OpenStreetMap</u>
+
+<div class="form-check">
+  <label class="form-check-label">
+    <input
+      class="form-check-input"
+      type="radio"
+      bind:group={source}
+      value="Overpass"
+    />
+    Overpass (latest data, faster, sometimes unreliable)
+  </label>
+</div>
+
+<div class="form-check mb-3">
+  <label class="form-check-label">
+    <input
+      class="form-check-input"
+      type="radio"
+      bind:group={source}
+      value="OSM extractor"
+    />
+    osm-extractor (up to 24hrs old, slower)
+  </label>
+</div>
+
+<Checkbox bind:checked={saveCopy}>
+  Download a copy after importing
+</Checkbox>
+<div class="mb-3"></div>
+
 {#if polygonTool}
   <PolygonControls {polygonTool} />
 {:else}
@@ -130,7 +200,3 @@
     Draw an area to import on the map
   </button>
 {/if}
-
-<Checkbox bind:checked={saveCopy}>
-  Save a copy of the osm.xml after importing
-</Checkbox>
