@@ -131,6 +131,7 @@ impl Speedwalk {
             let mut crossings = BTreeSet::new();
             let mut explicit_non_crossings = BTreeSet::new();
             let mut number_roundabout_arms = 0;
+            let mut seen_edges = BTreeSet::new();
             for e in &intersection.edges {
                 let edge = &graph.edges[e];
                 let way = &self.derived_ways[&edge.osm_way];
@@ -152,10 +153,21 @@ impl Speedwalk {
                     any_roads = true;
                 }
 
+                // When a way is a loop and only consists of one edge, the edge will show up twice
+                // in intersection.edges. One of the times, we should look at it starting the
+                // reverse direction.
+                // TODO If the loop is shorter than max_distance, should we skip processing it
+                // twice?
+                let mut forwards = edge.src == *i;
+                if seen_edges.contains(e) && edge.dst == *i {
+                    forwards = false;
+                } else {
+                    seen_edges.insert(*e);
+                }
+
                 // The edge belongs to an OSM way, and is usually just a subset of it. Crossings
                 // aren't always located directly on this first edge, so search a bit away. If the
                 // OSM way is split before the crossing (uncommon), then we'll miss it.
-                let forwards = edge.src == *i;
                 let (arm_ls, nodes_reached) = self.slice_way(
                     way,
                     if forwards {
