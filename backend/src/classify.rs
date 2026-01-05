@@ -47,6 +47,7 @@ impl Kind {
             vec![
                 "corridor",
                 "cycleway",
+                "elevator",
                 "footway",
                 "path",
                 "pedestrian",
