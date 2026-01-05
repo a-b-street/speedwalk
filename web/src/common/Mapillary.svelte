@@ -8,6 +8,7 @@
     CircleLayer,
     GeoJSON,
     FillLayer,
+    SymbolLayer,
   } from "svelte-maplibre";
   import { emptyGeojson } from "svelte-utils/map";
   import { untrack, onDestroy } from "svelte";
@@ -96,10 +97,21 @@
     sourceLayer="sequence"
     paint={{
       "line-width": 2,
-      "line-color": "green",
+      "line-color": ["case", ["get", "is_pano"], "blue", "green"],
     }}
     layout={{
       visibility: show ? "visible" : "none",
+    }}
+  />
+
+  <SymbolLayer
+    minzoom={16}
+    sourceLayer="image"
+    layout={{
+      visibility: show ? "visible" : "none",
+      "icon-image": "chevron",
+      "icon-rotate": ["get", "compass_angle"],
+      "icon-offset": [15, 0],
     }}
   />
 
@@ -107,16 +119,29 @@
     sourceLayer="image"
     manageHoverState
     paint={{
-      "circle-radius": 4,
-      "circle-color": hoverStateFilter("green", "orange"),
+      "circle-radius": 8,
+      "circle-color": hoverStateFilter("transparent", "orange"),
       "circle-stroke-color": "black",
-      "circle-stroke-width": 1,
+      "circle-stroke-width": hoverStateFilter(0, 2),
     }}
     layout={{
       visibility: show ? "visible" : "none",
     }}
     hoverCursor="pointer"
     onclick={(e) => openImage(e.features[0].properties!.id)}
+  />
+
+  <CircleLayer
+    sourceLayer="image"
+    paint={{
+      "circle-radius": 4,
+      "circle-color": ["case", ["get", "is_pano"], "blue", "green"],
+      "circle-stroke-color": "black",
+      "circle-stroke-width": 1,
+    }}
+    layout={{
+      visibility: show ? "visible" : "none",
+    }}
   />
 </VectorTileSource>
 
