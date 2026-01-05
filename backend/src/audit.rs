@@ -155,10 +155,15 @@ impl Speedwalk {
                 // The edge belongs to an OSM way, and is usually just a subset of it. Crossings
                 // aren't always located directly on this first edge, so search a bit away. If the
                 // OSM way is split before the crossing (uncommon), then we'll miss it.
+                let forwards = edge.src == *i;
                 let (arm_ls, nodes_reached) = self.slice_way(
                     way,
-                    intersection.osm_node,
-                    edge.src == *i,
+                    if forwards {
+                        edge.idx_of_node1
+                    } else {
+                        edge.idx_of_node2
+                    },
+                    forwards,
                     options.max_distance,
                 );
 
@@ -250,7 +255,7 @@ impl Speedwalk {
     fn slice_way(
         &self,
         way: &Way,
-        start: NodeID,
+        start_idx: usize,
         forwards: bool,
         max_distance: f64,
     ) -> (LineString, Vec<NodeID>) {
@@ -259,19 +264,16 @@ impl Speedwalk {
         let mut length_so_far = 0.0;
 
         let node_iter: Box<dyn Iterator<Item = &NodeID>> = if forwards {
-            Box::new(way.node_ids.iter())
+            Box::new(way.node_ids.iter().skip(start_idx))
         } else {
-            Box::new(way.node_ids.iter().rev())
+            Box::new(way.node_ids.iter().take(start_idx + 1).rev())
         };
 
         for n in node_iter {
             let pt = Point::from(self.derived_nodes[n].pt);
             if nodes_reached.is_empty() {
-                // We haven't found the start node yet
-                if *n == start {
-                    nodes_reached.push(*n);
-                    pts.push(pt);
-                }
+                nodes_reached.push(*n);
+                pts.push(pt);
             } else {
                 let length_this_step = Euclidean.distance(*pts.last().unwrap(), pt);
                 if length_so_far + length_this_step <= max_distance {

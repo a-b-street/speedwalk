@@ -29,6 +29,9 @@ pub struct Edge {
     pub osm_tags: Tags,
 
     pub node_ids: Vec<NodeID>,
+    /// Where does this edge begin and end within the way's list of nodes?
+    pub idx_of_node1: usize,
+    pub idx_of_node2: usize,
 
     pub linestring: LineString,
 }
@@ -60,6 +63,7 @@ impl Graph {
         let mut edges = BTreeMap::new();
         for (way_id, way) in &osm.derived_ways {
             let mut node1 = way.node_ids[0];
+            let mut idx_of_node1 = 0;
             let mut pts = Vec::new();
             let mut nodes = Vec::new();
 
@@ -107,6 +111,8 @@ impl Graph {
                             osm_way: *way_id,
                             osm_node1: node1,
                             osm_node2: node,
+                            idx_of_node1,
+                            idx_of_node2: idx,
                             node_ids: std::mem::take(&mut nodes),
                             osm_tags: way.tags.clone(),
                             linestring: LineString::new(std::mem::take(&mut pts)),
@@ -116,6 +122,7 @@ impl Graph {
                     // Start the next edge
                     nodes.push(node);
                     node1 = node;
+                    idx_of_node1 = idx;
                     pts.push(osm.derived_nodes[&node].pt);
                 }
             }
