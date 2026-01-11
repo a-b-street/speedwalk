@@ -23,6 +23,7 @@
     ignore_cycleways: true,
     ignore_footways: true,
     ignore_roundabouts: true,
+    ignore_motorways: true,
     max_distance: 30,
   });
 
@@ -250,6 +251,9 @@
           </Checkbox>
           <Checkbox bind:checked={options.ignore_roundabouts}>
             Don't expect crossings on roundabouts
+          </Checkbox>
+          <Checkbox bind:checked={options.ignore_motorways}>
+            Don't expect crossings on motorways
           </Checkbox>
           <div>
             <label class="form-label">

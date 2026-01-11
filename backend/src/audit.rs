@@ -20,6 +20,7 @@ pub struct Options {
     ignore_cycleways: bool,
     ignore_footways: bool,
     ignore_roundabouts: bool,
+    ignore_motorways: bool,
     max_distance: f64,
 }
 
@@ -62,12 +63,15 @@ impl Speedwalk {
                 crossings.len() + explicit_non_crossings.len()
                     >= arms.len()
                         - junction.number_dual_carriageway_splits
-                        - junction.number_roundabout_arms,
+                        - junction.number_roundabout_arms
+                        - junction.number_motorway_arms,
             );
             f.set_property("arms", GeoJson::from(arms));
             f.set_property(
                 "number_ignored_arms",
-                junction.number_dual_carriageway_splits + junction.number_roundabout_arms,
+                junction.number_dual_carriageway_splits
+                    + junction.number_roundabout_arms
+                    + junction.number_motorway_arms,
             );
             f.set_property("crossings", GeoJson::from(crossings));
             f.set_property(
@@ -131,6 +135,7 @@ impl Speedwalk {
             let mut crossings = BTreeSet::new();
             let mut explicit_non_crossings = BTreeSet::new();
             let mut number_roundabout_arms = 0;
+            let mut number_motorway_arms = 0;
             let mut seen_edges = BTreeSet::new();
             for e in &intersection.edges {
                 let edge = &graph.edges[e];
@@ -202,6 +207,16 @@ impl Speedwalk {
                     number_roundabout_arms += 1;
                 }
 
+                if options.ignore_motorways
+                    && way.tags.is_any(
+                        "highway",
+                        vec!["motorway", "motorway_link", "trunk", "trunk_link"],
+                    )
+                {
+                    has_crossing = true;
+                    number_motorway_arms += 1;
+                }
+
                 arms.push((*e, arm_ls, has_crossing));
             }
 
@@ -217,6 +232,7 @@ impl Speedwalk {
                     arms,
                     number_dual_carriageway_splits,
                     number_roundabout_arms,
+                    number_motorway_arms,
                     crossings,
                     explicit_non_crossings,
                 });
@@ -319,6 +335,7 @@ struct Junction {
     arms: Vec<(EdgeID, LineString, bool)>,
     number_dual_carriageway_splits: usize,
     number_roundabout_arms: usize,
+    number_motorway_arms: usize,
     crossings: BTreeSet<NodeID>,
     explicit_non_crossings: BTreeSet<NodeID>,
 }
