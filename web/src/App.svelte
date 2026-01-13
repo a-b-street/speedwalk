@@ -65,7 +65,11 @@
             for (let [key, value] of Object.entries(
               previousStyle.sources || {},
             )) {
-              if (key.startsWith("geojson-") || key.startsWith("heatmap")) {
+              if (
+                key.startsWith("geojson-") ||
+                key.startsWith("heatmap") ||
+                key.startsWith("vector-")
+              ) {
                 sources[key] = value;
               }
             }
