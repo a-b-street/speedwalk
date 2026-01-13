@@ -24,7 +24,7 @@
     ignore_footways: true,
     ignore_roundabouts: true,
     ignore_motorways: true,
-    max_distance: 30,
+    max_distance: 40,
   });
 
   let data = $derived(
