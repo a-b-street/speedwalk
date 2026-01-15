@@ -200,10 +200,10 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = editConnectAllCrossings)]
-    pub fn edit_connect_all_crossings(&mut self) -> Result<(), JsValue> {
+    pub fn edit_connect_all_crossings(&mut self, include_crossing_no: bool) -> Result<(), JsValue> {
         let mut edits = self.edits.take().unwrap();
         // Ignore failure?
-        let _ = edits.apply_cmd(UserCmd::ConnectAllCrossings, self);
+        let _ = edits.apply_cmd(UserCmd::ConnectAllCrossings(include_crossing_no), self);
         self.edits = Some(edits);
         self.after_edit();
         Ok(())

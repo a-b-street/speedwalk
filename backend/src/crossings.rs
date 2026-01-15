@@ -9,7 +9,7 @@ use utils::Tags;
 use crate::{Kind, Speedwalk, edits::CreateNewGeometry};
 
 impl Speedwalk {
-    pub fn connect_all_crossings(&self) -> CreateNewGeometry {
+    pub fn connect_all_crossings(&self, include_crossing_no: bool) -> CreateNewGeometry {
         info!("Finding crossings to connect");
         let mut crossings = Vec::new();
         for (id, node) in &self.derived_nodes {
@@ -25,7 +25,7 @@ impl Speedwalk {
             // - if the node is only attached to one way (in the middle), it needs a crossing
             // - if the node is attached to two ways AND those ways are nearly
             //   parallel/anti-parallel, then it needs a crossing
-            if node.is_crossing() {
+            if node.is_crossing() || (include_crossing_no && node.is_explicit_crossing_no()) {
                 let ways = node
                     .way_ids
                     .iter()

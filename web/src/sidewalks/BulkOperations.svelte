@@ -17,6 +17,7 @@
   let loading = $state("");
   let driveOnLeft = $state(true);
   let onlyMakeSeverances = $state(true);
+  let connectCrossingNo = $state(false);
 
   async function makeAllSidewalks() {
     loading = "Generating sidewalks";
@@ -35,7 +36,7 @@
     loading = "Connecting crossings";
     await refreshLoadingScreen();
     try {
-      $backend!.editConnectAllCrossings();
+      $backend!.editConnectAllCrossings(connectCrossingNo);
       $mutationCounter++;
     } catch (err) {
       window.alert(`Error: ${err}`);
@@ -86,9 +87,17 @@
         </div>
       </div>
 
-      <button class="btn btn-secondary" onclick={connectAllCrossings}>
-        Connect all crossing nodes
-      </button>
+      <div class="card">
+        <div class="card-header">Connect all crossing nodes</div>
+        <div class="card-body">
+          <Checkbox bind:checked={connectCrossingNo}>
+            Include crossing=no
+          </Checkbox>
+          <button class="btn btn-secondary" onclick={connectAllCrossings}>
+            Create a way for every crossing node
+          </button>
+        </div>
+      </div>
     {/snippet}
   </CollapsibleCard>
 {:else}

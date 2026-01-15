@@ -28,7 +28,7 @@ pub struct Edits {
 pub enum UserCmd {
     SetTags(WayID, Vec<(String, String)>),
     MakeAllSidewalks(bool),
-    ConnectAllCrossings,
+    ConnectAllCrossings(bool),
     AssumeTags(bool),
     AddCrossings(Vec<Point>, Tags),
 }
@@ -69,8 +69,8 @@ impl Edits {
                 let results = model.make_all_sidewalks(only_severances);
                 self.create_new_geometry(results, model);
             }
-            UserCmd::ConnectAllCrossings => {
-                let results = model.connect_all_crossings();
+            UserCmd::ConnectAllCrossings(include_crossing_no) => {
+                let results = model.connect_all_crossings(include_crossing_no);
                 self.create_new_geometry(results, model);
             }
             UserCmd::AssumeTags(drive_on_left) => {
