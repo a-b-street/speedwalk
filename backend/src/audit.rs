@@ -104,11 +104,10 @@ impl Speedwalk {
             }
         }
 
-        info!("Adding {} imaginary crossings", pts.len());
+        info!("Adding {} crossings", pts.len());
         let mut tags = Tags::empty();
         tags.insert("highway", "crossing");
-        // TODO Decide how to encode this
-        tags.insert("crossing", "imaginary");
+        tags.insert("crossing", "generated");
 
         let mut edits = self.edits.take().unwrap();
         edits.apply_cmd(UserCmd::AddCrossings(pts, tags), self)?;

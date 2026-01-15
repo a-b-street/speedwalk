@@ -59,8 +59,8 @@ impl Speedwalk {
             f.set_property("is_crossing", node.is_crossing());
             f.set_property("is_explicit_crossing_no", node.is_explicit_crossing_no());
             f.set_property(
-                "is_imaginary_crossing",
-                node.tags.is("crossing", "imaginary"),
+                "is_generated_crossing",
+                node.tags.is("crossing", "generated"),
             );
             f.set_property("modified", node.modified);
             f.set_property(

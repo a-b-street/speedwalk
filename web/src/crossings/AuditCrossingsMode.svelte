@@ -81,7 +81,7 @@
     "Fully mapped junction": "green",
     Crossing: "yellow",
     "crossing=no": "purple",
-    "crossing=imaginary": "cyan",
+    "crossing=generated": "cyan",
   };
 </script>
 
@@ -178,8 +178,8 @@
             "case",
             ["get", "is_explicit_crossing_no"],
             colors["crossing=no"],
-            ["get", "is_imaginary_crossing"],
-            colors["crossing=imaginary"],
+            ["get", "is_generated_crossing"],
+            colors["crossing=generated"],
             colors["Crossing"],
           ],
           "circle-opacity": hoverStateFilter(0.3, 1.0),
