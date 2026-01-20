@@ -7,6 +7,7 @@
   import * as backendPkg from "../../backend/pkg";
   import { backend, refreshLoadingScreen, map } from "./";
   import type { Feature, Polygon } from "geojson";
+  import LoadRelationInput from "./common/LoadRelationInput.svelte";
 
   let loading = $state("");
 
@@ -47,6 +48,8 @@
         loading = "";
       }}
     />
+
+    <LoadRelationInput onSuccess={zoomFit} />
   {/snippet}
 
   {#snippet main()}

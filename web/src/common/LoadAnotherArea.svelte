@@ -2,6 +2,7 @@
   import * as backendPkg from "../../../backend/pkg";
   import { backend, refreshLoadingScreen, anyEdits } from "../";
   import { overpassQueryForPolygon } from "svelte-utils/osm";
+  import { fetchOverpass } from "./overpass";
   import {
     downloadGeneratedFile,
     Checkbox,
@@ -72,10 +73,7 @@
       loading = "Grabbing new OSM data from Overpass";
       let boundary = JSON.parse($backend!.getBoundary());
       let url = overpassQueryForPolygon(boundary);
-      let resp = await fetch(url);
-      if (!resp.ok) {
-        throw new Error(`Overpass failed: ${resp}`);
-      }
+      let resp = await fetchOverpass(url);
       let osmXml = await resp.bytes();
 
       if (saveCopy) {
