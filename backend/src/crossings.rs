@@ -58,14 +58,15 @@ impl Speedwalk {
         info!("Generating {} crossings", crossings.len());
         let mut new_crossings = Vec::new();
         let mut insert_new_nodes = HashMap::new();
-        for crossing_node in crossings {
+        for crossing_node_id in crossings {
             let project_away_meters = 10.0;
 
-            let crossing_node = &self.derived_nodes[&crossing_node];
+            let crossing_node = &self.derived_nodes[&crossing_node_id];
             let crossing_pt = crossing_node.pt;
 
             // Make a perpendicular line at the node
-            let road_linestring = &self.derived_ways[&crossing_node.way_ids[0]].linestring;
+            let road_way_id = crossing_node.way_ids[0];
+            let road_linestring = &self.derived_ways[&road_way_id].linestring;
             let angle = angle_of_pt_on_line(road_linestring, crossing_pt);
 
             let test_line1 = Line::new(
@@ -87,6 +88,9 @@ impl Speedwalk {
             let mut new_tags = Tags::empty();
             new_tags.insert("highway", "footway");
             new_tags.insert("footway", "crossing");
+            // Store OSM reference: use crossing node ID (primary) and road way ID (always available as fallback)
+            new_tags.insert("tmp:osm_node_id", format!("node/{}", crossing_node_id.0));
+            new_tags.insert("tmp:osm_way_id", format!("way/{}", road_way_id.0));
             // Copy one tag from the crossing node to the new crossing way
             if let Some(value) = crossing_node.tags.get("crossing") {
                 new_tags.insert("crossing", value);
