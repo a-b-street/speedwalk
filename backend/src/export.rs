@@ -87,6 +87,18 @@ impl Speedwalk {
                 f.set_property("node2", edge.osm_node2.0);
                 f.set_property("way", edge.osm_way.0);
 
+                // Determine osm_id from tags stored during generation, or fallback to way ID
+                if let Some(osm_node_id) = way.tags.get("tmp:osm_node_id") {
+                    // OSM node reference (for crossings)
+                    f.set_property("osm_id", osm_node_id.clone());
+                } else if let Some(osm_way_id) = way.tags.get("tmp:osm_way_id") {
+                    // OSM way reference (for sidewalks and crossings fallback)
+                    f.set_property("osm_id", osm_way_id.clone());
+                } else {
+                    // Regular way - use the way ID (always available as final fallback)
+                    f.set_property("osm_id", format!("way/{}", edge.osm_way.0));
+                }
+
                 f.set_property("kind", format!("{:?}", way.kind));
 
                 for (k, v) in &way.tags.0 {

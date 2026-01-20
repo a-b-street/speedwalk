@@ -116,6 +116,7 @@ impl Speedwalk {
 
                 let mut tags = new_tags.clone();
                 tags.insert("tmp:closest_way", way.0.to_string());
+                tags.insert("tmp:osm_way_id", format!("way/{}", way.0));
                 tags.insert("tmp:side", format!("{side:?}"));
                 new_sidewalks.push((ls, tags));
 
