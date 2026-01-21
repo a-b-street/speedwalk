@@ -112,9 +112,9 @@
     <Checkbox bind:checked={saveCopy}>
       Save a copy of the latest osm.xml after refreshing
     </Checkbox>
-  </div>
 
-  <OverpassServerSelector />
+    <OverpassServerSelector />
+  </div>
 
   <button class="btn btn-primary" onclick={() => (show = false)}>Cancel</button>
 </Modal>
