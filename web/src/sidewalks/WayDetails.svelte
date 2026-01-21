@@ -66,10 +66,7 @@
     let choices = [] as Array<string[]>[];
     if (pinnedWay.properties.kind.startsWith("Road")) {
       choices = roadFixTagChoices;
-    } else if (
-      pinnedWay.properties.kind == "Sidewalk" ||
-      pinnedWay.properties.kind == "Other"
-    ) {
+    } else if (pinnedWay.properties.tags.highway == "footway") {
       choices = footwayFixTagChoices;
     }
 
@@ -148,7 +145,7 @@
           </button>
         </div>
       {/each}
-    {:else if pinnedWay.properties.kind == "Sidewalk" || pinnedWay.properties.kind == "Other"}
+    {:else if pinnedWay.properties.tags.highway == "footway"}
       <u>Set these tags</u>
 
       {#each footwayFixTagChoices.entries() as [idx, tags]}
