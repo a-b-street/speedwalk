@@ -27,15 +27,11 @@ overpassServer.subscribe((server) => {
   }
 });
 
-export async function fetchOverpass(
-  queryOrUrl: string,
-): Promise<Response> {
+export async function fetchOverpass(queryOrUrl: string): Promise<Response> {
   const isUrl = queryOrUrl.startsWith("http");
   const selectedServer = get(overpassServer);
 
-  const url = isUrl
-    ? queryOrUrl
-    : `${selectedServer}interpreter`;
+  const url = isUrl ? queryOrUrl : `${selectedServer}interpreter`;
 
   const resp = await fetch(
     url,
