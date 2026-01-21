@@ -55,14 +55,33 @@
             : The OSM way ID where this edge comes from.
           </li>
           <li>
+            <b>osm_id</b>
+            : For bulk generated crossing ways, this will be
+            <i>node/123</i>
+            pointing to the crossing node. For bulk generated sidewalks, this
+            will be
+            <i>way/123</i>
+            of the road that the sidewalk is parallel to. For regular existing
+            ways, this will be
+            <i>way/123</i>
+            matching the
+            <b>way</b>
+             property.
+          </li>
+          <li>
             <b>kind</b>
             : Speedwalk's classification of this edge
           </li>
           <li>Each tag from the OSM way will appear as a key and value</li>
         </ul>
         <p>
-          Note OSM IDs will be negative if you have run bulk operations and
-          generated synthetic sidewalks or crossings.
+          Note that OSM IDs <b>node1</b>
+          ,
+          <b>node2</b>
+          , and
+          <b>way</b>
+           will be negative if you have run bulk operations and generated synthetic
+          sidewalks or crossings.
         </p>
       {/snippet}
     </CollapsibleCard>
