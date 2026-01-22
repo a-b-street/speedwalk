@@ -8,7 +8,6 @@
   import { backend, refreshLoadingScreen, map } from "./";
   import type { Feature, Polygon } from "geojson";
   import LoadRelationInput from "./common/LoadRelationInput.svelte";
-  import OverpassServerSelector from "./common/OverpassServerSelector.svelte";
 
   let loading = $state("");
 
@@ -51,9 +50,6 @@
     />
 
     <LoadRelationInput onSuccess={zoomFit} />
-
-    <hr class="my-3" />
-    <OverpassServerSelector />
   {/snippet}
 
   {#snippet main()}

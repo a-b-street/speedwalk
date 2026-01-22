@@ -9,7 +9,6 @@
     Loading,
     Modal,
   } from "svelte-utils";
-  import OverpassServerSelector from "./OverpassServerSelector.svelte";
 
   let show = $state(false);
   let loading = $state("");
@@ -112,8 +111,6 @@
     <Checkbox bind:checked={saveCopy}>
       Save a copy of the latest osm.xml after refreshing
     </Checkbox>
-
-    <OverpassServerSelector />
   </div>
 
   <button class="btn btn-primary" onclick={() => (show = false)}>Cancel</button>
