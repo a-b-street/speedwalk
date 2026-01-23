@@ -13,7 +13,7 @@ impl Speedwalk {
         info!("Finding crossings to connect");
         let mut crossings = Vec::new();
         let mut half_crossings = Vec::new();
-        for (id, node) in &self.derived_nodes {
+        for (crossing_id, node) in &self.derived_nodes {
             if !(node.is_crossing() || (include_crossing_no && node.is_explicit_crossing_no())) {
                 continue;
             }
@@ -35,14 +35,14 @@ impl Speedwalk {
             // - if the node is attached to two ways AND those ways are nearly
             //   parallel/anti-parallel, then it needs a crossing
             if ways.len() == 1 && ways[0].kind.is_road() {
-                crossings.push(*id);
+                crossings.push(*crossing_id);
                 continue;
             } else if ways.len() == 2
                 && ways[0].kind.is_road()
                 && ways[1].kind.is_road()
                 && nearly_parallel(&ways[0].linestring, &ways[1].linestring, 10.0)
             {
-                crossings.push(*id);
+                crossings.push(*crossing_id);
                 continue;
             }
 
@@ -57,13 +57,25 @@ impl Speedwalk {
                 } else if way.kind == Kind::Crossing {
                     crossings.push(way);
                 } else if way.kind == Kind::Other {
-                    other.push(way);
+                    // If the crossing node is an endpoint of this footway, then this is indeed a
+                    // half-crossing. Otherwise, it's likely a mistagged crossing way (that may
+                    // need to be split).
+                    if let Some((idx, _)) = way
+                        .node_ids
+                        .iter()
+                        .enumerate()
+                        .find(|(_, n)| **n == *crossing_id)
+                    {
+                        if idx == 0 || idx == way.node_ids.len() - 1 {
+                            other.push(way);
+                        }
+                    }
                 }
             }
             // TODO This may be too restrictive, but it's a start for cases like
             // https://www.openstreetmap.org/node/12270311650
             if crossings.is_empty() && roads.len() >= 1 && other.len() == 1 {
-                half_crossings.push((*id, roads[0], other[0]));
+                half_crossings.push((*crossing_id, roads[0], other[0]));
             }
         }
 
@@ -83,6 +95,8 @@ impl Speedwalk {
         let mut new_crossings = Vec::new();
         let mut insert_new_nodes = HashMap::new();
         for crossing_node_id in crossings {
+            // TODO tmp, to just see the new half-crossings
+            break;
             let project_away_meters = 10.0;
 
             let crossing_node = &self.derived_nodes[&crossing_node_id];
