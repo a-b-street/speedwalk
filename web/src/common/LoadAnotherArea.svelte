@@ -1,8 +1,11 @@
 <script lang="ts">
   import * as backendPkg from "../../../backend/pkg";
   import { backend, refreshLoadingScreen, anyEdits } from "../";
-  import { overpassQueryForPolygon } from "svelte-utils/osm";
-  import { fetchOverpass } from "./overpass";
+  import {
+    overpassQueryForPolygon,
+    fetchOverpass,
+    OverpassServerSelector,
+  } from "svelte-utils/osm";
   import {
     downloadGeneratedFile,
     Checkbox,
@@ -72,8 +75,7 @@
     try {
       loading = "Grabbing new OSM data from Overpass";
       let boundary = JSON.parse($backend!.getBoundary());
-      let url = overpassQueryForPolygon(boundary);
-      let resp = await fetchOverpass(url);
+      let resp = await fetchOverpass(overpassQueryForPolygon(boundary));
       let osmXml = await resp.bytes();
 
       if (saveCopy) {
@@ -111,6 +113,8 @@
     <Checkbox bind:checked={saveCopy}>
       Save a copy of the latest osm.xml after refreshing
     </Checkbox>
+
+    <OverpassServerSelector />
   </div>
 
   <button class="btn btn-primary" onclick={() => (show = false)}>Cancel</button>

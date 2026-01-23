@@ -1,9 +1,8 @@
 import { convex } from "@turf/convex";
 import { feature } from "@turf/helpers";
-import { overpassQueryForPolygon } from "svelte-utils/osm";
+import { overpassQueryForPolygon, fetchOverpass } from "svelte-utils/osm";
 import * as backendPkg from "../../../backend/pkg";
 import { backend, refreshLoadingScreen } from "../";
-import { fetchOverpass } from "./overpass";
 import osm2geojson from "osm2geojson-ultra";
 import type { Feature, Polygon, Geometry } from "geojson";
 
@@ -53,14 +52,6 @@ function createConvexHull(relationGeometry: Geometry): Feature<Polygon> {
   return convexHullFeature;
 }
 
-async function loadOsmDataWithBoundary(
-  convexHull: Feature<Polygon>,
-): Promise<Uint8Array> {
-  const overpassUrl = overpassQueryForPolygon(convexHull);
-  const osmResp = await fetchOverpass(overpassUrl);
-  return await osmResp.bytes();
-}
-
 export async function loadRelationAndCreateSpeedwalk(
   relationId: number,
 ): Promise<void> {
@@ -73,7 +64,8 @@ export async function loadRelationAndCreateSpeedwalk(
   const convexHull = createConvexHull(relationGeometry);
 
   await refreshLoadingScreen();
-  const osmXml = await loadOsmDataWithBoundary(convexHull);
+  const resp = await fetchOverpass(overpassQueryForPolygon(convexHull));
+  const osmXml = await resp.bytes();
 
   await refreshLoadingScreen();
   backend.set(new backendPkg.Speedwalk(new Uint8Array(osmXml), convexHull));

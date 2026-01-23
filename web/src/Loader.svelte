@@ -47,9 +47,9 @@
         window.alert(msg);
         loading = "";
       }}
-    />
-
-    <LoadRelationInput onSuccess={zoomFit} />
+    >
+      <LoadRelationInput onSuccess={zoomFit} />
+    </OsmLoader>
   {/snippet}
 
   {#snippet main()}
