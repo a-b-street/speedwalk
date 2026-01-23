@@ -40,29 +40,24 @@ impl Speedwalk {
                 continue;
             }
 
-            if let Some((_, crossing_node)) = way.node_ids.iter().enumerate().find(|(idx, n)| {
+            let mut detail_nodes = Vec::new();
+            for (idx, n) in way.node_ids.iter().enumerate() {
                 // Ignore when the crossing node is the first or last on the way
-                if *idx == 0 || *idx == way.node_ids.len() - 1 {
-                    return false;
+                if idx == 0 || idx == way.node_ids.len() - 1 {
+                    continue;
                 }
 
                 let node = &self.derived_nodes[n];
-                // TODO This one is debatable
-                // Only crossing nodes over severances -- it's normal for a sidewalk to have
-                // side road crossings in the middle
-                node.is_crossing()
-                    && node
-                        .way_ids
-                        .iter()
-                        .any(|w| self.derived_ways[w].is_severance())
-            }) {
-                let mut f = self
-                    .mercator
-                    .to_wgs84_gj(&Point::from(self.derived_nodes[crossing_node].pt));
-                f.set_property("color", "yellow");
-                f.set_property("label", "crossing node");
+                if node.is_crossing() {
+                    let mut f = self.mercator.to_wgs84_gj(&Point::from(node.pt));
+                    f.set_property("color", "yellow");
+                    f.set_property("label", "crossing node");
+                    detail_nodes.push(f);
+                }
+            }
 
-                problem_ways.push((*way_id, "missing footway=crossing", vec![f]));
+            if !detail_nodes.is_empty() {
+                problem_ways.push((*way_id, "missing footway=crossing", detail_nodes));
             }
         }
 
