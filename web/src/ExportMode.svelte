@@ -4,7 +4,7 @@
   import { downloadGeneratedFile, QualitativeLegend } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
-  import { backend, networkFilter } from "./";
+  import { backend, networkFilter, prettyPrintDistance } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
   import NetworkFilter from "./common/NetworkFilter.svelte";
 
@@ -120,6 +120,9 @@
                 {/each}
               </tbody>
             </table>
+            <div style="margin-top: 8px;">
+              <strong>Length:</strong> {(data!.properties!.length as number | undefined) != null ? prettyPrintDistance(data!.properties!.length) : "-"}
+            </div>
           {/snippet}
         </Popup>
       </LineLayer>
