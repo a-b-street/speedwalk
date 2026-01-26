@@ -93,11 +93,14 @@ impl Speedwalk {
             for (_, ls, has_crossing) in junction.arms {
                 if !has_crossing {
                     // Add the crossing close to the junction at a fixed position. Make it slightly
-                    // past the buffer distance where we generate sidewalks, so that if we later
-                    // create crossing ways, there's a sidewalk to hit.
+                    // past the buffer distance where we generate sidewalks (hardcoded 3m), so that if we later
+                    // create crossing ways, there's a sidewalk to hit. But go even farther, to
+                    // compensate for roads with sharper angles (see
+                    // https://github.com/a-b-street/speedwalk/issues/83 for examples). This is
+                    // still brittle.
                     // TODO Especially if there are separate sidewalks there, line it up with the
                     // "corner" of those
-                    if let Some(pt) = ls.point_at_distance_from_start(&Euclidean, 4.0) {
+                    if let Some(pt) = ls.point_at_distance_from_start(&Euclidean, 5.0) {
                         pts.push(self.mercator.to_wgs84(&pt));
                     }
                 }
