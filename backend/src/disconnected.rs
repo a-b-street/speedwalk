@@ -17,9 +17,16 @@ impl Speedwalk {
         graph: &Graph,
         filter: &NetworkFilter,
     ) -> FeatureCollection {
+        // If dead end filtering is enabled, use chain-based approach
+        let dead_end_edges = if filter.ignore_deadends() {
+            Some(self.find_dead_end_chains(filter, graph))
+        } else {
+            None
+        };
+
         let mut scc_graph: UnGraphMap<IntersectionID, EdgeID> = UnGraphMap::new();
         for edge in graph.edges.values() {
-            if self.filter_network(filter, graph, edge) {
+            if self.filter_network(filter, graph, edge, dead_end_edges.as_ref()) {
                 scc_graph.add_edge(edge.src, edge.dst, edge.id);
             }
         }
@@ -30,7 +37,7 @@ impl Speedwalk {
             let mut ways = BTreeSet::new();
             for i in nodes {
                 for e in &graph.intersections[&i].edges {
-                    if self.filter_network(filter, graph, &graph.edges[e]) {
+                    if self.filter_network(filter, graph, &graph.edges[e], dead_end_edges.as_ref()) {
                         ways.insert(graph.edges[e].osm_way);
                     }
                 }

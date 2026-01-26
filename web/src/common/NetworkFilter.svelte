@@ -42,7 +42,7 @@
     </div>
 
     <Checkbox bind:checked={$networkFilter.ignore_deadends}>
-      Ignore deadends under 10m
+      Ignore dead ends under 10m and disconnected segments under 100m
     </Checkbox>
   </div>
 </div>
