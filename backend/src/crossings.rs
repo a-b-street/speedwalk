@@ -73,7 +73,9 @@ impl Speedwalk {
                 crossing_pt,
                 project_away(crossing_pt, angle + 90.0, project_away_meters),
             );
-            let Some((sidewalk1, endpt1)) = find_sidewalk_hit(&closest_sidewalk, test_line1) else {
+            let Some((sidewalk1, endpt1)) =
+                find_sidewalk_hit(&closest_sidewalk, crossing_pt, test_line1)
+            else {
                 continue;
             };
 
@@ -81,7 +83,9 @@ impl Speedwalk {
                 crossing_pt,
                 project_away(crossing_pt, angle - 90.0, project_away_meters),
             );
-            let Some((sidewalk2, endpt2)) = find_sidewalk_hit(&closest_sidewalk, test_line2) else {
+            let Some((sidewalk2, endpt2)) =
+                find_sidewalk_hit(&closest_sidewalk, crossing_pt, test_line2)
+            else {
                 continue;
             };
 
@@ -119,6 +123,7 @@ impl Speedwalk {
 
 fn find_sidewalk_hit(
     closest_sidewalk: &RTree<GeomWithData<LineString, WayID>>,
+    start_pt: Coord,
     line1: Line,
 ) -> Option<(WayID, Coord)> {
     // TODO Still cursed
@@ -129,16 +134,21 @@ fn find_sidewalk_hit(
         Point::new(bbox.max().x, bbox.max().y),
     );
 
+    let mut candidates = Vec::new();
     for obj in closest_sidewalk.locate_in_envelope_intersecting(&aabb) {
         for line2 in obj.geom().lines() {
             if let Some(LineIntersection::SinglePoint { intersection, .. }) =
                 line_intersection(line1, line2)
             {
-                return Some((obj.data, intersection));
+                candidates.push((obj.data, intersection));
             }
         }
     }
-    None
+    // There could be multiple hits. Pick the one closest to the specified start_pt (which should
+    // be on line1).
+    candidates
+        .into_iter()
+        .min_by_key(|(_, end_pt)| to_cm(Euclidean.distance(Point::from(start_pt), Point::from(*end_pt))))
 }
 
 // TODO Use new geo euclidean destination
@@ -176,4 +186,8 @@ pub fn shortest_rotation(angle1: f64, angle2: f64) -> f64 {
 
 fn nearly_parallel(ls1: &LineString, ls2: &LineString, epsilon_degrees: f64) -> bool {
     shortest_rotation(average_angle(ls1), average_angle(ls2)).abs() < epsilon_degrees
+}
+
+fn to_cm(x: f64) -> usize {
+    (x * 100.0).round() as usize
 }
