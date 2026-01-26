@@ -7,6 +7,7 @@
     enabledBulkOps,
     refreshLoadingScreen,
   } from "../";
+  import LocalStorageWrapper from "../common/LocalStorageWrapper.svelte";
 
   let { options }: { options: any } = $props();
 
@@ -50,7 +51,9 @@
 {/if}
 
 <Modal bind:show>
-  <h2>Bulk operations</h2>
+  <LocalStorageWrapper>
+    <h2>Bulk operations</h2>
+  </LocalStorageWrapper>
 
   <p>
     Speedwalk has some experimental features that can automatically generate
