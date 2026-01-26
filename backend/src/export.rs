@@ -100,6 +100,7 @@ impl Speedwalk {
                 }
 
                 f.set_property("kind", format!("{:?}", way.kind));
+                f.set_property("length", Euclidean.length(&edge.linestring));
 
                 for (k, v) in &way.tags.0 {
                     f.set_property(k.to_string(), v.to_string());
