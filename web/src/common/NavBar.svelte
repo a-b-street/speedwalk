@@ -71,9 +71,15 @@
     >
       open source project
     </a>
-    developed without funding by
+    developed by
     <a href="https://abstreet.uk" target="_blank">A/B Street Ltd</a>
-    . Please file a Github issue or contact
+    and
+    <a href="https://fixmycity.de/" target="_blank">FixMyCity GmbH</a>
+    , partly funded by FixMyCity. Please
+    <a href="https://github.com/a-b-street/speedwalk/issues/" target="_blank">
+      file a Github issue
+    </a>
+    or contact
     <a href="mailto:dustin@abstreet.uk" target="_blank">dustin@abstreet.uk</a>
     with feedback.
     <b>This is an alpha tool; there will be problems!</b>
