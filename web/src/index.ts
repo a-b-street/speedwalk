@@ -29,7 +29,7 @@ export let networkFilter = writable<{
   ignore_deadends: boolean;
 }>({
   include: "OnlyExplicitFootways",
-  ignore_deadends: false,
+  ignore_deadends: true,
 });
 
 // TODO Upstream several of these
