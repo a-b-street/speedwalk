@@ -105,7 +105,9 @@ impl Speedwalk {
         let candidate_edges: HashSet<EdgeID> = routeable_edges
             .iter()
             .filter(|&&edge_id| {
-                edge_lengths.get(&edge_id).map_or(false, |&len| len < MINIMUM_DEADEND_LENGTH)
+                edge_lengths
+                    .get(&edge_id)
+                    .map_or(false, |&len| len < MINIMUM_DEADEND_LENGTH)
             })
             .copied()
             .collect();
@@ -124,7 +126,11 @@ impl Speedwalk {
             if *count == 1 {
                 // Check if this intersection has at least one candidate edge
                 let intersection = &graph.intersections[intersection_id];
-                if intersection.edges.iter().any(|&e| candidate_edges.contains(&e)) {
+                if intersection
+                    .edges
+                    .iter()
+                    .any(|&e| candidate_edges.contains(&e))
+                {
                     endpoint_intersections.push(*intersection_id);
                 }
             }
@@ -136,7 +142,7 @@ impl Speedwalk {
         // Build chains from each endpoint intersection
         for &start_intersection in &endpoint_intersections {
             let intersection = &graph.intersections[&start_intersection];
-            
+
             // Find the routeable edge connected to this endpoint
             let start_edge_id = intersection
                 .edges
@@ -162,7 +168,7 @@ impl Speedwalk {
                     }
 
                     let edge_length = edge_lengths[&current_edge_id];
-                    
+
                     // Early termination: If adding this edge would exceed 10m, stop building
                     // We still mark it as visited but don't add to chain (we won't remove it)
                     if chain_length + edge_length >= MINIMUM_DEADEND_LENGTH {
@@ -190,10 +196,7 @@ impl Speedwalk {
                     let other_routeable_edges: Vec<EdgeID> = next_intersection_obj
                         .edges
                         .iter()
-                        .filter(|&&e| {
-                            routeable_edges.contains(&e)
-                                && e != current_edge_id
-                        })
+                        .filter(|&&e| routeable_edges.contains(&e) && e != current_edge_id)
                         .copied()
                         .collect();
 
@@ -250,8 +253,14 @@ impl Speedwalk {
         let mut intersection_to_edges: HashMap<IntersectionID, Vec<EdgeID>> = HashMap::new();
         for &edge_id in &remaining_routeable_edges {
             let edge = &graph.edges[&edge_id];
-            intersection_to_edges.entry(edge.src).or_insert_with(Vec::new).push(edge_id);
-            intersection_to_edges.entry(edge.dst).or_insert_with(Vec::new).push(edge_id);
+            intersection_to_edges
+                .entry(edge.src)
+                .or_insert_with(Vec::new)
+                .push(edge_id);
+            intersection_to_edges
+                .entry(edge.dst)
+                .or_insert_with(Vec::new)
+                .push(edge_id);
         }
 
         // Find all connected components using DFS
@@ -308,10 +317,7 @@ impl Speedwalk {
             }
 
             // Calculate total length of this component
-            let component_length: f64 = component_edges
-                .iter()
-                .map(|&e| edge_lengths[&e])
-                .sum();
+            let component_length: f64 = component_edges.iter().map(|&e| edge_lengths[&e]).sum();
 
             // If component is < 100m, remove all edges in it
             if component_length < MINIMUM_DISCONNECTED_LENGTH {
@@ -356,7 +362,7 @@ impl Speedwalk {
 
     pub fn export_network(&self, filter: NetworkFilter) -> Result<String> {
         let graph = Graph::new(self);
-        
+
         // If dead end filtering is enabled, use chain-based approach
         let dead_end_edges = if filter.ignore_deadends() {
             Some(self.find_dead_end_chains(&filter, &graph))

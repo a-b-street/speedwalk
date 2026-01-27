@@ -37,7 +37,8 @@ impl Speedwalk {
             let mut ways = BTreeSet::new();
             for i in nodes {
                 for e in &graph.intersections[&i].edges {
-                    if self.filter_network(filter, graph, &graph.edges[e], dead_end_edges.as_ref()) {
+                    if self.filter_network(filter, graph, &graph.edges[e], dead_end_edges.as_ref())
+                    {
                         ways.insert(graph.edges[e].osm_way);
                     }
                 }
