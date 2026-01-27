@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use geo::line_intersection::{LineIntersection, line_intersection};
-use geo::{BoundingRect, Coord, Distance, Euclidean, Line, LineString, Point};
+use geo::{
+    BoundingRect, Closest, ClosestPoint, Coord, Distance, Euclidean, Line, LineString, Point,
+};
 use osm_reader::WayID;
 use rstar::{AABB, RTree, primitives::GeomWithData};
 use utils::Tags;
@@ -59,8 +61,6 @@ impl Speedwalk {
         let mut new_crossings = Vec::new();
         let mut insert_new_nodes = HashMap::new();
         for crossing_node_id in crossings {
-            let project_away_meters = 10.0;
-
             let crossing_node = &self.derived_nodes[&crossing_node_id];
             let crossing_pt = crossing_node.pt;
 
@@ -69,25 +69,23 @@ impl Speedwalk {
             let road_linestring = &self.derived_ways[&road_way_id].linestring;
             let angle = angle_of_pt_on_line(road_linestring, crossing_pt);
 
-            let test_line1 = Line::new(
-                crossing_pt,
-                project_away(crossing_pt, angle + 90.0, project_away_meters),
-            );
             let Some((sidewalk1, endpt1)) =
-                find_sidewalk_hit(&closest_sidewalk, crossing_pt, test_line1)
+                find_sidewalk_hit(&closest_sidewalk, crossing_pt, angle + 90.0)
             else {
                 continue;
             };
 
-            let test_line2 = Line::new(
-                crossing_pt,
-                project_away(crossing_pt, angle - 90.0, project_away_meters),
-            );
             let Some((sidewalk2, endpt2)) =
-                find_sidewalk_hit(&closest_sidewalk, crossing_pt, test_line2)
+                find_sidewalk_hit(&closest_sidewalk, crossing_pt, angle - 90.0)
             else {
                 continue;
             };
+
+            // If both sides snapped to the same place, skip it. The same sidewalk way could
+            // stretch very far to both sides, so check distance of the snapped points instead.
+            if Euclidean.distance(endpt1, endpt2) < 1.0 {
+                continue;
+            }
 
             let mut new_tags = Tags::empty();
             new_tags.insert("highway", "footway");
@@ -111,6 +109,7 @@ impl Speedwalk {
                 .or_insert_with(Vec::new)
                 .push((endpt2, Tags::empty()));
         }
+        info!("Successfully made {} crossings", new_crossings.len());
 
         CreateNewGeometry {
             new_ways: new_crossings,
@@ -123,9 +122,13 @@ impl Speedwalk {
 
 fn find_sidewalk_hit(
     closest_sidewalk: &RTree<GeomWithData<LineString, WayID>>,
-    start_pt: Coord,
-    line1: Line,
+    crossing_pt: Coord,
+    angle: f64,
 ) -> Option<(WayID, Coord)> {
+    // First try to project a perpendicular line from the crossing out 10m (far away), and find the
+    // first sidewalk we hit.
+    let line1 = Line::new(crossing_pt, project_away(crossing_pt, angle, 10.0));
+
     // TODO Still cursed
     //let bbox = aabb(&line1);
     let bbox = line1.bounding_rect();
@@ -144,11 +147,28 @@ fn find_sidewalk_hit(
             }
         }
     }
-    // There could be multiple hits. Pick the one closest to the specified start_pt (which should
-    // be on line1).
-    candidates
-        .into_iter()
-        .min_by_key(|(_, end_pt)| to_cm(Euclidean.distance(Point::from(start_pt), Point::from(*end_pt))))
+    // There could be multiple hits. Pick the one closest to the specified crossing_pt
+    if let Some(pair) = candidates.into_iter().min_by_key(|(_, end_pt)| {
+        to_cm(Euclidean.distance(Point::from(crossing_pt), Point::from(*end_pt)))
+    }) {
+        return Some(pair);
+    }
+
+    // If the perpendicular line didn't hit anything, try a second strategy. Project a point just a
+    // little bit (5m) to one side of the crossing, then find the closest point on any sidewalk to
+    // that.
+    //
+    // (It's tempting to just use this strategy always, instead of first trying perpendicular
+    // lines. But when two sidewalks meet at a corner, sometimes we incorrectly pick one of them
+    // based on how much we project away from the crossing_pt.)
+    let one_side_pt = project_away(crossing_pt, angle, 5.0);
+    let obj = closest_sidewalk.nearest_neighbor(&Point::from(one_side_pt))?;
+    // Then find the straight line to the crossing_pt using that matching sidewalk. Don't find the
+    // closest point to one_side_pt, because that'll make a slightly angled crossing.
+    match obj.geom().closest_point(&Point::from(crossing_pt)) {
+        Closest::Intersection(pt) | Closest::SinglePoint(pt) => Some((obj.data, pt.into())),
+        Closest::Indeterminate => None,
+    }
 }
 
 // TODO Use new geo euclidean destination
