@@ -12,12 +12,10 @@
     Loading,
     Modal,
   } from "svelte-utils";
-  import { localStorageStore } from "./localStorage";
-  import LocalStorageWrapper from "./LocalStorageWrapper.svelte";
 
   let show = $state(false);
   let loading = $state("");
-  let saveCopy = localStorageStore("saveCopy", false);
+  let saveCopy = $state(false);
 
   function describeOsmTimestamp(t: bigint | undefined): string {
     if (t) {
@@ -80,7 +78,7 @@
       let resp = await fetchOverpass(overpassQueryForPolygon(boundary));
       let osmXml = await resp.bytes();
 
-      if ($saveCopy) {
+      if (saveCopy) {
         let text = new TextDecoder().decode(osmXml);
         downloadGeneratedFile("refreshed_import.osm.xml", text);
       }
@@ -112,11 +110,9 @@
       Refresh OSM data
     </button>
 
-    <LocalStorageWrapper>
-      <Checkbox bind:checked={$saveCopy}>
-        Save a copy of the latest osm.xml after refreshing
-      </Checkbox>
-    </LocalStorageWrapper>
+    <Checkbox bind:checked={saveCopy}>
+      Save a copy of the latest osm.xml after refreshing
+    </Checkbox>
 
     <OverpassServerSelector />
   </div>
