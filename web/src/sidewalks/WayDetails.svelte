@@ -259,27 +259,41 @@
 
   <div class="card-body">
     {#if pinnedWay.properties.problems.length}
-      <u>Problems:</u>
+      {@const headerProblem = pinnedWay.properties.problems.find(p => p.note === "possible separate sidewalk near way without it tagged") || pinnedWay.properties.problems[0]}
+      {@const remainingProblems = pinnedWay.properties.problems.filter(p => p.note !== headerProblem.note)}
+      <div class="alert alert-warning">
+        <h5 class="alert-heading d-flex align-items-center">
+          <div class="flex-shrink-0 me-2">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="flex-grow-1">
+            {headerProblem.note}
+          </div>
+        </h5>
+        {#if remainingProblems.length}
+          {#each remainingProblems as problem}
+            <p class="mb-0">{problem.note}</p>
+          {/each}
+        {/if}
 
-      {#each pinnedWay.properties.problems as problem}
-        <p>{problem.note}</p>
-      {/each}
+        {#if drawProblemDetails.features.length}
+          <Checkbox bind:checked={showProblemDetails}>
+            Highlight problem on map
+          </Checkbox>
 
-      {#if drawProblemDetails.features.length}
-        <Checkbox bind:checked={showProblemDetails}>
-          Show problem details
-        </Checkbox>
-      {/if}
-
-      <QualitativeLegend
-        labelColors={Object.fromEntries(
-          drawProblemDetails.features.map((f) => [
-            f.properties.label,
-            f.properties.color,
-          ]),
-        )}
-        itemsPerRow={1}
-      />
+          {#if showProblemDetails}
+            <QualitativeLegend
+              labelColors={Object.fromEntries(
+                drawProblemDetails.features.map((f) => [
+                  f.properties.label,
+                  f.properties.color,
+                ]),
+              )}
+              itemsPerRow={1}
+            />
+          {/if}
+        {/if}
+      </div>
     {/if}
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
@@ -471,5 +485,9 @@
 
   button:disabled .shortcut-badge {
     opacity: 0.6;
+  }
+
+  :global(.alert .color-swatch) {
+    flex-shrink: 0;
   }
 </style>
