@@ -125,13 +125,13 @@ impl Speedwalk {
         let normalized = normalize_sidewalk_tags(tags);
         let mut result = serde_json::Map::new();
         if let Some(left) = normalized.left {
-            result.insert("left".to_string(), serde_json::Value::String(left));
+            result.insert("left".to_string(), left.into());
         }
         if let Some(right) = normalized.right {
-            result.insert("right".to_string(), serde_json::Value::String(right));
+            result.insert("right".to_string(), right.into());
         }
         if let Some(both) = normalized.both {
-            result.insert("both".to_string(), serde_json::Value::String(both));
+            result.insert("both".to_string(), both.into());
         }
         Ok(serde_json::to_string(&result).map_err(err_to_js)?)
     }
@@ -379,31 +379,27 @@ fn normalize_sidewalk_tags(tags: &Tags) -> NormalizedSidewalkTags {
     // Check for sidewalk:both tag (highest priority)
     if let Some(both_value) = tags.get("sidewalk:both") {
         result.both = Some(both_value.clone());
-    }
-
-    // Check for sidewalk tag (legacy format)
-    if result.both.is_none() {
-        if let Some(sidewalk_value) = tags.get("sidewalk") {
-            match sidewalk_value.as_str() {
-                "left" => {
-                    result.left = Some("yes".to_string());
-                    result.right = Some("no".to_string());
-                }
-                "right" => {
-                    result.left = Some("no".to_string());
-                    result.right = Some("yes".to_string());
-                }
-                "both" => {
-                    result.both = Some("yes".to_string());
-                }
-                "separate" => {
-                    result.both = Some("separate".to_string());
-                }
-                "no" | "none" => {
-                    result.both = Some("no".to_string());
-                }
-                _ => {}
+    } else if let Some(sidewalk_value) = tags.get("sidewalk") {
+        // Check for sidewalk tag (legacy format)
+        match sidewalk_value.as_str() {
+            "left" => {
+                result.left = Some("yes".to_string());
+                result.right = Some("no".to_string());
             }
+            "right" => {
+                result.left = Some("no".to_string());
+                result.right = Some("yes".to_string());
+            }
+            "both" => {
+                result.both = Some("yes".to_string());
+            }
+            "separate" => {
+                result.both = Some("separate".to_string());
+            }
+            "no" | "none" => {
+                result.both = Some("no".to_string());
+            }
+            _ => {}
         }
     }
 
