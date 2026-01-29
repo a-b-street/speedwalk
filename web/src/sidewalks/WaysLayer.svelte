@@ -65,7 +65,9 @@
 
   let pinnedWaySides = $derived(
     $backend && pinnedWay
-      ? JSON.parse($backend.getSideLocations(BigInt(pinnedWay.properties.id)))
+      ? (JSON.parse(
+          $backend.getSideLocations(BigInt(pinnedWay.properties.id)),
+        ) as FeatureCollection<LineString, { side: string; label: string }>)
       : emptyGeojson(),
   );
 
@@ -225,7 +227,7 @@
       "text-halo-blur": 4,
     }}
     layout={{
-      "text-field": ["get", "side"],
+      "text-field": ["get", "label"],
       "text-size": 16,
       "symbol-placement": "line",
     }}
