@@ -29,32 +29,106 @@
 
   let loading = $state("");
 
-  // Reset keyboard shortcut state when way changes
-  let currentWayId = $state(pinnedWay.properties.id);
-  $effect(() => {
-    if (pinnedWay.properties.id !== currentWayId) {
-      // Way changed - reset all shortcut state
-      keySequence = "";
-      pendingTags = [];
-      lastCompletedSequence = "";
-      if (keyTimer) {
-        clearTimeout(keyTimer);
-        keyTimer = null;
-      }
-      if (pendingTagsTimer) {
-        clearTimeout(pendingTagsTimer);
-        pendingTagsTimer = null;
-      }
-      currentWayId = pinnedWay.properties.id;
+  // Extract existing sidewalk tags from way properties
+  function getExistingSidewalkTags(tags: Record<string, string>): Array<[string, string]> {
+    return Object.entries(tags)
+      .filter(([key]) => key.startsWith("sidewalk"))
+      .map(([key, value]) => [key, value] as [string, string]);
+  }
+
+  // Handle tag conflicts (sidewalk:both vs sidewalk:left/right)
+  function resolveTagConflicts(
+    tagMap: Map<string, string>,
+    isSettingBoth: boolean,
+    isSettingLeftOrRight: boolean,
+  ): void {
+    if (isSettingBoth) {
+      tagMap.delete("sidewalk:left");
+      tagMap.delete("sidewalk:right");
+      tagMap.delete("sidewalk");
+    } else if (isSettingLeftOrRight) {
+      tagMap.delete("sidewalk:both");
+      tagMap.delete("sidewalk");
     }
-  });
+  }
+
+  // Migrate from sidewalk:both or legacy sidewalk=separate to individual tags
+  function migrateTags(
+    tagMap: Map<string, string>,
+    existingBothValue: string | undefined,
+    hasLegacySeparate: boolean,
+    isSettingLeft: boolean,
+    isSettingRight: boolean,
+  ): void {
+    if (!isSettingLeft && !isSettingRight) return;
+
+    if (existingBothValue) {
+      // Migrating from sidewalk:both to individual tags
+      if (isSettingLeft) {
+        tagMap.set("sidewalk:right", existingBothValue);
+      } else if (isSettingRight) {
+        tagMap.set("sidewalk:left", existingBothValue);
+      }
+    } else if (hasLegacySeparate) {
+      // Migrating from legacy sidewalk=separate to individual tags
+      if (isSettingLeft) {
+        const leftValue = tagMap.get("sidewalk:left");
+        if (leftValue) {
+          tagMap.set("sidewalk:right", leftValue);
+        }
+      } else if (isSettingRight) {
+        const rightValue = tagMap.get("sidewalk:right");
+        if (rightValue) {
+          tagMap.set("sidewalk:left", rightValue);
+        }
+      }
+    }
+  }
+
+  // Merge new tags with existing sidewalk tags, handling conflicts and migrations
+  function mergeSidewalkTags(
+    existingTags: Record<string, string>,
+    newTags: Array<string[]>,
+  ): Array<string[]> {
+    const existingSidewalkTags = getExistingSidewalkTags(existingTags);
+    const existingBothValue = existingTags["sidewalk:both"];
+    const hasLegacySeparate = existingTags["sidewalk"] === "separate";
+
+    // Create a map to merge tags (new tags override existing ones)
+    const tagMap = new Map<string, string>();
+    for (const [key, value] of existingSidewalkTags) {
+      tagMap.set(key, value);
+    }
+
+    // Determine which new tags are being set
+    const newTagKeys = new Set(newTags.map(([key]) => key));
+    const isSettingBoth = newTagKeys.has("sidewalk:both");
+    const isSettingLeft = newTagKeys.has("sidewalk:left");
+    const isSettingRight = newTagKeys.has("sidewalk:right");
+    const isSettingLeftOrRight = isSettingLeft || isSettingRight;
+
+    // Handle conflicts
+    resolveTagConflicts(tagMap, isSettingBoth, isSettingLeftOrRight);
+
+    // Add new tags
+    for (const [key, value] of newTags) {
+      tagMap.set(key, value);
+    }
+
+    // Handle migrations
+    migrateTags(tagMap, existingBothValue, hasLegacySeparate, isSettingLeft, isSettingRight);
+
+    return Array.from(tagMap.entries());
+  }
 
   async function setTags(tags: Array<string[]>) {
+    const mergedTags = mergeSidewalkTags(pinnedWay.properties.tags, tags);
+
     loading = "Setting tags";
     await refreshLoadingScreen();
 
     try {
-      $backend!.editSetTags(BigInt(pinnedWay.properties.id), tags);
+      $backend!.editSetTags(BigInt(pinnedWay.properties.id), mergedTags);
       $mutationCounter++;
     } finally {
       loading = "";
@@ -139,99 +213,45 @@
     return null;
   }
 
+  function getCurrentSidewalkTags(tags: Record<string, string>): Array<[string, string]> {
+    return Object.entries(tags).filter(([key]) => key.startsWith("sidewalk"));
+  }
+
   let footwayFixTagChoices = [
     [["footway", "sidewalk"]],
     [["footway", "crossing"]],
   ];
 
-  // Keyboard shortcut state
-  let keySequence = $state("");
-  let keyTimer: ReturnType<typeof setTimeout> | null = null;
-  // Accumulate tag arrays from multiple shortcuts: Array<Array<[key, value]>>
-  let pendingTags: Array<Array<string[]>> = $state([]);
-  let pendingTagsTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastCompletedSequence = $state("");
+  function getSortedTags(tags: Record<string, string>): Array<[string, string]> {
+    const entries = Object.entries(tags);
+    const sidewalkTags = entries.filter(([key]) => key.toLowerCase().startsWith("sidewalk"));
+    const otherTags = entries.filter(([key]) => !key.toLowerCase().startsWith("sidewalk"));
 
-  function getTagsForShortcut(seq: string): Array<string[]> {
-    // Determine row and column from sequence
-    // Digit determines row (1=yes, 2=no, 3=separate)
-    // Repetitions determine column (1=left, 2=right, 3=both)
-    const rowDigit = parseInt(seq[0]);
-    const count = seq.length;
+    // Sort sidewalk tags A-Z
+    sidewalkTags.sort(([a], [b]) => a.localeCompare(b));
+    // Sort other tags A-Z
+    otherTags.sort(([a], [b]) => a.localeCompare(b));
 
-    if (rowDigit === 1) {
-      // Yes row
-      if (count === 1) {
-        return [["sidewalk:left", "yes"]];
-      } else if (count === 2) {
-        return [["sidewalk:right", "yes"]];
-      } else if (count >= 3) {
-        return [["sidewalk:both", "yes"]];
-      }
-    } else if (rowDigit === 2) {
-      // No row
-      if (count === 1) {
-        return [["sidewalk:left", "no"]];
-      } else if (count === 2) {
-        return [["sidewalk:right", "no"]];
-      } else if (count >= 3) {
-        return [["sidewalk:both", "no"]];
-      }
-    } else if (rowDigit === 3) {
-      // Separate row
-      if (count === 1) {
-        return [["sidewalk:left", "separate"]];
-      } else if (count === 2) {
-        return [["sidewalk:right", "separate"]];
-      } else if (count >= 3) {
-        return [["sidewalk:both", "separate"]];
-      }
-    }
-    return [];
+    // Return sidewalk tags first, then other tags
+    return [...sidewalkTags, ...otherTags] as Array<[string, string]>;
   }
 
-  async function executePendingTags() {
-    if (pendingTags.length > 0) {
-      // Merge all accumulated tags into a single array
-      // Later tags override earlier ones for the same key
-      const tagMap = new Map<string, string>();
-      for (const tagArray of pendingTags) {
-        for (const [key, value] of tagArray) {
-          tagMap.set(key, value);
-        }
-      }
-      // Convert Map entries to Array<[string, string]> format expected by setTags
-      const tagsToSet: Array<string[]> = Array.from(tagMap.entries()).map(
-        ([key, value]) => [key, value],
-      );
-      pendingTags = [];
-      lastCompletedSequence = ""; // Reset tracking after execution
-      await setTags(tagsToSet);
-    }
-  }
-
-  function addPendingTags(tags: Array<string[]>) {
-    // Remove conflicting tags (same key) before adding new ones
-    // This allows users to "change their mind" - e.g., press 22 then 2 to override
-    const newKeys = new Set(tags.map(([key]) => key));
-    pendingTags = pendingTags.filter((tagArray) =>
-      tagArray.every(([key]) => !newKeys.has(key)),
-    );
-
-    // Add the new tags
-    pendingTags.push(tags);
-
-    // Clear existing timer
-    if (pendingTagsTimer) {
-      clearTimeout(pendingTagsTimer);
-    }
-    // Set timer to execute accumulated tags after a delay
-    // This allows multiple shortcuts to accumulate before executing
-    // Use a longer delay (1000ms) so sequences can accumulate even with pauses
-    pendingTagsTimer = setTimeout(async () => {
-      await executePendingTags();
-      pendingTagsTimer = null;
-    }, 1000); // Longer delay to allow multiple shortcuts to accumulate even with pauses
+  function getTagsForShortcut(key: string): Array<string[]> | null {
+    // Row 1 (Yes): q=left, w=right, e=both
+    // Row 2 (No): a=left, s=right, d=both
+    // Row 3 (Separate): y=left, x=right, c=both
+    const shortcutMap: Record<string, Array<string[]>> = {
+      q: [["sidewalk:left", "yes"]],
+      w: [["sidewalk:right", "yes"]],
+      e: [["sidewalk:both", "yes"]],
+      a: [["sidewalk:left", "no"]],
+      s: [["sidewalk:right", "no"]],
+      d: [["sidewalk:both", "no"]],
+      y: [["sidewalk:left", "separate"]],
+      x: [["sidewalk:right", "separate"]],
+      c: [["sidewalk:both", "separate"]],
+    };
+    return shortcutMap[key.toLowerCase()] || null;
   }
 
   async function onKeyDown(e: KeyboardEvent) {
@@ -246,63 +266,12 @@
       return;
     }
 
-    const digit = parseInt(e.key);
-    if (!Number.isInteger(digit) || digit < 1 || digit > 3) {
-      // Execute pending sequence if any, then reset
-      if (keySequence.length > 0) {
-        const tags = getTagsForShortcut(keySequence);
-        if (tags.length > 0) {
-          addPendingTags(tags);
-        }
-      }
-      // Execute accumulated tags immediately
-      await executePendingTags();
-      keySequence = "";
-      if (keyTimer) {
-        clearTimeout(keyTimer);
-        keyTimer = null;
-      }
-      return;
+    // Only process lowercase keys for shortcuts
+    const key = e.key.toLowerCase();
+    const tags = getTagsForShortcut(key);
+    if (tags) {
+      await setTags(tags);
     }
-
-    // Check if this is a different digit than before
-    if (keySequence.length > 0 && keySequence[0] !== e.key) {
-      // Different digit - add previous sequence to pending tags (if not already added)
-      if (keyTimer) {
-        clearTimeout(keyTimer);
-        keyTimer = null;
-      }
-      // Only add if this sequence hasn't been completed yet
-      if (keySequence !== lastCompletedSequence) {
-        const tags = getTagsForShortcut(keySequence);
-        if (tags.length > 0) {
-          addPendingTags(tags);
-          lastCompletedSequence = keySequence;
-        }
-      }
-      keySequence = "";
-    }
-
-    // Add to sequence
-    keySequence += e.key;
-
-    // Clear existing timer
-    if (keyTimer) {
-      clearTimeout(keyTimer);
-    }
-
-    // Set timer to process after a short delay
-    keyTimer = setTimeout(async () => {
-      if (keySequence.length > 0) {
-        const tags = getTagsForShortcut(keySequence);
-        if (tags.length > 0) {
-          addPendingTags(tags);
-          lastCompletedSequence = keySequence;
-        }
-        keySequence = "";
-      }
-      keyTimer = null;
-    }, 300); // 300ms delay to detect multi-digit sequences
   }
 </script>
 
@@ -356,20 +325,9 @@
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
       {@const normalized = normalizeSidewalkTags(pinnedWay.properties.tags)}
-      <u>Current sidewalk tags</u>
-      <ul>
-        {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
-          {#if key.startsWith("sidewalk")}
-            <li>{key} = {value}</li>
-          {/if}
-        {/each}
-      </ul>
-
-      <u>Set sidewalk tags</u>
       <table class="table table-bordered">
         <thead>
           <tr>
-            <th>Tag</th>
             <th style="background-color: {siteColorRgba("left", 0.3)};">
               Left
             </th>
@@ -381,7 +339,6 @@
         </thead>
         <tbody>
           <tr>
-            <td><strong>Yes</strong></td>
             <td
               class:table-active={getHighlightedCell(normalized, "left", "yes") === "active"}
               style:background-color={getHighlightedCell(normalized, "left", "yes") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
@@ -391,7 +348,7 @@
                 class:disabled={getHighlightedCell(normalized, "left", "yes") === "active"}
                 onclick={() => setTags([["sidewalk:left", "yes"]])}
               >
-                <kbd class="shortcut-badge">1</kbd> Yes
+                <kbd class="shortcut-badge">q</kbd> Yes
               </button>
             </td>
             <td
@@ -403,7 +360,7 @@
                 class:disabled={getHighlightedCell(normalized, "right", "yes") === "active"}
                 onclick={() => setTags([["sidewalk:right", "yes"]])}
               >
-                <kbd class="shortcut-badge">11</kbd> Yes
+                <kbd class="shortcut-badge">w</kbd> Yes
               </button>
             </td>
             <td
@@ -414,12 +371,11 @@
                 class:disabled={getHighlightedCell(normalized, "both", "yes") === "active"}
                 onclick={() => setTags([["sidewalk:both", "yes"]])}
               >
-                <kbd class="shortcut-badge">111</kbd> Yes
+                <kbd class="shortcut-badge">e</kbd> Yes
               </button>
             </td>
           </tr>
           <tr>
-            <td><strong>No</strong></td>
             <td
               class:table-active={getHighlightedCell(normalized, "left", "no") === "active"}
               style:background-color={getHighlightedCell(normalized, "left", "no") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
@@ -429,7 +385,7 @@
                 class:disabled={getHighlightedCell(normalized, "left", "no") === "active"}
                 onclick={() => setTags([["sidewalk:left", "no"]])}
               >
-                <kbd class="shortcut-badge">2</kbd> No
+                <kbd class="shortcut-badge">a</kbd> No
               </button>
             </td>
             <td
@@ -441,7 +397,7 @@
                 class:disabled={getHighlightedCell(normalized, "right", "no") === "active"}
                 onclick={() => setTags([["sidewalk:right", "no"]])}
               >
-                <kbd class="shortcut-badge">22</kbd> No
+                <kbd class="shortcut-badge">s</kbd> No
               </button>
             </td>
             <td
@@ -452,12 +408,11 @@
                 class:disabled={getHighlightedCell(normalized, "both", "no") === "active"}
                 onclick={() => setTags([["sidewalk:both", "no"]])}
               >
-                <kbd class="shortcut-badge">222</kbd> No
+                <kbd class="shortcut-badge">d</kbd> No
               </button>
             </td>
           </tr>
           <tr>
-            <td><strong>Separate</strong></td>
             <td
               class:table-active={getHighlightedCell(normalized, "left", "separate") === "active"}
               style:background-color={getHighlightedCell(normalized, "left", "separate") === "both-highlight" ? `rgba(255, 105, 180, 0.15)` : ""}
@@ -467,7 +422,7 @@
                 class:disabled={getHighlightedCell(normalized, "left", "separate") === "active"}
                 onclick={() => setTags([["sidewalk:left", "separate"]])}
               >
-                <kbd class="shortcut-badge">3</kbd> Separate
+                <kbd class="shortcut-badge">y</kbd> Separate
               </button>
             </td>
             <td
@@ -479,7 +434,7 @@
                 class:disabled={getHighlightedCell(normalized, "right", "separate") === "active"}
                 onclick={() => setTags([["sidewalk:right", "separate"]])}
               >
-                <kbd class="shortcut-badge">33</kbd> Separate
+                <kbd class="shortcut-badge">x</kbd> Separate
               </button>
             </td>
             <td
@@ -490,7 +445,7 @@
                 class:disabled={getHighlightedCell(normalized, "both", "separate") === "active"}
                 onclick={() => setTags([["sidewalk:both", "separate"]])}
               >
-                <kbd class="shortcut-badge">333</kbd> Separate
+                <kbd class="shortcut-badge">c</kbd> Separate
               </button>
             </td>
           </tr>
@@ -517,7 +472,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each Object.entries(pinnedWay.properties.tags) as [key, value]}
+        {#each getSortedTags(pinnedWay.properties.tags) as [key, value]}
           <tr class:table-active={key.toLowerCase().includes("sidewalk")}>
             <td>{key}</td>
             <td>{value}</td>
