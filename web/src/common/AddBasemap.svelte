@@ -14,6 +14,7 @@
   }
 
   // Setup from local storage. Don't attempt any validation.
+  // TODO Migrate to localStorageStore
   let customBasemaps: CustomBasemap[] = $state(
     JSON.parse(window.localStorage.getItem(localStorageKey) || "[]"),
   );

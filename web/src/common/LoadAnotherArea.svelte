@@ -5,19 +5,18 @@
     overpassQueryForPolygon,
     fetchOverpass,
     OverpassServerSelector,
+    saveCopy,
   } from "svelte-utils/osm";
   import {
     downloadGeneratedFile,
     Checkbox,
     Loading,
     Modal,
+    LocalStorageWrapper,
   } from "svelte-utils";
-  import { localStorageStore } from "./localStorage";
-  import LocalStorageWrapper from "./LocalStorageWrapper.svelte";
 
   let show = $state(false);
   let loading = $state("");
-  let saveCopy = localStorageStore("saveCopy", false);
 
   function describeOsmTimestamp(t: bigint | undefined): string {
     if (t) {

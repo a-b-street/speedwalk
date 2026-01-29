@@ -2,7 +2,7 @@ import { type Writable, writable } from "svelte/store";
 import * as backendPkg from "../../backend/pkg";
 import type { Map } from "maplibre-gl";
 import { basemapStyles } from "svelte-utils/map";
-import { localStorageStore } from "./common/localStorage";
+import { localStorageStore } from "svelte-utils";
 
 export let map: Writable<Map | null> = writable(null);
 export let backend: Writable<backendPkg.Speedwalk | null> = writable(null);
@@ -21,7 +21,10 @@ export type Mode =
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 
-export let enabledBulkOps = localStorageStore("enabledBulkOps", false);
+export let enabledBulkOps = localStorageStore(
+  "speedwalk-enabledBulkOps",
+  false,
+);
 export let debugMode = writable(false);
 
 export let networkFilter = writable<{

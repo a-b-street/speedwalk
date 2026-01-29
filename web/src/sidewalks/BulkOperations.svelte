@@ -1,13 +1,12 @@
 <script lang="ts">
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
-  import { Checkbox, Modal, Loading } from "svelte-utils";
+  import { Checkbox, Modal, Loading, LocalStorageWrapper } from "svelte-utils";
   import {
     backend,
     mutationCounter,
     enabledBulkOps,
     refreshLoadingScreen,
   } from "../";
-  import LocalStorageWrapper from "../common/LocalStorageWrapper.svelte";
 
   let show = $state(false);
   function enableOps() {
