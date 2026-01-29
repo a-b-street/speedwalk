@@ -165,15 +165,8 @@
     }
 
     // Check if sidewalk:both is set - if so, highlight both left and right in lighter color
-    if (normalized.both) {
-      // Map sidewalk:both values to what they mean for left/right
-      if (
-        (normalized.both === "yes" && column === "yes") ||
-        (normalized.both === "no" && column === "no") ||
-        (normalized.both === "separate" && column === "separate")
-      ) {
-        return "both-highlight";
-      }
+    if (normalized.both && normalized.both === column) {
+      return "both-highlight";
     }
 
     return null;
@@ -215,7 +208,7 @@
       s: [["sidewalk:right", "no"]],
       x: [["sidewalk:right", "separate"]],
     };
-    return shortcutMap[key.toLowerCase()] || null;
+    return shortcutMap[key] || null;
   }
 
   async function onKeyDown(e: KeyboardEvent) {
@@ -230,9 +223,7 @@
       return;
     }
 
-    // Only process lowercase keys for shortcuts
-    const key = e.key.toLowerCase();
-    const tags = getTagsForShortcut(key);
+    const tags = getTagsForShortcut(e.key.toLowerCase());
     if (tags) {
       await setTags(tags);
     }
