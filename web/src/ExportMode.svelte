@@ -121,7 +121,10 @@
               </tbody>
             </table>
             <div style="margin-top: 8px;">
-              <strong>Length:</strong> {(data!.properties!.length as number | undefined) != null ? prettyPrintDistance(data!.properties!.length) : "-"}
+              <strong>Length:</strong>
+              {(data!.properties!.length as number | undefined) != null
+                ? prettyPrintDistance(data!.properties!.length)
+                : "-"}
             </div>
           {/snippet}
         </Popup>

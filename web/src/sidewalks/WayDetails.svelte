@@ -12,11 +12,7 @@
     refreshLoadingScreen,
   } from "../";
   import { Checkbox, Loading, QualitativeLegend } from "svelte-utils";
-  import {
-    kindLabels,
-    siteColorRgba,
-    type WayProps,
-  } from "./";
+  import { kindLabels, siteColorRgba, type WayProps } from "./";
 
   let {
     pinnedWay,
@@ -34,7 +30,9 @@
   let loading = $state("");
 
   // Extract existing sidewalk tags from way properties
-  function getExistingSidewalkTags(tags: Record<string, string>): Array<[string, string]> {
+  function getExistingSidewalkTags(
+    tags: Record<string, string>,
+  ): Array<[string, string]> {
     return Object.entries(tags)
       .filter(([key]) => key.startsWith("sidewalk"))
       .map(([key, value]) => [key, value] as [string, string]);
@@ -120,7 +118,13 @@
     }
 
     // Handle migrations
-    migrateTags(tagMap, existingBothValue, hasLegacySeparate, isSettingLeft, isSettingRight);
+    migrateTags(
+      tagMap,
+      existingBothValue,
+      hasLegacySeparate,
+      isSettingLeft,
+      isSettingRight,
+    );
 
     // Check if both left and right have the same value, convert to sidewalk:both
     const leftValue = tagMap.get("sidewalk:left");
@@ -147,7 +151,6 @@
       loading = "";
     }
   }
-
 
   // Get highlighted cell state
   function getHighlightedCell(
@@ -176,16 +179,21 @@
     return null;
   }
 
-
   let footwayFixTagChoices = [
     [["footway", "sidewalk"]],
     [["footway", "crossing"]],
   ];
 
-  function getSortedTags(tags: Record<string, string>): Array<[string, string]> {
+  function getSortedTags(
+    tags: Record<string, string>,
+  ): Array<[string, string]> {
     const entries = Object.entries(tags);
-    const sidewalkTags = entries.filter(([key]) => key.toLowerCase().startsWith("sidewalk"));
-    const otherTags = entries.filter(([key]) => !key.toLowerCase().startsWith("sidewalk"));
+    const sidewalkTags = entries.filter(([key]) =>
+      key.toLowerCase().startsWith("sidewalk"),
+    );
+    const otherTags = entries.filter(
+      ([key]) => !key.toLowerCase().startsWith("sidewalk"),
+    );
 
     // Sort sidewalk tags A-Z
     sidewalkTags.sort(([a], [b]) => a.localeCompare(b));
@@ -256,8 +264,14 @@
 
   <div class="card-body">
     {#if pinnedWay.properties.problems.length}
-      {@const headerProblem = pinnedWay.properties.problems.find(p => p.note === "possible separate sidewalk near way without it tagged") || pinnedWay.properties.problems[0]}
-      {@const remainingProblems = pinnedWay.properties.problems.filter(p => p.note !== headerProblem.note)}
+      {@const headerProblem =
+        pinnedWay.properties.problems.find(
+          (p) =>
+            p.note === "possible separate sidewalk near way without it tagged",
+        ) || pinnedWay.properties.problems[0]}
+      {@const remainingProblems = pinnedWay.properties.problems.filter(
+        (p) => p.note !== headerProblem.note,
+      )}
       <div class="alert alert-warning">
         <h5 class="alert-heading d-flex align-items-center">
           <div class="flex-shrink-0 me-2">
@@ -294,14 +308,18 @@
     {/if}
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
-      {@const normalized = $backend ? (JSON.parse($backend.normalizeSidewalkTags(BigInt(pinnedWay.properties.id))) as { left?: string; right?: string; both?: string }) : { left: undefined, right: undefined, both: undefined }}
+      {@const normalized = $backend
+        ? (JSON.parse(
+            $backend.normalizeSidewalkTags(BigInt(pinnedWay.properties.id)),
+          ) as { left?: string; right?: string; both?: string })
+        : { left: undefined, right: undefined, both: undefined }}
       <table class="table table-bordered">
         <thead>
           <tr>
-            <th style="background-color: {siteColorRgba("left", 0.3)};">
+            <th style="background-color: {siteColorRgba('left', 0.3)};">
               Left
             </th>
-            <th style="background-color: {siteColorRgba("right", 0.3)};">
+            <th style="background-color: {siteColorRgba('right', 0.3)};">
               Right
             </th>
           </tr>
@@ -309,24 +327,52 @@
         <tbody>
           <tr>
             <td
-              class:table-active={getHighlightedCell(normalized, "left", "yes") === "active"}
-              style:background-color={getHighlightedCell(normalized, "left", "yes") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "left",
+                "yes",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "left",
+                "yes",
+              ) === "both-highlight"
+                ? siteColorRgba("left", 0.15)
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "left", "yes") === "active"}
+                class:disabled={getHighlightedCell(
+                  normalized,
+                  "left",
+                  "yes",
+                ) === "active"}
                 onclick={() => setTags([["sidewalk:left", "yes"]])}
               >
                 Yes <kbd>q</kbd>
               </button>
             </td>
             <td
-              class:table-active={getHighlightedCell(normalized, "right", "yes") === "active"}
-              style:background-color={getHighlightedCell(normalized, "right", "yes") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "right",
+                "yes",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "right",
+                "yes",
+              ) === "both-highlight"
+                ? siteColorRgba("right", 0.15)
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "right", "yes") === "active"}
+                class:disabled={getHighlightedCell(
+                  normalized,
+                  "right",
+                  "yes",
+                ) === "active"}
                 onclick={() => setTags([["sidewalk:right", "yes"]])}
               >
                 Yes <kbd>w</kbd>
@@ -335,24 +381,49 @@
           </tr>
           <tr>
             <td
-              class:table-active={getHighlightedCell(normalized, "left", "no") === "active"}
-              style:background-color={getHighlightedCell(normalized, "left", "no") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "left",
+                "no",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "left",
+                "no",
+              ) === "both-highlight"
+                ? siteColorRgba("left", 0.15)
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "left", "no") === "active"}
+                class:disabled={getHighlightedCell(normalized, "left", "no") ===
+                  "active"}
                 onclick={() => setTags([["sidewalk:left", "no"]])}
               >
                 No <kbd>a</kbd>
               </button>
             </td>
             <td
-              class:table-active={getHighlightedCell(normalized, "right", "no") === "active"}
-              style:background-color={getHighlightedCell(normalized, "right", "no") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "right",
+                "no",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "right",
+                "no",
+              ) === "both-highlight"
+                ? siteColorRgba("right", 0.15)
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "right", "no") === "active"}
+                class:disabled={getHighlightedCell(
+                  normalized,
+                  "right",
+                  "no",
+                ) === "active"}
                 onclick={() => setTags([["sidewalk:right", "no"]])}
               >
                 No <kbd>s</kbd>
@@ -361,24 +432,52 @@
           </tr>
           <tr>
             <td
-              class:table-active={getHighlightedCell(normalized, "left", "separate") === "active"}
-              style:background-color={getHighlightedCell(normalized, "left", "separate") === "both-highlight" ? `rgba(255, 105, 180, 0.15)` : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "left",
+                "separate",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "left",
+                "separate",
+              ) === "both-highlight"
+                ? `rgba(255, 105, 180, 0.15)`
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "left", "separate") === "active"}
+                class:disabled={getHighlightedCell(
+                  normalized,
+                  "left",
+                  "separate",
+                ) === "active"}
                 onclick={() => setTags([["sidewalk:left", "separate"]])}
               >
                 Separate <kbd>y</kbd>
               </button>
             </td>
             <td
-              class:table-active={getHighlightedCell(normalized, "right", "separate") === "active"}
-              style:background-color={getHighlightedCell(normalized, "right", "separate") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
+              class:table-active={getHighlightedCell(
+                normalized,
+                "right",
+                "separate",
+              ) === "active"}
+              style:background-color={getHighlightedCell(
+                normalized,
+                "right",
+                "separate",
+              ) === "both-highlight"
+                ? siteColorRgba("right", 0.15)
+                : ""}
             >
               <button
                 class="btn btn-sm btn-secondary w-100"
-                class:disabled={getHighlightedCell(normalized, "right", "separate") === "active"}
+                class:disabled={getHighlightedCell(
+                  normalized,
+                  "right",
+                  "separate",
+                ) === "active"}
                 onclick={() => setTags([["sidewalk:right", "separate"]])}
               >
                 Separate <kbd>x</kbd>
