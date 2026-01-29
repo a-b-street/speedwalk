@@ -313,11 +313,11 @@
               style:background-color={getHighlightedCell(normalized, "left", "yes") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "left", "yes") === "active"}
                 onclick={() => setTags([["sidewalk:left", "yes"]])}
               >
-                <kbd class="shortcut-badge">q</kbd> Yes
+                Yes <kbd>q</kbd>
               </button>
             </td>
             <td
@@ -325,11 +325,11 @@
               style:background-color={getHighlightedCell(normalized, "right", "yes") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "right", "yes") === "active"}
                 onclick={() => setTags([["sidewalk:right", "yes"]])}
               >
-                <kbd class="shortcut-badge">w</kbd> Yes
+                Yes <kbd>w</kbd>
               </button>
             </td>
           </tr>
@@ -339,11 +339,11 @@
               style:background-color={getHighlightedCell(normalized, "left", "no") === "both-highlight" ? siteColorRgba("left", 0.15) : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "left", "no") === "active"}
                 onclick={() => setTags([["sidewalk:left", "no"]])}
               >
-                <kbd class="shortcut-badge">a</kbd> No
+                No <kbd>a</kbd>
               </button>
             </td>
             <td
@@ -351,11 +351,11 @@
               style:background-color={getHighlightedCell(normalized, "right", "no") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "right", "no") === "active"}
                 onclick={() => setTags([["sidewalk:right", "no"]])}
               >
-                <kbd class="shortcut-badge">s</kbd> No
+                No <kbd>s</kbd>
               </button>
             </td>
           </tr>
@@ -365,11 +365,11 @@
               style:background-color={getHighlightedCell(normalized, "left", "separate") === "both-highlight" ? `rgba(255, 105, 180, 0.15)` : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "left", "separate") === "active"}
                 onclick={() => setTags([["sidewalk:left", "separate"]])}
               >
-                <kbd class="shortcut-badge">y</kbd> Separate
+                Separate <kbd>y</kbd>
               </button>
             </td>
             <td
@@ -377,11 +377,11 @@
               style:background-color={getHighlightedCell(normalized, "right", "separate") === "both-highlight" ? siteColorRgba("right", 0.15) : ""}
             >
               <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
+                class="btn btn-sm btn-secondary w-100"
                 class:disabled={getHighlightedCell(normalized, "right", "separate") === "active"}
                 onclick={() => setTags([["sidewalk:right", "separate"]])}
               >
-                <kbd class="shortcut-badge">x</kbd> Separate
+                Separate <kbd>x</kbd>
               </button>
             </td>
           </tr>
@@ -424,32 +424,6 @@
 </div>
 
 <style>
-  .shortcut-badge {
-    position: absolute;
-    top: -8px;
-    left: -8px;
-    background-color: #6c757d;
-    color: white;
-    border-radius: 10px;
-    min-width: 18px;
-    height: 18px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 8px;
-    font-weight: bold;
-    padding: 0 4px;
-    line-height: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    z-index: 1;
-    white-space: nowrap;
-  }
-
-
-  button:disabled .shortcut-badge {
-    opacity: 0.6;
-  }
-
   :global(.alert .color-swatch) {
     flex-shrink: 0;
   }
