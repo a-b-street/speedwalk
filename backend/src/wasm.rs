@@ -119,19 +119,52 @@ impl Speedwalk {
         serde_json::to_string(&Metrics::new(self)).map_err(err_to_js)
     }
 
+    #[wasm_bindgen(js_name = normalizeSidewalkTags)]
+    pub fn normalize_sidewalk_tags(&self, id: i64) -> Result<String, JsValue> {
+        let tags = &self.derived_ways[&WayID(id)].tags;
+        let normalized = normalize_sidewalk_tags(tags);
+        let mut result = serde_json::Map::new();
+        if let Some(left) = normalized.left {
+            result.insert("left".to_string(), serde_json::Value::String(left));
+        }
+        if let Some(right) = normalized.right {
+            result.insert("right".to_string(), serde_json::Value::String(right));
+        }
+        if let Some(both) = normalized.both {
+            result.insert("both".to_string(), serde_json::Value::String(both));
+        }
+        Ok(serde_json::to_string(&result).map_err(err_to_js)?)
+    }
+
     #[wasm_bindgen(js_name = getSideLocations)]
     pub fn get_side_locations(&self, id: i64) -> Result<String, JsValue> {
-        let linestring = &self.derived_ways[&WayID(id)].linestring;
+        let way = &self.derived_ways[&WayID(id)];
+        let linestring = &way.linestring;
+        let normalized = normalize_sidewalk_tags(&way.tags);
         let mut features = Vec::new();
 
         if let Some(ls) = linestring.offset_curve(20.0) {
             let mut f = self.mercator.to_wgs84_gj(&ls);
             f.set_property("side", "right");
+            let right_label = normalized
+                .both
+                .as_ref()
+                .or(normalized.right.as_ref())
+                .map(|v| format!("right: {}", v))
+                .unwrap_or_else(|| "right".to_string());
+            f.set_property("label", right_label);
             features.push(f);
         }
         if let Some(ls) = linestring.offset_curve(-20.0) {
             let mut f = self.mercator.to_wgs84_gj(&ls);
             f.set_property("side", "left");
+            let left_label = normalized
+                .both
+                .as_ref()
+                .or(normalized.left.as_ref())
+                .map(|v| format!("left: {}", v))
+                .unwrap_or_else(|| "left".to_string());
+            f.set_property("label", left_label);
             features.push(f);
         }
 
@@ -331,6 +364,58 @@ impl Speedwalk {
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
     JsValue::from_str(&err.to_string())
+}
+
+#[derive(Default)]
+struct NormalizedSidewalkTags {
+    left: Option<String>,
+    right: Option<String>,
+    both: Option<String>,
+}
+
+fn normalize_sidewalk_tags(tags: &Tags) -> NormalizedSidewalkTags {
+    let mut result = NormalizedSidewalkTags::default();
+
+    // Check for sidewalk:both tag (highest priority)
+    if let Some(both_value) = tags.get("sidewalk:both") {
+        result.both = Some(both_value.clone());
+    }
+
+    // Check for sidewalk tag (legacy format)
+    if result.both.is_none() {
+        if let Some(sidewalk_value) = tags.get("sidewalk") {
+            match sidewalk_value.as_str() {
+                "left" => {
+                    result.left = Some("yes".to_string());
+                    result.right = Some("no".to_string());
+                }
+                "right" => {
+                    result.left = Some("no".to_string());
+                    result.right = Some("yes".to_string());
+                }
+                "both" => {
+                    result.both = Some("yes".to_string());
+                }
+                "separate" => {
+                    result.both = Some("separate".to_string());
+                }
+                "no" | "none" => {
+                    result.both = Some("no".to_string());
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // Direct sidewalk:left and sidewalk:right tags override normalized values
+    if let Some(left_value) = tags.get("sidewalk:left") {
+        result.left = Some(left_value.clone());
+    }
+    if let Some(right_value) = tags.get("sidewalk:right") {
+        result.right = Some(right_value.clone());
+    }
+
+    result
 }
 
 #[derive(Default, Serialize)]

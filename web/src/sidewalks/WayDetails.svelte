@@ -12,7 +12,11 @@
     refreshLoadingScreen,
   } from "../";
   import { Checkbox, Loading, QualitativeLegend } from "svelte-utils";
-  import { kindLabels, siteColorRgba, type WayProps } from "./";
+  import {
+    kindLabels,
+    siteColorRgba,
+    type WayProps,
+  } from "./";
 
   let {
     pinnedWay,
@@ -135,52 +139,10 @@
     }
   }
 
-  // Normalize sidewalk tags to determine current state
-  function normalizeSidewalkTags(tags: Record<string, string>) {
-    const normalized: {
-      left?: string;
-      right?: string;
-      both?: string;
-    } = {};
-
-    // Check for sidewalk:both tag (highest priority)
-    if (tags["sidewalk:both"]) {
-      normalized.both = tags["sidewalk:both"];
-    }
-
-    // Check for sidewalk tag (legacy format)
-    // Only process if sidewalk:both doesn't exist (to avoid conflicts)
-    if (tags["sidewalk"] && !tags["sidewalk:both"]) {
-      const value = tags["sidewalk"];
-      if (value === "left") {
-        normalized.left = "yes";
-        normalized.right = "no";
-      } else if (value === "right") {
-        normalized.left = "no";
-        normalized.right = "yes";
-      } else if (value === "both") {
-        normalized.both = "yes";
-      } else if (value === "separate") {
-        normalized.both = "separate";
-      } else if (value === "no" || value === "none") {
-        normalized.both = "no";
-      }
-    }
-
-    // Direct sidewalk:left and sidewalk:right tags override normalized values
-    if (tags["sidewalk:left"]) {
-      normalized.left = tags["sidewalk:left"];
-    }
-    if (tags["sidewalk:right"]) {
-      normalized.right = tags["sidewalk:right"];
-    }
-
-    return normalized;
-  }
 
   // Get highlighted cell state
   function getHighlightedCell(
-    normalized: ReturnType<typeof normalizeSidewalkTags>,
+    normalized: { left?: string; right?: string; both?: string },
     row: "left" | "right" | "both",
     column: "yes" | "no" | "separate",
   ): "active" | "both-highlight" | null {
@@ -213,9 +175,6 @@
     return null;
   }
 
-  function getCurrentSidewalkTags(tags: Record<string, string>): Array<[string, string]> {
-    return Object.entries(tags).filter(([key]) => key.startsWith("sidewalk"));
-  }
 
   let footwayFixTagChoices = [
     [["footway", "sidewalk"]],
@@ -324,7 +283,7 @@
     {/if}
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
-      {@const normalized = normalizeSidewalkTags(pinnedWay.properties.tags)}
+      {@const normalized = $backend ? (JSON.parse($backend.normalizeSidewalkTags(BigInt(pinnedWay.properties.id))) as { left?: string; right?: string; both?: string }) : { left: undefined, right: undefined, both: undefined }}
       <table class="table table-bordered">
         <thead>
           <tr>
