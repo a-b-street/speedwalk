@@ -48,6 +48,26 @@ export let colors = {
   Other: "grey",
 };
 
+const sideColorRgb = {
+  left: [255, 105, 180], // pink
+  right: [32, 178, 170], // teal
+} as const;
+
+export function sideColorMaplibre(
+  side: keyof typeof sideColorRgb,
+  opacity: number = 1.0,
+): ["rgba", number, number, number, number] {
+  return ["rgba", ...sideColorRgb[side], opacity] as const;
+}
+
+export function siteColorRgba(
+  side: keyof typeof sideColorRgb,
+  opacity: number = 1.0,
+): string {
+  const [r, g, b] = sideColorRgb[side];
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
 export let kindLabels = {
   RoadWithSeparate: "With separate sidewalks",
   RoadWithTags: "With tagged sidewalks",

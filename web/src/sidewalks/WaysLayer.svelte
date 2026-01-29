@@ -1,6 +1,12 @@
 <script lang="ts">
   import { backend, debugMode, map, mutationCounter } from "../";
-  import { roadLineWidth, colors, type WayProps, type NodeProps } from "./";
+  import {
+    roadLineWidth,
+    colors,
+    sideColorMaplibre,
+    type WayProps,
+    type NodeProps,
+  } from "./";
   import type { MapMouseEvent, ExpressionSpecification } from "maplibre-gl";
   import {
     GeoJSON,
@@ -128,9 +134,18 @@
   <LineLayer
     beforeId="Road labels"
     paint={{
-      "line-width": roadLineWidth(10),
-      "line-color": "cyan",
-      "line-opacity": 0.5,
+      "line-width": roadLineWidth(50),
+      "line-color": sideColorMaplibre("left", 0.3),
+      "line-offset": -35,
+    }}
+  />
+
+  <LineLayer
+    beforeId="Road labels"
+    paint={{
+      "line-width": roadLineWidth(50),
+      "line-color": sideColorMaplibre("right", 0.3),
+      "line-offset": 35,
     }}
   />
 
@@ -200,8 +215,14 @@
   <SymbolLayer
     paint={{
       "text-color": "black",
-      "text-halo-color": "cyan",
-      "text-halo-width": 4,
+      "text-halo-color": [
+        "case",
+        ["==", ["get", "side"], "left"],
+        sideColorMaplibre("left"),
+        sideColorMaplibre("right"),
+      ],
+      "text-halo-width": 8,
+      "text-halo-blur": 4,
     }}
     layout={{
       "text-field": ["get", "side"],
