@@ -122,6 +122,15 @@
     // Handle migrations
     migrateTags(tagMap, existingBothValue, hasLegacySeparate, isSettingLeft, isSettingRight);
 
+    // Check if both left and right have the same value, convert to sidewalk:both
+    const leftValue = tagMap.get("sidewalk:left");
+    const rightValue = tagMap.get("sidewalk:right");
+    if (leftValue && rightValue && leftValue === rightValue) {
+      tagMap.set("sidewalk:both", leftValue);
+      tagMap.delete("sidewalk:left");
+      tagMap.delete("sidewalk:right");
+    }
+
     return Array.from(tagMap.entries());
   }
 
@@ -143,17 +152,9 @@
   // Get highlighted cell state
   function getHighlightedCell(
     normalized: { left?: string; right?: string; both?: string },
-    row: "left" | "right" | "both",
+    row: "left" | "right",
     column: "yes" | "no" | "separate",
   ): "active" | "both-highlight" | null {
-    if (row === "both") {
-      // For "both" row, check if sidewalk:both has this value
-      if (normalized.both === column) {
-        return "active";
-      }
-      return null;
-    }
-
     // For left/right rows
     const value = normalized[row];
     if (value === column) {
@@ -196,19 +197,15 @@
   }
 
   function getTagsForShortcut(key: string): Array<string[]> | null {
-    // Row 1 (Yes): q=left, w=right, e=both
-    // Row 2 (No): a=left, s=right, d=both
-    // Row 3 (Separate): y=left, x=right, c=both
+    // Left: q=yes, a=no, y=separate
+    // Right: w=yes, s=no, x=separate
     const shortcutMap: Record<string, Array<string[]>> = {
       q: [["sidewalk:left", "yes"]],
-      w: [["sidewalk:right", "yes"]],
-      e: [["sidewalk:both", "yes"]],
       a: [["sidewalk:left", "no"]],
-      s: [["sidewalk:right", "no"]],
-      d: [["sidewalk:both", "no"]],
       y: [["sidewalk:left", "separate"]],
+      w: [["sidewalk:right", "yes"]],
+      s: [["sidewalk:right", "no"]],
       x: [["sidewalk:right", "separate"]],
-      c: [["sidewalk:both", "separate"]],
     };
     return shortcutMap[key.toLowerCase()] || null;
   }
@@ -307,7 +304,6 @@
             <th style="background-color: {siteColorRgba("right", 0.3)};">
               Right
             </th>
-            <th>Both</th>
           </tr>
         </thead>
         <tbody>
@@ -336,17 +332,6 @@
                 <kbd class="shortcut-badge">w</kbd> Yes
               </button>
             </td>
-            <td
-              class:table-active={getHighlightedCell(normalized, "both", "yes") === "active"}
-            >
-              <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
-                class:disabled={getHighlightedCell(normalized, "both", "yes") === "active"}
-                onclick={() => setTags([["sidewalk:both", "yes"]])}
-              >
-                <kbd class="shortcut-badge">e</kbd> Yes
-              </button>
-            </td>
           </tr>
           <tr>
             <td
@@ -373,17 +358,6 @@
                 <kbd class="shortcut-badge">s</kbd> No
               </button>
             </td>
-            <td
-              class:table-active={getHighlightedCell(normalized, "both", "no") === "active"}
-            >
-              <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
-                class:disabled={getHighlightedCell(normalized, "both", "no") === "active"}
-                onclick={() => setTags([["sidewalk:both", "no"]])}
-              >
-                <kbd class="shortcut-badge">d</kbd> No
-              </button>
-            </td>
           </tr>
           <tr>
             <td
@@ -408,17 +382,6 @@
                 onclick={() => setTags([["sidewalk:right", "separate"]])}
               >
                 <kbd class="shortcut-badge">x</kbd> Separate
-              </button>
-            </td>
-            <td
-              class:table-active={getHighlightedCell(normalized, "both", "separate") === "active"}
-            >
-              <button
-                class="btn btn-sm btn-secondary w-100 position-relative"
-                class:disabled={getHighlightedCell(normalized, "both", "separate") === "active"}
-                onclick={() => setTags([["sidewalk:both", "separate"]])}
-              >
-                <kbd class="shortcut-badge">c</kbd> Separate
               </button>
             </td>
           </tr>
