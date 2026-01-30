@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{
     BoundingRect, Closest, ClosestPoint, Coord, Distance, Euclidean, Intersects, Line, LineString,
-    Point,
+    Point, Polygon,
 };
 use osm_reader::WayID;
 use rstar::{AABB, RTree, primitives::GeomWithData};
@@ -76,6 +76,7 @@ impl Speedwalk {
             let Some((sidewalk1, endpt1)) = find_sidewalk_hit(
                 &closest_sidewalk,
                 &closest_line,
+                &self.closest_building,
                 crossing_node,
                 angle + 90.0,
             ) else {
@@ -85,6 +86,7 @@ impl Speedwalk {
             let Some((sidewalk2, endpt2)) = find_sidewalk_hit(
                 &closest_sidewalk,
                 &closest_line,
+                &self.closest_building,
                 crossing_node,
                 angle - 90.0,
             ) else {
@@ -143,6 +145,7 @@ fn aabb_line(line: &Line) -> AABB<Point> {
 fn find_sidewalk_hit(
     closest_sidewalk: &RTree<GeomWithData<LineString, WayID>>,
     closest_line: &RTree<GeomWithData<LineString, WayID>>,
+    closest_building: &RTree<Polygon>,
     crossing_node: &Node,
     angle: f64,
 ) -> Option<(WayID, Coord)> {
@@ -199,6 +202,14 @@ fn find_sidewalk_hit(
         {
             return None;
         }
+    }
+
+    // Also make sure we're not crossing buildings
+    if closest_building
+        .locate_in_envelope_intersecting(&aabb_line(&test_line))
+        .any(|polygon| polygon.intersects(&test_line))
+    {
+        return None;
     }
 
     Some((hit_way, endpt))
