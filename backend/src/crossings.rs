@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{
-    BoundingRect, Closest, ClosestPoint, Coord, Distance, Euclidean, Line, LineString, Point,
+    BoundingRect, Closest, ClosestPoint, Coord, Distance, Euclidean, Intersects, Line, LineString,
+    Point,
 };
 use osm_reader::WayID;
 use rstar::{AABB, RTree, primitives::GeomWithData};
 use utils::Tags;
 
-use crate::{Kind, Speedwalk, edits::CreateNewGeometry};
+use crate::{Kind, Node, Speedwalk, edits::CreateNewGeometry};
 
 impl Speedwalk {
     pub fn connect_all_crossings(&self, include_crossing_no: bool) -> CreateNewGeometry {
@@ -45,14 +46,17 @@ impl Speedwalk {
             }
         }
 
-        info!(
-            "Building rtree for up to {} existing sidewalks",
-            self.derived_ways.len()
-        );
+        info!("Building rtrees for up to {} ways", self.derived_ways.len());
         let closest_sidewalk = RTree::bulk_load(
             self.derived_ways
                 .iter()
                 .filter(|(_, way)| way.kind == Kind::Sidewalk || way.is_walkable_other())
+                .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                .collect(),
+        );
+        let closest_line = RTree::bulk_load(
+            self.derived_ways
+                .iter()
                 .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
                 .collect(),
         );
@@ -69,15 +73,21 @@ impl Speedwalk {
             let road_linestring = &self.derived_ways[&road_way_id].linestring;
             let angle = angle_of_pt_on_line(road_linestring, crossing_pt);
 
-            let Some((sidewalk1, endpt1)) =
-                find_sidewalk_hit(&closest_sidewalk, crossing_pt, angle + 90.0)
-            else {
+            let Some((sidewalk1, endpt1)) = find_sidewalk_hit(
+                &closest_sidewalk,
+                &closest_line,
+                crossing_node,
+                angle + 90.0,
+            ) else {
                 continue;
             };
 
-            let Some((sidewalk2, endpt2)) =
-                find_sidewalk_hit(&closest_sidewalk, crossing_pt, angle - 90.0)
-            else {
+            let Some((sidewalk2, endpt2)) = find_sidewalk_hit(
+                &closest_sidewalk,
+                &closest_line,
+                crossing_node,
+                angle - 90.0,
+            ) else {
                 continue;
             };
 
@@ -120,25 +130,30 @@ impl Speedwalk {
     }
 }
 
+fn aabb_line(line: &Line) -> AABB<Point> {
+    // TODO Still cursed
+    //let bbox = aabb(&line);
+    let bbox = line.bounding_rect();
+    AABB::from_corners(
+        Point::new(bbox.min().x, bbox.min().y),
+        Point::new(bbox.max().x, bbox.max().y),
+    )
+}
+
 fn find_sidewalk_hit(
     closest_sidewalk: &RTree<GeomWithData<LineString, WayID>>,
-    crossing_pt: Coord,
+    closest_line: &RTree<GeomWithData<LineString, WayID>>,
+    crossing_node: &Node,
     angle: f64,
 ) -> Option<(WayID, Coord)> {
+    let crossing_pt = crossing_node.pt;
+
     // First try to project a perpendicular line from the crossing out 10m (far away), and find the
     // first sidewalk we hit.
     let line1 = Line::new(crossing_pt, project_away(crossing_pt, angle, 10.0));
 
-    // TODO Still cursed
-    //let bbox = aabb(&line1);
-    let bbox = line1.bounding_rect();
-    let aabb = AABB::from_corners(
-        Point::new(bbox.min().x, bbox.min().y),
-        Point::new(bbox.max().x, bbox.max().y),
-    );
-
     let mut candidates = Vec::new();
-    for obj in closest_sidewalk.locate_in_envelope_intersecting(&aabb) {
+    for obj in closest_sidewalk.locate_in_envelope_intersecting(&aabb_line(&line1)) {
         for line2 in obj.geom().lines() {
             if let Some(LineIntersection::SinglePoint { intersection, .. }) =
                 line_intersection(line1, line2)
@@ -151,6 +166,8 @@ fn find_sidewalk_hit(
     if let Some(pair) = candidates.into_iter().min_by_key(|(_, end_pt)| {
         to_cm(Euclidean.distance(Point::from(crossing_pt), Point::from(*end_pt)))
     }) {
+        // This branch already picks the closest hit and doesn't search as far. It's unlikely we
+        // need to check if a road in closest_line hits.
         return Some(pair);
     }
 
@@ -165,10 +182,26 @@ fn find_sidewalk_hit(
     let obj = closest_sidewalk.nearest_neighbor(&Point::from(one_side_pt))?;
     // Then find the straight line to the crossing_pt using that matching sidewalk. Don't find the
     // closest point to one_side_pt, because that'll make a slightly angled crossing.
-    match obj.geom().closest_point(&Point::from(crossing_pt)) {
+    let (hit_way, endpt) = match obj.geom().closest_point(&Point::from(crossing_pt)) {
         Closest::Intersection(pt) | Closest::SinglePoint(pt) => Some((obj.data, pt.into())),
         Closest::Indeterminate => None,
+    }?;
+
+    // We potentially found an endpt very far away. Make sure this line isn't crossing any existing
+    // roads or other ways.
+    let test_line = Line::new(crossing_pt, endpt);
+    for obj in closest_line.locate_in_envelope_intersecting(&aabb_line(&test_line)) {
+        // It's OK to hit the new sidewalk we're connecting to, or any of the roads that the
+        // crossing node is on. That should happen at either end of test_line.
+        if obj.data != hit_way
+            && !crossing_node.way_ids.contains(&obj.data)
+            && obj.geom().intersects(&test_line)
+        {
+            return None;
+        }
     }
+
+    Some((hit_way, endpt))
 }
 
 // TODO Use new geo euclidean destination
