@@ -15,7 +15,7 @@
   import { kindLabels, type WayProps } from "./";
   import Problems from "./way-details/Problems.svelte";
   import CenterlineTagActions from "./way-details/CenterlineTagActions.svelte";
-  import FootwayTagActions from "./way-details/FootwayTagActions.svelte";
+  import SidepathTagActions from "./way-details/SidepathTagActions.svelte";
   import CurrentTagsTable from "./way-details/CurrentTagsTable.svelte";
 
   let {
@@ -194,8 +194,14 @@
 
     {#if pinnedWay.properties.kind.startsWith("Road")}
       <CenterlineTagActions {normalizedSidewalkTags} {setTags} />
-    {:else if pinnedWay.properties.tags.highway == "footway"}
-      <FootwayTagActions {setTags} />
+    {:else if ["footway", "path", "cycleway"].includes(pinnedWay.properties.tags.highway ?? "")}
+      <SidepathTagActions
+        {setTags}
+        highway={pinnedWay.properties.tags.highway as
+          | "footway"
+          | "path"
+          | "cycleway"}
+      />
     {/if}
 
     <CurrentTagsTable tags={pinnedWay.properties.tags} />
