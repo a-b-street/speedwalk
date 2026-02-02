@@ -1,24 +1,48 @@
 <script lang="ts">
   let { tags }: { tags: Record<string, string> } = $props();
 
+  // Order is important - tags are sorted by this order
+  const MAIN_TAG_PREFIXES = [
+    "sidewalk",
+    "highway",
+    "footway",
+    "path",
+    "cycleway",
+    "crossing",
+    "is_sidepath",
+    "foot",
+    "bicycle",
+  ];
+
+  function isMainTag(key: string): boolean {
+    const lowerKey = key.toLowerCase();
+    return MAIN_TAG_PREFIXES.some((prefix) => lowerKey.startsWith(prefix));
+  }
+
   function getSortedTags(
     tagRecord: Record<string, string>,
   ): Array<[string, string]> {
     const entries = Object.entries(tagRecord);
-    const sidewalkTags = entries.filter(([key]) =>
-      key.toLowerCase().startsWith("sidewalk"),
-    );
-    const otherTags = entries.filter(
-      ([key]) => !key.toLowerCase().startsWith("sidewalk"),
-    );
-    sidewalkTags.sort(([a], [b]) => a.localeCompare(b));
-    otherTags.sort(([a], [b]) => a.localeCompare(b));
-    return [...sidewalkTags, ...otherTags] as Array<[string, string]>;
+    function getPrefixOrder(key: string): number {
+      const lowerKey = key.toLowerCase();
+      const index = MAIN_TAG_PREFIXES.findIndex((prefix) =>
+        lowerKey.startsWith(prefix),
+      );
+      return index === -1 ? MAIN_TAG_PREFIXES.length : index;
+    }
+    return entries.sort(([a], [b]) => {
+      const orderA = getPrefixOrder(a);
+      const orderB = getPrefixOrder(b);
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return a.localeCompare(b);
+    }) as Array<[string, string]>;
   }
 </script>
 
-<table class="table table-bordered">
-  <thead>
+<table class="table table-bordered table-sm mt-3 tag-table-group">
+  <thead class="table-light">
     <tr>
       <th>Key</th>
       <th>Value</th>
@@ -26,10 +50,19 @@
   </thead>
   <tbody>
     {#each getSortedTags(tags) as [key, value]}
-      <tr class:table-active={key.toLowerCase().includes("sidewalk")}>
-        <td>{key}</td>
-        <td>{value}</td>
+      <tr>
+        <td class:tag-muted={!isMainTag(key)}>{key}</td>
+        <td class:tag-muted={!isMainTag(key)}>{value}</td>
       </tr>
     {/each}
   </tbody>
 </table>
+
+<style>
+  .tag-table-group .tag-muted {
+    color: #adb5bd;
+  }
+  .tag-table-group:hover .tag-muted {
+    color: inherit;
+  }
+</style>
