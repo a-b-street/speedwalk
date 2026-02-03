@@ -122,8 +122,33 @@ pub fn scrape_osm(input_bytes: &[u8], maybe_boundary_wgs84: Option<Polygon>) -> 
             .map(|way| way.linestring.clone())
             .collect::<Vec<_>>(),
     );
+
+    // If geometry is empty but we have a boundary, use boundary for Mercator initialization
+    let mercator = if ways.is_empty() {
+        if let Some(ref boundary) = maybe_boundary_wgs84 {
+            // Create a geometry collection from the boundary to initialize Mercator
+            let boundary_geometry = GeometryCollection::from(vec![geo::Geometry::Polygon(boundary.clone())]);
+            Mercator::from(boundary_geometry).unwrap_or_else(|| {
+                panic!("Failed to create Mercator from boundary - geometry may be too small or invalid")
+            })
+        } else {
+            panic!("Cannot create Mercator: no ways found and no boundary provided");
+        }
+    } else {
+        Mercator::from(all_geometry.clone()).unwrap_or_else(|| {
+            // Fallback to boundary if Mercator::from fails
+            if let Some(ref boundary) = maybe_boundary_wgs84 {
+                let boundary_geometry = GeometryCollection::from(vec![geo::Geometry::Polygon(boundary.clone())]);
+                Mercator::from(boundary_geometry).unwrap_or_else(|| {
+                    panic!("Failed to create Mercator from geometry or boundary")
+                })
+            } else {
+                panic!("Failed to create Mercator from geometry and no boundary provided");
+            }
+        })
+    };
+
     let boundary_wgs84 = maybe_boundary_wgs84.unwrap_or_else(|| all_geometry.convex_hull());
-    let mercator = Mercator::from(all_geometry).unwrap();
     for node in nodes.values_mut() {
         node.pt = mercator.pt_to_mercator(node.pt);
     }

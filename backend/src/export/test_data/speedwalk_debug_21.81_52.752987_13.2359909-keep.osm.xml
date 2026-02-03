@@ -1,0 +1,178 @@
+<osm version="0.6" generator="Speedwalk">
+  <node id="13261359822" version="2" lon="13.2358474" lat="52.7529972">
+  </node>
+  <node id="292960974" version="2" lon="13.2362603" lat="52.75368">
+  </node>
+  <node id="13261359827" version="1" lon="13.2358091" lat="52.7529957">
+  </node>
+  <node id="13261359818" version="2" lon="13.2352722" lat="52.7520006">
+  </node>
+  <node id="2271736064" version="2" lon="13.2356055" lat="52.7521908">
+  </node>
+  <node id="13414217829" version="2" lon="13.2367253" lat="52.7529509">
+    <tag k="crossing" v="unmarked" />
+    <tag k="crossing:markings" v="no" />
+    <tag k="highway" v="crossing" />
+  </node>
+  <node id="13504158580" version="1" lon="13.2360992" lat="52.7535412">
+  </node>
+  <node id="13504050259" version="1" lon="13.2355736" lat="52.7519963">
+  </node>
+  <node id="13261359840" version="2" lon="13.2363057" lat="52.7535666">
+  </node>
+  <node id="10984439661" version="1" lon="13.236688" lat="52.7529524">
+    <tag k="direction" v="forward" />
+    <tag k="highway" v="give_way" />
+  </node>
+  <node id="13452496357" version="1" lon="13.2359415" lat="52.7529538">
+    <tag k="crossing" v="no" />
+  </node>
+  <node id="13261359837" version="2" lon="13.2356433" lat="52.7520408">
+  </node>
+  <node id="13277450304" version="1" lon="13.2341682" lat="52.7518803">
+  </node>
+  <node id="13261359817" version="2" lon="13.2352087" lat="52.751973">
+  </node>
+  <node id="88829241" version="5" lon="13.2368227" lat="52.7529468">
+  </node>
+  <node id="63054882" version="5" lon="13.2357648" lat="52.7529986">
+    <tag k="barrier" v="bollard" />
+    <tag k="bollard" v="fixed" />
+    <tag k="description:de" v="Pollerreihe" />
+  </node>
+  <node id="13261359838" version="2" lon="13.2357398" lat="52.7521893">
+  </node>
+  <node id="13504158578" version="1" lon="13.2340585" lat="52.7518625">
+  </node>
+  <node id="13261359814" version="2" lon="13.2343824" lat="52.7519023">
+  </node>
+  <node id="13261359808" version="2" lon="13.234837" lat="52.7519137">
+  </node>
+  <node id="13277450303" version="1" lon="13.2351245" lat="52.7519448">
+  </node>
+  <node id="13261359839" version="2" lon="13.2360541" lat="52.7529909">
+    <tag k="crossing" v="uncontrolled" />
+    <tag k="crossing:markings" v="yes" />
+    <tag k="highway" v="crossing" />
+  </node>
+  <node id="402284898" version="2" lon="13.2361516" lat="52.7534304">
+  </node>
+  <node id="2272349195" version="1" lon="13.2361993" lat="52.7535399">
+  </node>
+  <node id="13504158585" version="1" lon="13.2360479" lat="52.7529752">
+  </node>
+  <node id="13261359820" version="2" lon="13.2354747" lat="52.7522034">
+  </node>
+  <node id="13261359819" version="2" lon="13.23541" lat="52.7521094">
+  </node>
+  <node id="13261359816" version="2" lon="13.2349738" lat="52.7519208">
+  </node>
+  <node id="63045159" version="7" lon="13.2359605" lat="52.752997">
+  </node>
+  <node id="333220337" version="4" lon="13.2363752" lat="52.7529724">
+  </node>
+  <node id="13452496356" version="1" lon="13.2359788" lat="52.7530386">
+    <tag k="crossing" v="no" />
+  </node>
+  <node id="13504158584" version="1" lon="13.2360685" lat="52.7530238">
+  </node>
+  <way id="8771096" version="22">
+    <nd ref="2271736064" />
+    <nd ref="13452496357" />
+    <nd ref="63045159" />
+    <nd ref="13452496356" />
+    <nd ref="402284898" />
+    <nd ref="2272349195" />
+    <nd ref="292960974" />
+    <tag k="cycleway:both" v="separate" />
+    <tag k="highway" v="primary" />
+    <tag k="lanes" v="2" />
+    <tag k="lit" v="yes" />
+    <tag k="maxspeed" v="50" />
+    <tag k="name" v="Breite Straße" />
+    <tag k="ref" v="B 273" />
+    <tag k="sidewalk:both" v="separate" />
+    <tag k="smoothness" v="excellent" />
+    <tag k="surface" v="asphalt" />
+  </way>
+  <way id="1471653695" version="2">
+    <nd ref="13504050259" />
+    <nd ref="13261359837" />
+    <nd ref="13261359838" />
+    <nd ref="13504158585" />
+    <tag k="bicycle" v="designated" />
+    <tag k="foot" v="designated" />
+    <tag k="highway" v="path" />
+    <tag k="oneway" v="yes" />
+    <tag k="segregated" v="yes" />
+    <tag k="surface" v="asphalt" />
+  </way>
+  <way id="1471662811" version="2">
+    <nd ref="13504158584" />
+    <nd ref="13261359840" />
+    <tag k="bicycle" v="designated" />
+    <tag k="foot" v="designated" />
+    <tag k="highway" v="path" />
+    <tag k="oneway:bicycle" v="yes" />
+    <tag k="segregated" v="yes" />
+    <tag k="surface" v="asphalt" />
+  </way>
+  <way id="8771087" version="9">
+    <nd ref="63045159" />
+    <nd ref="13261359839" />
+    <nd ref="333220337" />
+    <nd ref="10984439661" />
+    <nd ref="13414217829" />
+    <nd ref="88829241" />
+    <tag k="highway" v="residential" />
+    <tag k="lanes" v="1" />
+    <tag k="name" v="Blutgasse" />
+    <tag k="oneway" v="yes" />
+    <tag k="postal_code" v="16515" />
+    <tag k="surface" v="sett" />
+  </way>
+  <way id="1445400046" version="4">
+    <nd ref="13504158580" />
+    <nd ref="13261359822" />
+    <nd ref="13261359820" />
+    <nd ref="13261359819" />
+    <nd ref="13261359818" />
+    <nd ref="13261359817" />
+    <nd ref="13277450303" />
+    <nd ref="13261359816" />
+    <nd ref="13261359808" />
+    <nd ref="13261359814" />
+    <nd ref="13277450304" />
+    <nd ref="13504158578" />
+    <tag k="bicycle" v="designated" />
+    <tag k="foot" v="designated" />
+    <tag k="highway" v="path" />
+    <tag k="oneway:bicycle" v="yes" />
+    <tag k="segregated" v="yes" />
+    <tag k="surface" v="asphalt" />
+    <tag k="traffic_sign" v="none" />
+  </way>
+  <way id="1471662812" version="1">
+    <nd ref="13504158585" />
+    <nd ref="13261359839" />
+    <nd ref="13504158584" />
+    <tag k="bicycle" v="designated" />
+    <tag k="foot" v="designated" />
+    <tag k="footway" v="crossing" />
+    <tag k="highway" v="footway" />
+    <tag k="oneway" v="yes" />
+    <tag k="segregated" v="yes" />
+    <tag k="surface" v="asphalt" />
+  </way>
+  <way id="868067287" version="3">
+    <nd ref="63045159" />
+    <nd ref="13261359822" />
+    <nd ref="13261359827" />
+    <nd ref="63054882" />
+    <tag k="bicycle" v="designated" />
+    <tag k="foot" v="designated" />
+    <tag k="highway" v="path" />
+    <tag k="segregated" v="no" />
+    <tag k="surface" v="paving_stones" />
+  </way>
+</osm>

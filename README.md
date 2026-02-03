@@ -48,4 +48,22 @@ To run locally, you'll need [npm](https://docs.npmjs.com/downloading-and-install
 - `npm run fmt` to auto-format code
 - `npm run check` to see TypeScript errors
 
+### Running tests
+
+Rust unit tests are located in `backend/src/export.rs` (nudge removal tests) and `backend/src/classify.rs` (classification tests).
+
+**From the `web` directory:**
+- `npm run test` - Run all Rust tests
+- `npm run test:export` - Run only the export/nudge removal tests
+- `npm run test:watch` - Run tests in watch mode (requires `cargo-watch`: `cargo install cargo-watch`)
+
+**From the `backend` directory (Rust way):**
+- `cargo test` - Run all tests
+- `cargo test --lib export::tests` - Run only export module tests
+- `cargo test --lib export::tests::test_nudge_keep_case` - Run a specific test
+- `cargo test --lib -- --nocapture` - Run tests with output (println! visible)
+
+Test data files are in `backend/src/export/test_data/`:
+- `speedwalk_debug_*.osm.xml` - OSM XML files exported from the debug feature for testing nudge removal
+
 Check recent changesets using Speedwalk: https://changesets.mapki.com/?tags=created_by%3DSpeedwalk

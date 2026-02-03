@@ -30,6 +30,7 @@ pub enum NetworkFilterType {
 
 const MINIMUM_DEADEND_LENGTH: f64 = 10.0;
 const MINIMUM_DISCONNECTED_LENGTH: f64 = 100.0;
+const NUDGE_MAX_LENGTH: f64 = 30.0;
 
 impl Speedwalk {
     /// Filter network without dead end check - used to determine routeable edges
@@ -456,7 +457,147 @@ impl Speedwalk {
 
         dead_end_edges
     }
+}
 
+/// Check if there's a path from start to end using only Crossing/Other edges.
+/// Returns true if endpoints are connected via the "main" side of a cycle.
+fn has_path_via_main_edges(
+    start: IntersectionID,
+    end: IntersectionID,
+    main_adj: &HashMap<IntersectionID, Vec<IntersectionID>>,
+) -> bool {
+    let mut visited: HashSet<IntersectionID> = HashSet::new();
+    let mut queue: Vec<IntersectionID> = vec![start];
+    visited.insert(start);
+
+    while let Some(u) = queue.pop() {
+        if u == end {
+            return true;
+        }
+        if let Some(neighbors) = main_adj.get(&u) {
+            for &v in neighbors {
+                if visited.insert(v) {
+                    queue.push(v);
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Find a Sidewalk path (negative WayIDs) starting from the given edge, extending in both directions
+/// until we reach intersections that connect to Crossing/Other edges.
+/// Returns (start_node, end_node, edge_ids, path_nodes).
+/// The path must be entirely Sidewalk edges with negative WayIDs.
+fn find_sidewalk_path_with_main_endpoints(
+    start_node: IntersectionID,
+    next_node: IntersectionID,
+    first_edge: EdgeID,
+    all_adj: &HashMap<IntersectionID, Vec<(IntersectionID, EdgeID)>>,
+    edge_lengths: &HashMap<EdgeID, f64>,
+    remaining_edges: &HashSet<EdgeID>,
+    intersections_with_main: &HashSet<IntersectionID>,
+    speedwalk: &Speedwalk,
+    graph: &Graph,
+    max_length: f64,
+) -> Option<(IntersectionID, IntersectionID, Vec<EdgeID>, Vec<IntersectionID>)> {
+    // BFS from both directions: extend from start_node backwards and from next_node forwards
+    // until we reach nodes that connect to Crossing/Other edges
+
+    let first_len = edge_lengths.get(&first_edge).copied().unwrap_or(0.0);
+    let mut path_edges = vec![first_edge];
+    let mut path_nodes = vec![start_node, next_node];
+    let mut total_len = first_len;
+
+    // Extend backwards from start_node
+    let mut current = start_node;
+    let mut visited_back: HashSet<IntersectionID> = HashSet::new();
+    visited_back.insert(next_node); // Don't go back through the first edge
+
+    while !intersections_with_main.contains(&current) && total_len < max_length {
+        let mut found = false;
+        if let Some(neighbors) = all_adj.get(&current) {
+            for &(v, eid) in neighbors {
+                if !remaining_edges.contains(&eid) || visited_back.contains(&v) {
+                    continue;
+                }
+                // Only use Sidewalk edges with negative WayIDs
+                let way = &speedwalk.derived_ways[&graph.edges[&eid].osm_way];
+                if way.kind != Kind::Sidewalk || graph.edges[&eid].osm_way.0 >= 0 {
+                    continue;
+                }
+                let edge_len = edge_lengths.get(&eid).copied().unwrap_or(f64::INFINITY);
+                if total_len + edge_len >= max_length {
+                    continue;
+                }
+                path_edges.insert(0, eid);
+                path_nodes.insert(0, v);
+                total_len += edge_len;
+                visited_back.insert(v);
+                current = v;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            break;
+        }
+    }
+    let path_start = current;
+    // Ensure path_start is at the beginning of path_nodes
+    if path_nodes.is_empty() || path_nodes[0] != path_start {
+        path_nodes.insert(0, path_start);
+    }
+
+    // Extend forwards from next_node
+    current = next_node;
+    let mut visited_forward: HashSet<IntersectionID> = HashSet::new();
+    visited_forward.insert(start_node); // Don't go back through the first edge
+
+    while !intersections_with_main.contains(&current) && total_len < max_length {
+        let mut found = false;
+        if let Some(neighbors) = all_adj.get(&current) {
+            for &(v, eid) in neighbors {
+                if !remaining_edges.contains(&eid) || visited_forward.contains(&v) {
+                    continue;
+                }
+                // Only use Sidewalk edges with negative WayIDs
+                let way = &speedwalk.derived_ways[&graph.edges[&eid].osm_way];
+                if way.kind != Kind::Sidewalk || graph.edges[&eid].osm_way.0 >= 0 {
+                    continue;
+                }
+                let edge_len = edge_lengths.get(&eid).copied().unwrap_or(f64::INFINITY);
+                if total_len + edge_len >= max_length {
+                    continue;
+                }
+                path_edges.push(eid);
+                path_nodes.push(v);
+                total_len += edge_len;
+                visited_forward.insert(v);
+                current = v;
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            break;
+        }
+    }
+    let path_end = current;
+    // Ensure path_end is at the end of path_nodes
+    if path_nodes.is_empty() || *path_nodes.last().unwrap() != path_end {
+        path_nodes.push(path_end);
+    }
+
+    // Both endpoints must connect to Crossing/Other for this to be a nudge
+    if intersections_with_main.contains(&path_start) && intersections_with_main.contains(&path_end) {
+        Some((path_start, path_end, path_edges, path_nodes))
+    } else {
+        None
+    }
+}
+
+impl Speedwalk {
     pub fn filter_network(
         &self,
         filter: &NetworkFilter,
