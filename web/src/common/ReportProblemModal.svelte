@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Map } from "maplibre-gl";
-  import { Checkbox, Modal } from "svelte-utils";
-  import { loggedInUser, map } from "../";
+  import { Checkbox, Modal, downloadGeneratedFile } from "svelte-utils";
+  import { loggedInUser, map, backend } from "../";
+  import { getMapViewport } from "./osmEditorUrls";
 
   let show = $state(false);
   let submitting = $state(false);
@@ -115,22 +116,31 @@
     });
   }
 
+  // Calculate precision for coordinates based on zoom level
+  // derived from equation: 512px * 2^z / 360 / 10^d < 0.5px
+  function calculatePrecision(zoom: number): number {
+    return Math.ceil((zoom * Math.LN2 + Math.log(512 / 360 / 0.5)) / Math.LN10);
+  }
+
+  function roundCoordinate(value: number, zoom: number): number {
+    const precision = calculatePrecision(zoom);
+    const m = Math.pow(10, precision);
+    return Math.round(value * m) / m;
+  }
+
   // TODO Double hash
   // Adapted from https://github.com/maplibre/maplibre-gl-js/blob/5d7e6d52000a8569ac2308a9aef14c98933eb0d8/src/ui/hash.ts
   function getViewportHash(map: Map): string {
-    let center = map.getCenter();
-    let zoom = Math.round(map.getZoom() * 100) / 100;
-    // derived from equation: 512px * 2^z / 360 / 10^d < 0.5px
-    let precision = Math.ceil(
-      (zoom * Math.LN2 + Math.log(512 / 360 / 0.5)) / Math.LN10,
-    );
-    let m = Math.pow(10, precision);
-    let lat = Math.round(center.lat * m) / m;
-    let lng = Math.round(center.lng * m) / m;
+    const viewport = getMapViewport(map);
+    if (!viewport) return "";
+
+    const zoom = Math.round(viewport.zoom * 100) / 100;
+    const lat = roundCoordinate(viewport.lat, zoom);
+    const lng = roundCoordinate(viewport.lng, zoom);
     let hash = `${zoom}/${lat}/${lng}`;
 
-    let bearing = map.getBearing();
-    let pitch = map.getPitch();
+    const bearing = map.getBearing();
+    const pitch = map.getPitch();
     if (bearing || pitch) {
       hash += `/${Math.round(bearing * 10) / 10}`;
     }
@@ -138,6 +148,43 @@
       hash += `/${Math.round(pitch)}`;
     }
     return `#${hash}`;
+  }
+
+  function formatViewportForFilename(map: Map): string {
+    const viewport = getMapViewport(map);
+    if (!viewport) return "";
+
+    const zoom = Math.round(viewport.zoom * 100) / 100;
+    const lat = roundCoordinate(viewport.lat, zoom);
+    const lng = roundCoordinate(viewport.lng, zoom);
+    return `${zoom}_${lat}_${lng}`;
+  }
+
+  async function exportDebugOsm() {
+    if (!$map || !$backend) return;
+
+    try {
+      // Get map bounds
+      const bounds = $map.getBounds();
+      const bbox = new Float64Array([
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth(),
+      ]);
+
+      // Export OSM data
+      const osmXml = $backend.exportOsmForViewport(bbox);
+
+      // Generate filename with zoom, lat, lng
+      const viewportStr = formatViewportForFilename($map);
+      const filename = `speedwalk_debug_${viewportStr}.osm.xml`;
+
+      // Download file
+      downloadGeneratedFile(filename, osmXml);
+    } catch (err) {
+      window.alert(`Failed to export debug OSM data: ${err}`);
+    }
   }
 </script>
 
@@ -211,6 +258,12 @@
         disabled={!filledOut}
       >
         Submit report
+      </button>
+    {/if}
+
+    {#if $backend}
+      <button class="btn btn-secondary me-3" onclick={exportDebugOsm}>
+        Export debug OSM data
       </button>
     {/if}
 

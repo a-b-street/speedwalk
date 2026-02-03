@@ -241,46 +241,17 @@ impl Edits {
 
         out.push("  <create>".to_string());
         for (id, node) in &self.new_nodes {
-            let pt = model.mercator.pt_to_wgs84(node.pt);
-            out.push(format!(
-                r#"    <node id="{}" version="{}" lon="{}" lat="{}">"#,
-                id.0, node.version, pt.x, pt.y
-            ));
-            for (k, v) in &node.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
-            }
-            out.push("    </node>".to_string());
+            out.push(crate::format_node_xml(&id, node, &model.mercator, 4));
         }
         for (id, way) in &self.new_ways {
-            out.push(format!(
-                r#"    <way id="{}" version="{}">"#,
-                id.0, way.version
-            ));
-            for node in &way.node_ids {
-                out.push(format!(r#"      <nd ref="{}" />"#, node.0));
-            }
-            for (k, v) in &way.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
-            }
-            out.push("    </way>".to_string());
+            out.push(crate::format_way_xml(&id, way, 4));
         }
         out.push("  </create>".to_string());
 
         out.push("  <modify>".to_string());
         for id in union_keys(&self.change_way_tags, &self.change_way_nodes) {
             let way = &model.derived_ways[&id];
-
-            out.push(format!(
-                r#"    <way id="{}" version="{}">"#,
-                id.0, way.version
-            ));
-            for node in &way.node_ids {
-                out.push(format!(r#"      <nd ref="{}" />"#, node.0));
-            }
-            for (k, v) in &way.tags.0 {
-                out.push(format!(r#"      <tag k="{k}" v="{}" />"#, escape(v)));
-            }
-            out.push("    </way>".to_string());
+            out.push(crate::format_way_xml(&id, way, 4));
         }
         out.push("  </modify>".to_string());
 
@@ -452,7 +423,7 @@ impl HashedPoint {
 }
 
 // TODO Use a library, if there's a lightweight one
-fn escape(v: &str) -> String {
+pub fn escape(v: &str) -> String {
     v.replace("\"", "&quot;")
         .replace("<", "&lt;")
         .replace(">", "&gt;")

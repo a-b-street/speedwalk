@@ -360,6 +360,15 @@ impl Speedwalk {
         let filter: crate::export::NetworkFilter = serde_wasm_bindgen::from_value(filter)?;
         self.export_network(filter).map_err(err_to_js)
     }
+
+    #[wasm_bindgen(js_name = exportOsmForViewport)]
+    pub fn export_osm_for_viewport_wasm(&self, bbox: Vec<f64>) -> Result<String, JsValue> {
+        if bbox.len() != 4 {
+            return Err(JsValue::from_str("bbox must have 4 elements: [min_lon, min_lat, max_lon, max_lat]"));
+        }
+        let bbox_array = [bbox[0], bbox[1], bbox[2], bbox[3]];
+        self.export_osm_for_viewport(bbox_array).map_err(err_to_js)
+    }
 }
 
 fn err_to_js<E: std::fmt::Display>(err: E) -> JsValue {
