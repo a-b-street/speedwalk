@@ -1,5 +1,11 @@
 <script lang="ts">
-  let { tags }: { tags: Record<string, string> } = $props();
+  let {
+    tags,
+    recentlyAddedTags = new Set<string>(),
+  }: {
+    tags: Record<string, string>;
+    recentlyAddedTags?: Set<string>;
+  } = $props();
 
   // Order is important - tags are sorted by this order
   const MAIN_TAG_PREFIXES = [
@@ -50,9 +56,20 @@
   </thead>
   <tbody>
     {#each getSortedTags(tags) as [key, value]}
+      {@const isRecent = recentlyAddedTags.has(key)}
       <tr>
-        <td class:tag-muted={!isMainTag(key)}>{key}</td>
-        <td class:tag-muted={!isMainTag(key)}>{value}</td>
+        <td
+          class:tag-muted={!isMainTag(key)}
+          class:tag-recent={isRecent}
+        >
+          {key}
+        </td>
+        <td
+          class:tag-muted={!isMainTag(key)}
+          class:tag-recent={isRecent}
+        >
+          {value}
+        </td>
       </tr>
     {/each}
   </tbody>
@@ -64,5 +81,8 @@
   }
   .tag-table-group:hover .tag-muted {
     color: inherit;
+  }
+  .tag-table-group .tag-recent {
+    font-weight: bold;
   }
 </style>

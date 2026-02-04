@@ -32,6 +32,17 @@
   } = $props();
 
   let loading = $state("");
+  let recentlyAddedTags = $state<Set<string>>(new Set());
+  let lastWayId = $state<number | null>(null);
+  
+  // Clear highlighting when a different way is selected
+  $effect(() => {
+    const currentWayId = pinnedWay.properties.id;
+    if (lastWayId !== null && lastWayId !== currentWayId) {
+      recentlyAddedTags = new Set();
+    }
+    lastWayId = currentWayId;
+  });
 
   // Extract existing sidewalk tags from way properties
   function getExistingSidewalkTags(
@@ -143,6 +154,9 @@
 
   async function setTags(tags: Array<string[]>) {
     const mergedTags = mergeSidewalkTags(pinnedWay.properties.tags, tags);
+    
+    // Only track tags that were explicitly set by the user
+    recentlyAddedTags = new Set(tags.map(([key]) => key));
 
     loading = "Setting tags";
     await refreshLoadingScreen();
@@ -204,7 +218,7 @@
       />
     {/if}
 
-    <CurrentTagsTable tags={pinnedWay.properties.tags} />
+    <CurrentTagsTable tags={pinnedWay.properties.tags} {recentlyAddedTags} />
 
     {#if $debugMode}
       <p>Nodes: {pinnedWay.properties.node_ids.join(", ")}</p>
