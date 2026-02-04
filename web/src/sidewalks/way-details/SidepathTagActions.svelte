@@ -41,9 +41,9 @@
 
 <svelte:window onkeydown={onKeyDown} />
 
-<ul class="list-group list-group-flush gap-2">
+<ul class="list-group list-group-flush mb-0">
   {#each actions as action}
-    <li class="list-group-item">
+    <li class="list-group-item px-0 py-1 border-0">
       <button
         type="button"
         class="btn btn-secondary w-100"
