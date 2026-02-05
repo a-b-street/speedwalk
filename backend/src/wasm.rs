@@ -253,14 +253,22 @@ impl Speedwalk {
     }
 
     #[wasm_bindgen(js_name = editSetTags)]
-    pub fn edit_set_tags(&mut self, base: i64, tags: JsValue) -> Result<(), JsValue> {
-        let tags: Vec<Vec<String>> = serde_wasm_bindgen::from_value(tags)?;
+    pub fn edit_set_tags(
+        &mut self,
+        base: i64,
+        remove_keys: JsValue,
+        add_tags: JsValue,
+    ) -> Result<(), JsValue> {
+        let remove_keys: Vec<String> = serde_wasm_bindgen::from_value(remove_keys)?;
+        let add_tags: Vec<Vec<String>> = serde_wasm_bindgen::from_value(add_tags)?;
         let mut edits = self.edits.take().unwrap();
         edits
             .apply_cmd(
                 UserCmd::SetTags(
                     WayID(base),
-                    tags.into_iter()
+                    remove_keys,
+                    add_tags
+                        .into_iter()
                         .map(|mut kv| (kv.remove(0), kv.remove(0)))
                         .collect(),
                 ),
