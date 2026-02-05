@@ -2,9 +2,14 @@
   let {
     tags,
     recentlyAddedTags = new Set<string>(),
+    updateTags,
   }: {
     tags: Record<string, string>;
     recentlyAddedTags?: Set<string>;
+    updateTags?: (
+      removeKeys: string[],
+      addTags: Array<string[]>,
+    ) => Promise<void>;
   } = $props();
 
   // Order is important - tags are sorted by this order
@@ -58,17 +63,25 @@
     {#each getSortedTags(tags) as [key, value]}
       {@const isRecent = recentlyAddedTags.has(key)}
       <tr>
-        <td
-          class:tag-muted={!isMainTag(key)}
-          class:tag-recent={isRecent}
-        >
+        <td class:tag-muted={!isMainTag(key)} class:tag-recent={isRecent}>
           {key}
         </td>
         <td
           class:tag-muted={!isMainTag(key)}
           class:tag-recent={isRecent}
+          class="d-flex justify-content-between align-items-center"
         >
-          {value}
+          <span>{value}</span>
+          {#if updateTags}
+            <button
+              type="button"
+              class="btn btn-sm btn-link text-danger p-0"
+              onclick={() => updateTags([key], [])}
+              title="Remove tag"
+            >
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          {/if}
         </td>
       </tr>
     {/each}

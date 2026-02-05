@@ -26,7 +26,7 @@ pub struct Edits {
 
 #[derive(Clone, Serialize)]
 pub enum UserCmd {
-    SetTags(WayID, Vec<(String, String)>),
+    SetTags(WayID, Vec<String>, Vec<(String, String)>),
     MakeAllSidewalks(bool),
     ConnectAllCrossings(bool),
     AssumeTags(bool),
@@ -52,16 +52,14 @@ impl Edits {
     pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) -> Result<()> {
         self.user_commands.push(cmd.clone());
         match cmd {
-            UserCmd::SetTags(way, replace) => {
+            UserCmd::SetTags(way, remove_keys, add_tags) => {
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
-                // Clear old sidewalk tags first
-                for (k, _) in &model.derived_ways[&way].tags.0 {
-                    if k.starts_with("sidewalk") {
-                        cmds.push(TagCmd::Remove(k.clone()));
-                    }
+                // First remove all tags in the removal list
+                for key in remove_keys {
+                    cmds.push(TagCmd::Remove(key));
                 }
-
-                for (k, v) in replace {
+                // Then add/set all tags in the addition list
+                for (k, v) in add_tags {
                     cmds.push(TagCmd::Set(k, v));
                 }
             }
