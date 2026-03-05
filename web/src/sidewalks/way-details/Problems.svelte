@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { FeatureCollection, Geometry } from "geojson";
-  import { Checkbox, QualitativeLegend } from "svelte-utils";
+  import { Checkbox } from "svelte-utils";
+  import LegendList from "../../common/LegendList.svelte";
 
   let {
     problems,
@@ -45,14 +46,11 @@
       </Checkbox>
 
       {#if showProblemDetails}
-        <QualitativeLegend
-          labelColors={Object.fromEntries(
-            drawProblemDetails.features.map((f) => [
-              f.properties.label,
-              f.properties.color,
-            ]),
-          )}
-          itemsPerRow={1}
+        <LegendList
+          items={drawProblemDetails.features.map((f) => ({
+            label: f.properties.label,
+            color: f.properties.color,
+          }))}
         />
       {/if}
     {/if}

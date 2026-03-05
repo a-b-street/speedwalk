@@ -1,5 +1,7 @@
 <script lang="ts">
   import { Checkbox } from "svelte-utils";
+  import LegendListWrapper from "../common/LegendListWrapper.svelte";
+  import LegendListItem from "../common/LegendListItem.svelte";
   import { backend, mutationCounter, prettyPrintDistance, sum } from "../";
   import { colors } from "./";
   import type { Snippet } from "svelte";
@@ -55,33 +57,38 @@
       {/each}
     </div>
 
-    {#each roads as [key, label]}
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <Checkbox bind:checked={showKinds[key]}>
-          <span
-            class="color-swatch"
-            style:background={colors[castKey(key)]}
-          ></span>
-          {label}: {prettyPrintDistance(
-            metrics.total_length_meters[castKey(key)],
-          )}
-        </Checkbox>
-      </div>
-    {/each}
+    <LegendListWrapper>
+      {#snippet children()}
+        {#each roads as [key, label]}
+          <LegendListItem color={colors[castKey(key)]} swatchClass="rectangle">
+            <Checkbox bind:checked={showKinds[key]}>
+              {label}: {prettyPrintDistance(
+                metrics.total_length_meters[castKey(key)],
+              )}
+            </Checkbox>
+          </LegendListItem>
+        {/each}
+      {/snippet}
+    </LegendListWrapper>
 
     <div class="mb-3"></div>
     {@render extraControls()}
   </div>
 </div>
 
-{#each nonRoads as [key, label]}
-  <div style="display: flex; align-items: center; gap: 6px;">
-    <Checkbox bind:checked={showKinds[key]}>
-      <span class="color-swatch" style:background={colors[castKey(key)]}></span>
-      {label}: {prettyPrintDistance(metrics.total_length_meters[castKey(key)])}
-    </Checkbox>
-  </div>
-{/each}
+<LegendListWrapper>
+  {#snippet children()}
+    {#each nonRoads as [key, label]}
+      <LegendListItem color={colors[castKey(key)]} swatchClass="rectangle">
+        <Checkbox bind:checked={showKinds[key]}>
+          {label}: {prettyPrintDistance(
+            metrics.total_length_meters[castKey(key)],
+          )}
+        </Checkbox>
+      </LegendListItem>
+    {/each}
+  {/snippet}
+</LegendListWrapper>
 
 <style>
   .row {
@@ -94,12 +101,5 @@
   .row span {
     flex-shrink: 1;
     min-width: 0;
-  }
-
-  .color-swatch {
-    height: 16px;
-    width: 24px;
-    border: 1px solid #888;
-    display: inline-block;
   }
 </style>

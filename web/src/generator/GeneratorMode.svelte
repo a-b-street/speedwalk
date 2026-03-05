@@ -8,8 +8,11 @@
   import { GeoJSON, LineLayer, CircleLayer } from "svelte-maplibre";
   import { hoverStateFilter } from "svelte-maplibre";
   import { Loading } from "svelte-utils";
-  import { getCrossingNodeCirclePaint } from "../crossings/legend";
-  import CrossingLegendContent from "../crossings/CrossingLegendContent.svelte";
+  import {
+    crossingLegendItems,
+    getCrossingNodeCirclePaint,
+  } from "../crossings/legend";
+  import LegendList from "../common/LegendList.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import { Control } from "svelte-maplibre";
   import type { FeatureCollection, LineString, Point } from "geojson";
@@ -91,7 +94,7 @@
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
           <h6 class="mb-2">Crossing</h6>
-          <CrossingLegendContent />
+          <LegendList items={crossingLegendItems} swatchClass="circle" />
         {/snippet}
       </CollapsibleCard>
     </Control>
