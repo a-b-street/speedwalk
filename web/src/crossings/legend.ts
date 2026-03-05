@@ -9,6 +9,12 @@ export const crossingLegendColors = {
   "crossing=generated": "cyan",
 } as const;
 
+/** Shared legend colors for crossing ways (lines) on Generator: OSM vs generated. */
+export const crossingLineLegendColors = {
+  "Crossings from OSM": "green",
+  "Generated crossings": crossingLegendColors["crossing=generated"],
+} as const;
+
 /** Legend items for LegendList (label + color). */
 export const crossingLegendItems = Object.entries(crossingLegendColors).map(
   ([label, color]) => ({ label, color }),
