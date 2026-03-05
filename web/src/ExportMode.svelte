@@ -7,7 +7,7 @@
     LineLayer,
     Control,
   } from "svelte-maplibre";
-  import { downloadGeneratedFile, QualitativeLegend } from "svelte-utils";
+  import { downloadGeneratedFile, ColorLegend } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter, prettyPrintDistance } from "./";
@@ -30,7 +30,7 @@
   {#snippet left()}
     <Jumbotron
       title="Export network"
-      lead="You can export the routeable walking network as a GeoJSON file."
+      lead="Export the routeable walking network as GeoJSON. Choose what to include, then download."
     >
       <NetworkFilter />
       <button class="btn btn-primary mt-3 mb-3" onclick={download}>
@@ -135,7 +135,7 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+          <ColorLegend labelColors={colors} itemsPerRow={1} />
         {/snippet}
       </CollapsibleCard>
     </Control>
