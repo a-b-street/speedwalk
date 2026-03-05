@@ -40,7 +40,8 @@
 
   let showNodes = $state(false);
   let onlyModified = $state(false);
-  let onlySeverances = $state(false);
+  let showMajorRoads = $state(true);
+  let showMinorRoads = $state(true);
   let showServiceRoads = $state(true);
 
   let showKinds = $state(
@@ -81,15 +82,19 @@
     });
   });
 
+  const majorRoadCondition = [
+    "any",
+    ["in", ["get", "kind"], ["literal", ["Sidewalk", "Crossing", "Other"]]],
+    ["get", "is_severance"],
+  ] as ExpressionSpecification;
+
   function filterWays(): ExpressionSpecification {
     let all = [];
-    if (onlySeverances) {
-      all.push([
-        "any",
-        ["in", ["get", "kind"], ["literal", ["Sidewalk", "Crossing", "Other"]]],
-        ["get", "is_severance"],
-      ]);
-    }
+    all.push([
+      "or",
+      ["all", majorRoadCondition, ["literal", showMajorRoads]],
+      ["all", ["!", majorRoadCondition], ["literal", showMinorRoads]],
+    ]);
     if (!showServiceRoads) {
       all.push(["!", ["get", "is_service"]]);
     }

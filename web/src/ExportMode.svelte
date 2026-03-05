@@ -7,7 +7,7 @@
     LineLayer,
     Control,
   } from "svelte-maplibre";
-  import { downloadGeneratedFile, ColorLegend } from "svelte-utils";
+  import { downloadGeneratedFile, QualitativeLegend } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter, prettyPrintDistance } from "./";
@@ -135,7 +135,7 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <ColorLegend labelColors={colors} itemsPerRow={1} />
+          <QualitativeLegend labelColors={colors} itemsPerRow={1} />
         {/snippet}
       </CollapsibleCard>
     </Control>
