@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { roadLineWidth, colors } from "./sidewalks";
+  import { roadLineWidth, colors, sidewalkLegendItems } from "./sidewalks";
   import {
     Popup,
     GeoJSON,
@@ -136,12 +136,7 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <LegendList
-            items={Object.entries(colors).map(([label, color]) => ({
-              label,
-              color,
-            }))}
-          />
+          <LegendList items={sidewalkLegendItems} />
         {/snippet}
       </CollapsibleCard>
     </Control>
