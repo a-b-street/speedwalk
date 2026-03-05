@@ -91,7 +91,7 @@
   function filterWays(): ExpressionSpecification {
     let all = [];
     all.push([
-      "or",
+      "any",
       ["all", majorRoadCondition, ["literal", showMajorRoads]],
       ["all", ["!", majorRoadCondition], ["literal", showMinorRoads]],
     ]);
