@@ -5,7 +5,6 @@
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import Jumbotron from "../common/Jumbotron.svelte";
   import Edits from "./Edits.svelte";
-  import BulkOperations from "./BulkOperations.svelte";
   import {
     backend,
     mutationCounter,
@@ -127,8 +126,6 @@
     {#if pinnedWay}
       <WayDetails {pinnedWay} {drawProblemDetails} bind:showProblemDetails />
     {/if}
-
-    <BulkOperations />
   {/snippet}
 
   {#snippet main()}

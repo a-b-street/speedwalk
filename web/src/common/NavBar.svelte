@@ -11,6 +11,7 @@
     [{ kind: "sidewalks" }, "Sidewalks"],
     [{ kind: "crossings" }, "Crossings"],
     [{ kind: "disconnections" }, "Disconnections"],
+    [{ kind: "generator" }, "Generator"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 </script>
