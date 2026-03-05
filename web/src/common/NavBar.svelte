@@ -10,7 +10,7 @@
   let mainActions = [
     [{ kind: "sidewalks" }, "Sidewalks"],
     [{ kind: "crossings" }, "Crossings"],
-    [{ kind: "disconnections" }, "Network disconnections"],
+    [{ kind: "disconnections" }, "Disconnections"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 </script>
