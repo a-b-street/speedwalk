@@ -19,8 +19,10 @@
     list-style: none;
     margin: 0;
     padding: 0;
+    padding-inline-start: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
   }
 </style>
