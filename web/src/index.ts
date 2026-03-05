@@ -31,7 +31,7 @@ export let networkFilter = writable<{
   include: "Everything" | "OnlyExplicitFootways" | "RouteableNetwork";
   ignore_deadends: boolean;
 }>({
-  include: "OnlyExplicitFootways",
+  include: "RouteableNetwork",
   ignore_deadends: true,
 });
 
