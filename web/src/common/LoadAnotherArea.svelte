@@ -124,5 +124,5 @@
 </Modal>
 
 <button class="btn btn-outline-secondary" onclick={() => (show = true)}>
-  &larr; Load another area
+  &larr; Change area or refresh
 </button>
