@@ -6,7 +6,12 @@
   import type { NodeProps, WayProps } from "../sidewalks";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { GeoJSON, LineLayer, CircleLayer } from "svelte-maplibre";
+  import { hoverStateFilter } from "svelte-maplibre";
   import { Loading } from "svelte-utils";
+  import { getCrossingNodeCirclePaint } from "../crossings/legend";
+  import CrossingLegendContent from "../crossings/CrossingLegendContent.svelte";
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
+  import { Control } from "svelte-maplibre";
   import type { FeatureCollection, LineString, Point } from "geojson";
 
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
@@ -52,8 +57,8 @@
 <SplitComponent>
   {#snippet left()}
     <Jumbotron
-      title="Generate sidewalks and crossings"
-      lead="Add generated data to the network in order to complete the OSM data for road network analysis work."
+      title="Generator"
+      lead="Add generated sidewalks and crossings to the network for analysis. Use the actions below; do not upload generated data to OSM without review."
     />
 
     <GeneratorBulkOperations />
@@ -77,13 +82,18 @@
         id="speedwalk-generator-nodes"
         beforeId="Road labels"
         manageHoverState
-        paint={{
-          "circle-radius": 8,
-          "circle-color": ["case", ["get", "modified"], "blue", "black"],
-          "circle-stroke-width": 1,
-          "circle-stroke-color": ["case", ["get", "modified"], "blue", "black"],
-        }}
+        paint={getCrossingNodeCirclePaint(hoverStateFilter(0.3, 1.0))}
       />
     </GeoJSON>
+
+    <Control position="top-right">
+      <CollapsibleCard>
+        {#snippet header()}Legend{/snippet}
+        {#snippet body()}
+          <h6 class="mb-2">Crossing</h6>
+          <CrossingLegendContent />
+        {/snippet}
+      </CollapsibleCard>
+    </Control>
   {/snippet}
 </SplitComponent>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Checkbox, QualitativeLegend } from "svelte-utils";
+  import { Checkbox } from "svelte-utils";
   import {
     LineLayer,
     GeoJSON,
@@ -16,6 +16,11 @@
   import Jumbotron from "../common/Jumbotron.svelte";
   import { getMapViewport, getIdUrl } from "../common/osmEditorUrls";
   import type { MapGeoJSONFeature } from "maplibre-gl";
+  import {
+    crossingLegendColors,
+    getCrossingNodeCirclePaint,
+  } from "./legend";
+  import CrossingLegendContent from "./CrossingLegendContent.svelte";
 
   let options = $state({
     only_major_roads: true,
@@ -76,13 +81,6 @@
     }
   }
 
-  let colors = {
-    "Junction to audit": "black",
-    "Fully mapped junction": "green",
-    Crossing: "yellow",
-    "crossing=no": "purple",
-    "crossing=generated": "cyan",
-  };
 </script>
 
 <SplitComponent>
@@ -181,8 +179,8 @@
           "circle-color": [
             "case",
             ["get", "complete"],
-            colors["Fully mapped junction"],
-            colors["Junction to audit"],
+            crossingLegendColors["Fully mapped junction"],
+            crossingLegendColors["Junction to audit"],
           ],
           "circle-opacity": hoverStateFilter(0.5, 1.0),
           "circle-stroke-color": "black",
@@ -206,20 +204,7 @@
     <GeoJSON data={crossingNodes} generateId>
       <CircleLayer
         manageHoverState
-        paint={{
-          "circle-radius": 7,
-          "circle-color": [
-            "case",
-            ["get", "is_explicit_crossing_no"],
-            colors["crossing=no"],
-            ["get", "is_generated_crossing"],
-            colors["crossing=generated"],
-            colors["Crossing"],
-          ],
-          "circle-opacity": hoverStateFilter(0.3, 1.0),
-          "circle-stroke-color": "black",
-          "circle-stroke-width": 1,
-        }}
+        paint={getCrossingNodeCirclePaint(hoverStateFilter(0.3, 1.0))}
       >
         <Popup openOn="hover">
           {#snippet children({ data })}
@@ -256,7 +241,7 @@
         paint={{
           "circle-radius": 10,
           "circle-opacity": 0,
-          "circle-stroke-color": "purple",
+          "circle-stroke-color": crossingLegendColors["crossing=no"],
           "circle-stroke-width": 3,
         }}
       />
@@ -266,11 +251,8 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <QualitativeLegend
-            labelColors={colors}
-            itemsPerRow={1}
-            swatchClass="circle"
-          />
+          <h6 class="mb-2">Crossing</h6>
+          <CrossingLegendContent />
         {/snippet}
       </CollapsibleCard>
     </Control>
