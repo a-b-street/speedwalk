@@ -2,8 +2,14 @@
   import Jumbotron from "../common/Jumbotron.svelte";
   import GeneratorBulkOperations from "./GeneratorBulkOperations.svelte";
   import { backend, mutationCounter, refreshLoadingScreen } from "../";
-  import { roadLineWidth } from "../sidewalks";
-  import type { NodeProps, WayProps } from "../sidewalks";
+  import {
+    roadLineWidth,
+    colors,
+    sidewalkLegendColors,
+    type NodeProps,
+    type WayProps,
+  } from "../sidewalks";
+  import { crossingLineLegendColors } from "../crossings/legend";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { GeoJSON, LineLayer, CircleLayer } from "svelte-maplibre";
   import { hoverStateFilter } from "svelte-maplibre";
@@ -16,6 +22,7 @@
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import { Control } from "svelte-maplibre";
   import type { FeatureCollection, LineString, Point } from "geojson";
+  import type { ExpressionSpecification } from "maplibre-gl";
 
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
     type: "FeatureCollection",
@@ -53,6 +60,47 @@
       ),
     };
   });
+
+  const roadKinds = [
+    "RoadWithSeparate",
+    "RoadWithTags",
+    "RoadWithoutSidewalksExplicit",
+    "RoadWithoutSidewalksImplicit",
+    "RoadUnknown",
+  ];
+
+  /** Generator-only road legend: major = dark blue, minor = light blue. */
+  const generatorRoadLegendColors = {
+    "Major roads": "#1565c0",
+    "Minor roads": "#64b5f6",
+  } as const;
+
+  /** Line color by kind: roads by major/minor, sidewalks/crossings by OSM vs generated. */
+  const generatorWayLineColor = [
+    "case",
+    ["in", ["get", "kind"], ["literal", roadKinds]],
+    [
+      "case",
+      ["get", "is_severance"],
+      generatorRoadLegendColors["Major roads"],
+      generatorRoadLegendColors["Minor roads"],
+    ],
+    ["==", ["get", "kind"], "Sidewalk"],
+    [
+      "case",
+      ["get", "modified"],
+      sidewalkLegendColors["Generated sidewalks"],
+      sidewalkLegendColors["Sidewalks from OSM"],
+    ],
+    ["==", ["get", "kind"], "Crossing"],
+    [
+      "case",
+      ["get", "modified"],
+      crossingLineLegendColors["Generated crossings"],
+      crossingLineLegendColors["Crossings from OSM"],
+    ],
+    colors.Other,
+  ] as ExpressionSpecification;
 </script>
 
 <Loading {loading} />
@@ -75,7 +123,7 @@
         manageHoverState
         paint={{
           "line-width": roadLineWidth(0),
-          "line-color": ["case", ["get", "modified"], "blue", "black"],
+          "line-color": generatorWayLineColor,
         }}
       />
     </GeoJSON>
@@ -93,7 +141,34 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <h6 class="mb-2">Crossing</h6>
+          <h6 class="mb-2">Roads</h6>
+          <LegendList
+            items={Object.entries(generatorRoadLegendColors).map(
+              ([label, color]) => ({
+                label,
+                color,
+              }),
+            )}
+            swatchClass="rectangle"
+          />
+          <h6 class="mb-2 mt-3">Sidewalks</h6>
+          <LegendList
+            items={Object.entries(sidewalkLegendColors).map(
+              ([label, color]) => ({
+                label,
+                color,
+              }),
+            )}
+            swatchClass="rectangle"
+          />
+          <h6 class="mb-2 mt-3">Crossings (Lines)</h6>
+          <LegendList
+            items={Object.entries(crossingLineLegendColors).map(
+              ([label, color]) => ({ label, color }),
+            )}
+            swatchClass="rectangle"
+          />
+          <h6 class="mb-2 mt-3">Crossing</h6>
           <LegendList items={crossingLegendItems} swatchClass="circle" />
         {/snippet}
       </CollapsibleCard>

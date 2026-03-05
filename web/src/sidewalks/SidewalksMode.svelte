@@ -205,12 +205,6 @@
       <CollapsibleCard>
         {#snippet header()}Layers{/snippet}
         {#snippet body()}
-          <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
-
-          <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
-
-          <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
-
           <Metrics bind:showKinds>
             {#snippet extraControls()}
               <Checkbox bind:checked={showMajorRoads}>
@@ -230,6 +224,11 @@
               </Checkbox>
             {/snippet}
           </Metrics>
+
+          <h6 class="mb-2 mt-3">Others</h6>
+          <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
+          <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
+          <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
         {/snippet}
       </CollapsibleCard>
     </Control>
