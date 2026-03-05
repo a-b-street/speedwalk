@@ -1,11 +1,18 @@
 <script lang="ts">
   import { roadLineWidth, colors } from "./sidewalks";
-  import { Popup, GeoJSON, hoverStateFilter, LineLayer } from "svelte-maplibre";
+  import {
+    Popup,
+    GeoJSON,
+    hoverStateFilter,
+    LineLayer,
+    Control,
+  } from "svelte-maplibre";
   import { downloadGeneratedFile, QualitativeLegend } from "svelte-utils";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter, prettyPrintDistance } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
+  import Jumbotron from "./common/Jumbotron.svelte";
   import NetworkFilter from "./common/NetworkFilter.svelte";
 
   let gj = $derived(
@@ -21,15 +28,15 @@
 
 <SplitComponent>
   {#snippet left()}
-    <h4>Export network</h4>
-
-    <p>You can export the routeable walking network as a GeoJSON file.</p>
-
-    <NetworkFilter />
-
-    <button class="btn btn-primary mt-3 mb-3" onclick={download}>
-      Download GeoJSON
-    </button>
+    <Jumbotron
+      title="Export network"
+      lead="You can export the routeable walking network as a GeoJSON file."
+    >
+      <NetworkFilter />
+      <button class="btn btn-primary mt-3 mb-3" onclick={download}>
+        Download GeoJSON
+      </button>
+    </Jumbotron>
 
     <CollapsibleCard open={false}>
       {#snippet header()}Details{/snippet}
@@ -85,13 +92,6 @@
         </p>
       {/snippet}
     </CollapsibleCard>
-
-    <CollapsibleCard>
-      {#snippet header()}Legend{/snippet}
-      {#snippet body()}
-        <QualitativeLegend labelColors={colors} itemsPerRow={1} />
-      {/snippet}
-    </CollapsibleCard>
   {/snippet}
 
   {#snippet main()}
@@ -130,5 +130,14 @@
         </Popup>
       </LineLayer>
     </GeoJSON>
+
+    <Control position="top-right">
+      <CollapsibleCard>
+        {#snippet header()}Legend{/snippet}
+        {#snippet body()}
+          <QualitativeLegend labelColors={colors} itemsPerRow={1} />
+        {/snippet}
+      </CollapsibleCard>
+    </Control>
   {/snippet}
 </SplitComponent>

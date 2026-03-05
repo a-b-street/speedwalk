@@ -3,6 +3,7 @@
   import ProblemControls from "./ProblemControls.svelte";
   import ProblemLayer from "./ProblemLayer.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
+  import Jumbotron from "../common/Jumbotron.svelte";
   import Edits from "./Edits.svelte";
   import BulkOperations from "./BulkOperations.svelte";
   import {
@@ -114,6 +115,11 @@
 
 <SplitComponent>
   {#snippet left()}
+    <Jumbotron
+      title="Sidewalks Audit and Mapping"
+      lead={'Use this view to audit existing sidewalk tagging in this region. The "Problems" section will guide you to possible errors. Use the app to perform simple edits and jump into iD to fix everything else.'}
+    />
+
     <Edits />
 
     <ProblemControls {nodes} {ways} bind:drawProblems />

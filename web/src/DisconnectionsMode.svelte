@@ -11,6 +11,7 @@
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, map, prettyPrintDistance, networkFilter } from "./";
   import NetworkFilter from "./common/NetworkFilter.svelte";
+  import Jumbotron from "./common/Jumbotron.svelte";
 
   let gj = $derived(
     $backend
@@ -57,13 +58,15 @@
 
 <SplitComponent>
   {#snippet left()}
-    <h4>Network disconnections</h4>
+    <Jumbotron
+      title="Network disconnections audit"
+      lead="Use this view to see where the path network is disconnected. Review the disconnected areas and look for ways to connect them to a fully connected and routable network."
+    >
+      <NetworkFilter />
+    </Jumbotron>
 
-    <p>
-      This shows where the network is disconnected. Click a piece to see it.
-    </p>
-
-    <NetworkFilter />
+    <h2 class="h5">Disconnected Networks</h2>
+    <p class="text-muted small">Click to highlight the selected subnetwork.</p>
 
     <ul>
       {#each gj.component_lengths as length, idx}
