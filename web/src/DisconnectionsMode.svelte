@@ -59,8 +59,8 @@
 <SplitComponent>
   {#snippet left()}
     <Jumbotron
-      title="Network disconnections audit"
-      lead="Use this view to see where the path network is disconnected. Review the disconnected areas and look for ways to connect them to a fully connected and routable network."
+      title="Network disconnections"
+      lead="Find where the walking network is disconnected. Review the list and map to see gaps and plan how to connect them."
     >
       <NetworkFilter />
     </Jumbotron>

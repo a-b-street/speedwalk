@@ -115,8 +115,8 @@
 <SplitComponent>
   {#snippet left()}
     <Jumbotron
-      title="Sidewalks Audit and Mapping"
-      lead={'Use this view to audit existing sidewalk tagging in this region. The "Problems" section will guide you to possible errors. Use the app to perform simple edits and jump into iD to fix everything else.'}
+      title="Sidewalks"
+      lead="Audit and fix sidewalk tagging in this region. Use the Problems list and the map to find and fix issues."
     />
 
     <Edits />

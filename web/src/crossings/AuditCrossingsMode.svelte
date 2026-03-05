@@ -89,22 +89,20 @@
   {#snippet left()}
     <Jumbotron
       title="Crossings audit"
-      lead={`${completeJunctions.toLocaleString()} / ${data.features.length.toLocaleString()} junctions have all possible crossings mapped`}
+      lead="Audit crossing nodes at junctions. Ensure each arm has a crossing or crossing=no; click the map to open in iD to fix."
     >
-      <p class="mb-0">
-        For each junction shown, this tool looks for crossing nodes on each arm
-        (road) of the junction. Please map a crossing node on each arm by
-        clicking to open in iD, then refreshing data here to check. If there's
-        no way to cross an arm, use <a
+      <p class="mb-0 small text-muted">
+        {completeJunctions.toLocaleString()} of {data.features.length.toLocaleString()}
+        junctions have all arms mapped. Use
+        <a
           href="https://wiki.openstreetmap.org/wiki/Tag:crossing=no"
           target="_blank"
+          rel="noopener noreferrer"
         >
           crossing=no
         </a>
-        to indicate a lack of a crossing. Please ignore cases where you would not
-        expect any crossing to be (and report a bug to improve this tool). And note
-        that there might be mid-block crossings anywhere along a road; this tool only
-        audits junctions.
+        where there is no crossing. This view audits junctions only, not mid-block
+        crossings.
       </p>
     </Jumbotron>
 
