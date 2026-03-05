@@ -63,8 +63,6 @@
     }
   }
 
-
-
   const normalizedSidewalkTags = $derived(
     $backend
       ? (JSON.parse(

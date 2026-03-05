@@ -17,6 +17,7 @@ export type Mode =
   | { kind: "sidewalks" }
   | { kind: "crossings" }
   | { kind: "disconnections" }
+  | { kind: "generator" }
   | { kind: "export" };
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });

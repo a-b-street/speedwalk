@@ -7,6 +7,7 @@ export interface NodeProps {
   tags?: Record<string, string>;
   is_crossing: boolean;
   is_explicit_crossing_no: boolean;
+  is_generated_crossing?: boolean;
   modified: boolean;
   way_ids: number[];
   problems: Problem[];

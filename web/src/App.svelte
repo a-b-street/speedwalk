@@ -18,6 +18,7 @@
   import AuditCrossingsMode from "./crossings/AuditCrossingsMode.svelte";
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
   import ExportMode from "./ExportMode.svelte";
+  import GeneratorMode from "./generator/GeneratorMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
 
@@ -134,6 +135,8 @@
                 <AuditCrossingsMode />
               {:else if $mode.kind == "disconnections"}
                 <DisconnectionsMode />
+              {:else if $mode.kind == "generator"}
+                <GeneratorMode />
               {:else if $mode.kind == "export"}
                 <ExportMode />
               {/if}
