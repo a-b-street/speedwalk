@@ -208,8 +208,12 @@
 
           <Metrics bind:showKinds>
             {#snippet extraControls()}
-              <Checkbox bind:checked={onlySeverances}>
-                Only show major roads
+              <Checkbox bind:checked={showMajorRoads}>
+                Show major roads
+              </Checkbox>
+
+              <Checkbox bind:checked={showMinorRoads}>
+                Show minor roads
               </Checkbox>
 
               <Checkbox bind:checked={showServiceRoads}>
