@@ -18,9 +18,10 @@
   import type { MapGeoJSONFeature } from "maplibre-gl";
   import {
     crossingLegendColors,
+    crossingLegendItems,
     getCrossingNodeCirclePaint,
   } from "./legend";
-  import CrossingLegendContent from "./CrossingLegendContent.svelte";
+  import LegendList from "../common/LegendList.svelte";
 
   let options = $state({
     only_major_roads: true,
@@ -80,7 +81,6 @@
       window.open(url, "_blank", "noopener,noreferrer");
     }
   }
-
 </script>
 
 <SplitComponent>
@@ -252,7 +252,7 @@
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
           <h6 class="mb-2">Crossing</h6>
-          <CrossingLegendContent />
+          <LegendList items={crossingLegendItems} swatchClass="circle" />
         {/snippet}
       </CollapsibleCard>
     </Control>

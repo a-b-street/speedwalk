@@ -9,6 +9,11 @@ export const crossingLegendColors = {
   "crossing=generated": "cyan",
 } as const;
 
+/** Legend items for LegendList (label + color). */
+export const crossingLegendItems = Object.entries(crossingLegendColors).map(
+  ([label, color]) => ({ label, color }),
+);
+
 const crossingNodeColorExpression: ExpressionSpecification = [
   "case",
   ["get", "is_explicit_crossing_no"],
