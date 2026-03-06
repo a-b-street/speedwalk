@@ -11,6 +11,7 @@ export interface NodeProps {
   is_crossing: boolean;
   is_explicit_crossing_no: boolean;
   is_generated_crossing?: boolean;
+  is_manual_crossing?: boolean;
   modified: boolean;
   way_ids: number[];
   problems: Problem[];
@@ -33,6 +34,7 @@ export interface WayProps {
   node_ids: number[];
   is_severance: boolean;
   is_service: boolean;
+  is_manual_crossing?: boolean;
   problems: Problem[];
 }
 

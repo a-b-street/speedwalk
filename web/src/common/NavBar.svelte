@@ -12,6 +12,7 @@
     [{ kind: "crossings" }, "Crossings"],
     [{ kind: "disconnections" }, "Disconnections"],
     [{ kind: "generator" }, "Generator"],
+    [{ kind: "overwrites" }, "Overwrites"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 </script>

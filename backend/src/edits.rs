@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Coord, Distance, Euclidean, LineString, Point};
+use geo::{Closest, ClosestPoint, Coord, Distance, Euclidean, LineString, Point};
 use osm_reader::{NodeID, WayID};
 use rstar::{RTree, primitives::GeomWithData};
 use serde::Serialize;
@@ -31,6 +31,8 @@ pub enum UserCmd {
     ConnectAllCrossings(bool),
     AssumeTags(bool),
     AddCrossings(Vec<Point>, Tags),
+    /// Add a crossing as a segment between two points; each point is snapped to the nearest road or sidewalk (closest line).
+    AddCrossingSegment(Point, Point, Tags),
 }
 
 pub enum TagCmd {
@@ -127,6 +129,51 @@ impl Edits {
                         new_ways: Vec::new(),
                         // Unused
                         new_kind: Kind::Sidewalk,
+                        insert_new_nodes,
+                        modify_existing_way_tags: HashMap::new(),
+                    },
+                    model,
+                );
+            }
+            UserCmd::AddCrossingSegment(start_wgs84, end_wgs84, way_tags) => {
+                let start_pt = model.mercator.to_mercator(&start_wgs84);
+                let end_pt = model.mercator.to_mercator(&end_wgs84);
+                let closest_line = RTree::bulk_load(
+                    model
+                        .derived_ways
+                        .iter()
+                        .filter(|(_, way)| way.kind.is_road() || way.kind == Kind::Sidewalk)
+                        .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                        .collect(),
+                );
+                let snap_to_line = |pt: Coord| -> Result<(WayID, Coord)> {
+                    let Some(obj) = closest_line.nearest_neighbor(&Point::from(pt)) else {
+                        bail!("Couldn't find a line to snap to");
+                    };
+                    let snapped = match obj.geom().closest_point(&Point::from(pt)) {
+                        Closest::Intersection(c) | Closest::SinglePoint(c) => c.into(),
+                        Closest::Indeterminate => bail!("Couldn't snap point to line"),
+                    };
+                    Ok((obj.data, snapped))
+                };
+                let (way_start, snapped_start) = snap_to_line(start_pt.into())?;
+                let (way_end, snapped_end) = snap_to_line(end_pt.into())?;
+                let node_tags = way_tags.clone();
+                let mut insert_new_nodes: HashMap<WayID, Vec<(Coord, Tags)>> = HashMap::new();
+                insert_new_nodes
+                    .entry(way_start)
+                    .or_default()
+                    .push((snapped_start, node_tags.clone()));
+                insert_new_nodes
+                    .entry(way_end)
+                    .or_default()
+                    .push((snapped_end, node_tags));
+                let crossing_way = LineString::new(vec![snapped_start, snapped_end]);
+                let new_ways = vec![(crossing_way, way_tags)];
+                self.create_new_geometry(
+                    CreateNewGeometry {
+                        new_ways,
+                        new_kind: Kind::Crossing,
                         insert_new_nodes,
                         modify_existing_way_tags: HashMap::new(),
                     },
