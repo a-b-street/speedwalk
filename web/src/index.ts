@@ -38,6 +38,15 @@ export let networkFilter = localStorageStore(
   defaultNetworkFilter,
 );
 
+export let onlyMajorRoadsBulk = localStorageStore(
+  "speedwalk-onlyMajorRoads",
+  true,
+);
+export let includeCrossingNoBulk = localStorageStore(
+  "speedwalk-includeCrossingNo",
+  false,
+);
+
 // TODO Upstream several of these
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
