@@ -17,10 +17,11 @@
     <div class="accordion-header">
       <button
         class="accordion-button"
+        class:collapsed={!open}
         type="button"
         data-bs-toggle="collapse"
         data-bs-target={`#${id}`}
-        aria-expanded="true"
+        aria-expanded={open}
         aria-controls={id}
       >
         {@render header()}

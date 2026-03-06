@@ -107,7 +107,7 @@
 
 <Loading {loading} />
 
-<CollapsibleCard>
+<CollapsibleCard open={cmds.length > 0}>
   {#snippet header()}
     {cmds.length}
     {cmds.length == 1 ? "edit" : "edits"}
