@@ -18,7 +18,8 @@ export type Mode =
   | { kind: "crossings" }
   | { kind: "disconnections" }
   | { kind: "generator" }
-  | { kind: "export" };
+  | { kind: "export" }
+  | { kind: "overwrites" };
 
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 

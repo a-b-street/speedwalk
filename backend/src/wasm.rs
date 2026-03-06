@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Once;
 
 use anyhow::Result;
@@ -62,6 +62,10 @@ impl Speedwalk {
                 "is_generated_crossing",
                 node.tags.is("crossing", "generated"),
             );
+            f.set_property(
+                "is_manual_crossing",
+                node.tags.is("crossing", "manual"),
+            );
             f.set_property("modified", node.modified);
             f.set_property(
                 "way_ids",
@@ -93,6 +97,7 @@ impl Speedwalk {
             );
             f.set_property("is_severance", way.is_severance());
             f.set_property("is_service", way.tags.is("highway", "service"));
+            f.set_property("is_manual_crossing", way.tags.is("crossing", "manual"));
             f.set_property(
                 "problems",
                 serde_json::to_value(&way.problems).map_err(err_to_js)?,
@@ -290,6 +295,55 @@ impl Speedwalk {
         tags.insert("crossing", "traffic_signals");
         edits
             .apply_cmd(UserCmd::AddCrossings(vec![Point::new(x, y)], tags), self)
+            .map_err(err_to_js)?;
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
+    /// Add a crossing at (x, y) in WGS84 lon/lat with the given tags (e.g. highway=crossing, crossing=manual).
+    #[wasm_bindgen(js_name = editAddNewCrossingWithTags)]
+    pub fn edit_add_new_crossing_with_tags(
+        &mut self,
+        x: f64,
+        y: f64,
+        tags_js: JsValue,
+    ) -> Result<(), JsValue> {
+        let tag_map: HashMap<String, String> = serde_wasm_bindgen::from_value(tags_js)?;
+        let mut tags = Tags::empty();
+        for (k, v) in tag_map {
+            tags.insert(&k, &v);
+        }
+        let mut edits = self.edits.take().unwrap();
+        edits
+            .apply_cmd(UserCmd::AddCrossings(vec![Point::new(x, y)], tags), self)
+            .map_err(err_to_js)?;
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
+    /// Add a crossing as a segment between two points (WGS84 lon/lat). Each point is snapped to the
+    /// nearest road or sidewalk (closest line); a new crossing way is created between the snapped points.
+    #[wasm_bindgen(js_name = editAddCrossingSegment)]
+    pub fn edit_add_crossing_segment(
+        &mut self,
+        start_lng: f64,
+        start_lat: f64,
+        end_lng: f64,
+        end_lat: f64,
+        tags_js: JsValue,
+    ) -> Result<(), JsValue> {
+        let tag_map: HashMap<String, String> = serde_wasm_bindgen::from_value(tags_js)?;
+        let mut tags = Tags::empty();
+        for (k, v) in tag_map {
+            tags.insert(&k, &v);
+        }
+        let start = Point::new(start_lng, start_lat);
+        let end = Point::new(end_lng, end_lat);
+        let mut edits = self.edits.take().unwrap();
+        edits
+            .apply_cmd(UserCmd::AddCrossingSegment(start, end, tags), self)
             .map_err(err_to_js)?;
         self.edits = Some(edits);
         self.after_edit();
