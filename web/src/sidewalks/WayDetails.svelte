@@ -12,7 +12,7 @@
     refreshLoadingScreen,
   } from "../";
   import { Loading } from "svelte-utils";
-  import { kindLabels, type WayProps } from "./";
+  import { CROSSING_LENGTH_WARNING_M, kindLabels, type WayProps } from "./";
   import Problems from "./way-details/Problems.svelte";
   import CenterlineTagActions from "./way-details/CenterlineTagActions.svelte";
   import SidepathTagActions from "./way-details/SidepathTagActions.svelte";
@@ -115,6 +115,18 @@
           | "cycleway"}
         currentTags={pinnedWay.properties.tags}
       />
+    {/if}
+
+    {#if (pinnedWay.properties.tags.footway === "crossing" || pinnedWay.properties.tags.path === "crossing" || pinnedWay.properties.tags.cycleway === "crossing") && (pinnedWay.properties.length_m ?? 0) > CROSSING_LENGTH_WARNING_M}
+      <div class="alert alert-warning py-2 small mb-3" role="alert">
+        <span class="me-2">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </span>
+        This way is tagged as crossing but longer than {CROSSING_LENGTH_WARNING_M}
+        m which is suspicious. Please check if this is a miss-tagging and the way
+        might need to be split (use an external editor like iD). Ignore this warning
+        if all is good.
+      </div>
     {/if}
 
     <CurrentTagsTable
