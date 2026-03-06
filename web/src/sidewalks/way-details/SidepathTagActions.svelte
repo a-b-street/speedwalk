@@ -24,29 +24,57 @@
     switch (highway) {
       case "path":
         return [
-          { shortcut: "s", tags: [["is_sidepath", "yes"]], removes: [] },
-          { shortcut: "n", tags: [["is_sidepath", "no"]], removes: [] },
-          { shortcut: "c", tags: [["path", "crossing"]], removes: [] },
+          {
+            shortcut: "s",
+            tags: [["is_sidepath", "yes"]],
+            removes: ["path"],
+          },
+          {
+            shortcut: "n",
+            tags: [["is_sidepath", "no"]],
+            removes: ["path"],
+          },
+          {
+            shortcut: "c",
+            tags: [["path", "crossing"]],
+            removes: ["is_sidepath"],
+          },
         ];
       case "footway":
         return [
           {
             shortcut: "s",
             tags: [["footway", "sidewalk"]],
-            removes: ["is_sidepath"],
+            removes: ["is_sidepath", "footway"],
           },
           {
             shortcut: "n",
             tags: [["is_sidepath", "no"]],
-            removes: ["footway"],
+            removes: ["footway", "footway"],
           },
-          { shortcut: "c", tags: [["footway", "crossing"]], removes: [] },
+          {
+            shortcut: "c",
+            tags: [["footway", "crossing"]],
+            removes: ["is_sidepath"],
+          },
         ];
       case "cycleway":
         return [
-          { shortcut: "s", tags: [["is_sidepath", "yes"]], removes: [] },
-          { shortcut: "n", tags: [["is_sidepath", "no"]], removes: [] },
-          { shortcut: "c", tags: [["cycleway", "crossing"]], removes: [] },
+          {
+            shortcut: "s",
+            tags: [["is_sidepath", "yes"]],
+            removes: ["cycleway"],
+          },
+          {
+            shortcut: "n",
+            tags: [["is_sidepath", "no"]],
+            removes: ["cycleway"],
+          },
+          {
+            shortcut: "c",
+            tags: [["cycleway", "crossing"]],
+            removes: ["is_sidepath"],
+          },
         ];
     }
   });
