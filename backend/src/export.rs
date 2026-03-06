@@ -335,6 +335,11 @@ impl Speedwalk {
         edge: &Edge,
         dead_end_edges: Option<&HashSet<EdgeID>>,
     ) -> bool {
+        // Manual crossing segments (from overwrites) are always shown so they stay visible regardless of filter
+        let way = &self.derived_ways[&edge.osm_way];
+        if way.tags.is("crossing", "manual") {
+            return true;
+        }
         // Apply filters without dead end check
         if !self.filter_network_without_deadends(filter, graph, edge) {
             return false;
