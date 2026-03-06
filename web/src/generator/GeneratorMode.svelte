@@ -170,6 +170,11 @@
           />
           <h6 class="mb-2 mt-3">Crossing</h6>
           <LegendList items={crossingLegendItems} swatchClass="circle" />
+          <h6 class="mb-2 mt-3">Other</h6>
+          <LegendList
+            items={[{ label: "Other ways", color: colors.Other }]}
+            swatchClass="rectangle"
+          />
         {/snippet}
       </CollapsibleCard>
     </Control>
