@@ -3,12 +3,12 @@ use std::collections::{HashMap, HashSet};
 use geo::buffer::{BufferStyle, LineJoin};
 use geo::line_intersection::{LineIntersection, line_intersection};
 use geo::{
-    Buffer, Coord, Distance, Euclidean, InterpolatableLine, Line, LineLocatePoint, LineString,
+    Buffer, Coord, Euclidean, InterpolatableLine, Line, LineLocatePoint, LineString,
     MultiLineString, Point,
 };
 use osm_reader::WayID;
 use rstar::{RTree, primitives::GeomWithData};
-use utils::{OffsetCurve, Tags, aabb};
+use utils::{Tags, aabb};
 
 use crate::{
     Kind, Speedwalk,
@@ -275,62 +275,22 @@ fn split_new_sidewalks(
     output
 }
 
+/// Classify which side of the road a point is on using the tangent at the nearest point on the road.
 fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
-    // Prefer offset-curve method when it works (fails for very short/degenerate ways)
-    if let (Some(left), Some(right)) = (
-        road.geom().offset_curve(-BUFFER_DISTANCE),
-        road.geom().offset_curve(BUFFER_DISTANCE),
-    ) {
-        if let (Some(d_left), Some(d_right)) = (distance(&left, pt), distance(&right, pt)) {
-            return if d_left <= d_right {
-                Side::Left
-            } else {
-                Side::Right
-            };
-        }
-    }
-    // Fallback for short or degenerate roads (e.g. 2-node ways): use tangent at closest point
-    classify_side_by_tangent(pt, road.geom())
-}
-
-/// Classify which side of the road a point is on using the road's tangent at the nearest point.
-/// Used when offset_curve fails (e.g. very short or degenerate line strings).
-fn classify_side_by_tangent(pt: Point, road: &LineString) -> Side {
-    let Some(fraction) = road.line_locate_point(&pt) else {
-        return Side::Left;
-    };
-    let Some(closest) = road.point_at_ratio_from_start(&Euclidean, fraction) else {
-        return Side::Left;
-    };
+    let road = road.geom();
+    let Some(fraction) = road.line_locate_point(&pt) else { return Side::Left };
+    let Some(closest) = road.point_at_ratio_from_start(&Euclidean, fraction) else { return Side::Left };
     let eps = 1e-6;
-    let frac_before = (fraction - eps).max(0.0);
-    let frac_after = (fraction + eps).min(1.0);
-    let Some(before) = road.point_at_ratio_from_start(&Euclidean, frac_before) else {
-        return Side::Left;
-    };
-    let Some(after) = road.point_at_ratio_from_start(&Euclidean, frac_after) else {
-        return Side::Left;
-    };
-    // Tangent along road direction
+    let before = road.point_at_ratio_from_start(&Euclidean, (fraction - eps).max(0.0)).unwrap_or(closest);
+    let after = road.point_at_ratio_from_start(&Euclidean, (fraction + eps).min(1.0)).unwrap_or(closest);
     let dx = after.x() - before.x();
     let dy = after.y() - before.y();
-    // Left normal (perpendicular pointing left of road direction)
-    let left_x = -dy;
-    let left_y = dx;
-    // Vector from closest point on road to pt
     let to_pt_x = pt.x() - closest.x();
     let to_pt_y = pt.y() - closest.y();
-    // Dot with left normal: positive => pt is on left side
-    if to_pt_x * left_x + to_pt_y * left_y >= 0.0 {
+    // Dot with left normal (-dy, dx): positive => left side
+    if to_pt_x * (-dy) + to_pt_y * dx >= 0.0 {
         Side::Left
     } else {
         Side::Right
     }
-}
-
-// TODO Upstream
-fn distance(ls: &LineString, pt: Point) -> Option<f64> {
-    let fraction = ls.line_locate_point(&pt)?;
-    let snapped = ls.point_at_ratio_from_start(&Euclidean, fraction)?;
-    Some(Euclidean.distance(pt, snapped))
 }
