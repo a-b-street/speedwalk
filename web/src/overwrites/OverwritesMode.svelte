@@ -6,7 +6,13 @@
     type RegionOverrides,
     type AddedCrossingSegment,
   } from "../common/localOverrides";
-  import { backend, map, mutationCounter, networkFilter, refreshLoadingScreen } from "../";
+  import {
+    backend,
+    map,
+    mutationCounter,
+    networkFilter,
+    refreshLoadingScreen,
+  } from "../";
   import { emptyGeojson } from "svelte-utils/map";
   import {
     GeoJSON,
@@ -21,7 +27,7 @@
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
   import FilterNetworkCard from "../common/FilterNetworkCard.svelte";
   import LegendList from "../common/LegendList.svelte";
-  import { downloadGeneratedFile } from "svelte-utils";
+  import { downloadGeneratedFile, Loading } from "svelte-utils";
   import type { FeatureCollection, LineString, Point } from "geojson";
   import { type WayProps, type NodeProps } from "../sidewalks";
   import { roadLineWidth } from "../sidewalks";
@@ -38,6 +44,7 @@
   /** First click: red dot (start of crossing segment). Second click: blue dot (end). */
   let pointA: { lng: number; lat: number } | null = $state(null);
   let pointB: { lng: number; lat: number } | null = $state(null);
+  let loading = $state("");
   let overrides: RegionOverrides = $state({ version: 1, addedCrossings: [] });
   let overwritesApplied = $state(true);
   let appliedCount = $state(0);
@@ -81,8 +88,9 @@
     }
   });
 
-  /** Filtered network (respects Filter network options); used for the map line layer. */
+  /** Filtered network (respects Filter network options); used for the map line layer. Re-runs when edits change so map stays in sync after apply/unapply. */
   const filteredNetworkGeoJSON = $derived.by(() => {
+    $mutationCounter; // depend on edits so map updates after apply/unapply
     if (!$backend) return emptyGeojson();
     try {
       const f = $networkFilter;
@@ -99,13 +107,17 @@
     const ids = new Set<number>();
     if (net.features?.length) {
       for (const edge of net.features) {
-        const p = edge.properties as { node1?: number; node2?: number } | undefined;
+        const p = edge.properties as
+          | { node1?: number; node2?: number }
+          | undefined;
         if (p?.node1 != null) ids.add(p.node1);
         if (p?.node2 != null) ids.add(p.node2);
       }
     }
     const features = fc.features.filter((f) => {
-      const p = f.properties as { id?: number; is_manual_crossing?: boolean } | undefined;
+      const p = f.properties as
+        | { id?: number; is_manual_crossing?: boolean }
+        | undefined;
       return ids.has(p?.id as number) || p?.is_manual_crossing === true;
     });
     return { type: "FeatureCollection" as const, features };
@@ -119,28 +131,38 @@
 
   async function applyAll(segments: AddedCrossingSegment[]) {
     if (!$backend) return;
+    loading = "Applying overwrites";
     await refreshLoadingScreen();
-    for (const seg of segments) {
-      $backend.editAddCrossingSegment(
-        seg.start.lng,
-        seg.start.lat,
-        seg.end.lng,
-        seg.end.lat,
-        { ...crossingWayTags, ...seg.tags },
-      );
-      mutationCounter.update((n) => n + 1);
+    try {
+      for (const seg of segments) {
+        $backend.editAddCrossingSegment(
+          seg.start.lng,
+          seg.start.lat,
+          seg.end.lng,
+          seg.end.lat,
+          { ...crossingWayTags, ...seg.tags },
+        );
+        mutationCounter.update((n) => n + 1);
+      }
+      appliedCount = segments.length;
+    } finally {
+      loading = "";
     }
-    appliedCount = segments.length;
   }
 
   async function unapplyAll() {
     if (!$backend || appliedCount === 0) return;
+    loading = "Unapplying overwrites";
     await refreshLoadingScreen();
-    for (let i = 0; i < appliedCount; i++) {
-      $backend.editUndo();
-      mutationCounter.update((n) => n + 1);
+    try {
+      for (let i = 0; i < appliedCount; i++) {
+        $backend.editUndo();
+        mutationCounter.update((n) => n + 1);
+      }
+      appliedCount = 0;
+    } finally {
+      loading = "";
     }
-    appliedCount = 0;
   }
 
   async function toggleApply() {
@@ -193,29 +215,34 @@
   async function addCrossingSegmentFromDraft() {
     if (!pointA || !pointB || !$backend) return;
     const tags = { ...crossingWayTags };
+    loading = "Adding manual crossing";
     await refreshLoadingScreen();
-    $backend.editAddCrossingSegment(
-      pointA.lng,
-      pointA.lat,
-      pointB.lng,
-      pointB.lat,
-      tags,
-    );
-    mutationCounter.update((n) => n + 1);
-    const newEntry: AddedCrossingSegment = {
-      id: crypto.randomUUID(),
-      start: { lat: pointA.lat, lng: pointA.lng },
-      end: { lat: pointB.lat, lng: pointB.lng },
-      tags,
-    };
-    overrides = {
-      ...overrides,
-      addedCrossings: [...overrides.addedCrossings, newEntry],
-    };
-    await saveOverrides(overrides);
-    appliedCount++;
-    pointA = null;
-    pointB = null;
+    try {
+      $backend.editAddCrossingSegment(
+        pointA.lng,
+        pointA.lat,
+        pointB.lng,
+        pointB.lat,
+        tags,
+      );
+      mutationCounter.update((n) => n + 1);
+      const newEntry: AddedCrossingSegment = {
+        id: crypto.randomUUID(),
+        start: { lat: pointA.lat, lng: pointA.lng },
+        end: { lat: pointB.lat, lng: pointB.lng },
+        tags,
+      };
+      overrides = {
+        ...overrides,
+        addedCrossings: [...overrides.addedCrossings, newEntry],
+      };
+      await saveOverrides(overrides);
+      appliedCount++;
+      pointA = null;
+      pointB = null;
+    } finally {
+      loading = "";
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -238,27 +265,32 @@
     overrides = { ...overrides, addedCrossings: list };
     await saveOverrides(overrides);
     if (wasApplied && $backend) {
+      loading = "Removing crossing";
       await refreshLoadingScreen();
-      for (let i = 0; i < appliedCount; i++) {
-        $backend.editUndo();
-        mutationCounter.update((n) => n + 1);
-      }
-      appliedCount = 0;
-      const stillInRegion = filterSegmentsInRegion(
-        list,
-        JSON.parse($backend.getBoundary()),
-      );
-      for (const seg of stillInRegion) {
-        $backend.editAddCrossingSegment(
-          seg.start.lng,
-          seg.start.lat,
-          seg.end.lng,
-          seg.end.lat,
-          { ...crossingWayTags, ...seg.tags },
+      try {
+        for (let i = 0; i < appliedCount; i++) {
+          $backend.editUndo();
+          mutationCounter.update((n) => n + 1);
+        }
+        appliedCount = 0;
+        const stillInRegion = filterSegmentsInRegion(
+          list,
+          JSON.parse($backend.getBoundary()),
         );
-        mutationCounter.update((n) => n + 1);
+        for (const seg of stillInRegion) {
+          $backend.editAddCrossingSegment(
+            seg.start.lng,
+            seg.start.lat,
+            seg.end.lng,
+            seg.end.lat,
+            { ...crossingWayTags, ...seg.tags },
+          );
+          mutationCounter.update((n) => n + 1);
+        }
+        appliedCount = stillInRegion.length;
+      } finally {
+        loading = "";
       }
-      appliedCount = stillInRegion.length;
     }
   }
 
@@ -359,6 +391,8 @@
   style="display: none"
 />
 
+<Loading {loading} />
+
 <SplitComponent>
   {#snippet left()}
     <Jumbotron
@@ -409,7 +443,7 @@
       {/snippet}
       {#snippet body()}
         {#if notAppliedList.length > 0}
-          <h6 class="mt-2">Could not apply</h6>
+          <h6 class="mt-2">Not applied</h6>
           <ul class="list-unstyled small">
             {#each notAppliedList as seg}
               <li class="d-flex align-items-center gap-2 mb-1">
@@ -496,40 +530,7 @@
   {#snippet main()}
     <MapEvents onclick={onMapClick} />
 
-    {#if pointA || pointB}
-      <GeoJSON data={draftPointsGeoJSON} generateId>
-        <CircleLayer
-          id="overwrites-draft-dots"
-          paint={{
-            "circle-radius": 12,
-            "circle-color": [
-              "match",
-              ["get", "dot"],
-              "red",
-              "#e74c3c",
-              "blue",
-              "#3498db",
-              "#999",
-            ],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#fff",
-          }}
-        />
-      </GeoJSON>
-    {/if}
-    {#if pointA && pointB}
-      <GeoJSON data={draftLineGeoJSON} generateId>
-        <LineLayer
-          id="overwrites-draft-line"
-          paint={{
-            "line-width": 3,
-            "line-color": "#9b59b6",
-            "line-dasharray": [2, 2],
-          }}
-        />
-      </GeoJSON>
-    {/if}
-
+    <!-- Network and nodes first (bottom), then draft line and points on top so they stay visible -->
     {#if $backend}
       <GeoJSON data={filteredNetworkGeoJSON} generateId>
         <LineLayer
@@ -556,6 +557,40 @@
               "blue",
               "black",
             ],
+          }}
+        />
+      </GeoJSON>
+    {/if}
+
+    {#if pointA && pointB}
+      <GeoJSON data={draftLineGeoJSON} generateId>
+        <LineLayer
+          id="overwrites-draft-line"
+          paint={{
+            "line-width": 4,
+            "line-color": "#9b59b6",
+            "line-dasharray": [2, 2],
+          }}
+        />
+      </GeoJSON>
+    {/if}
+    {#if pointA || pointB}
+      <GeoJSON data={draftPointsGeoJSON} generateId>
+        <CircleLayer
+          id="overwrites-draft-dots"
+          paint={{
+            "circle-radius": 12,
+            "circle-color": [
+              "match",
+              ["get", "dot"],
+              "red",
+              "#e74c3c",
+              "blue",
+              "#3498db",
+              "#999",
+            ],
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#fff",
           }}
         />
       </GeoJSON>
