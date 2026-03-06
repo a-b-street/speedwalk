@@ -13,8 +13,8 @@
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
   import { backend, networkFilter, prettyPrintDistance } from "./";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
+  import FilterNetworkCard from "./common/FilterNetworkCard.svelte";
   import Jumbotron from "./common/Jumbotron.svelte";
-  import NetworkFilter from "./common/NetworkFilter.svelte";
 
   let gj = $derived(
     $backend
@@ -33,11 +33,12 @@
       title="Export network"
       lead="Export the routeable walking network as GeoJSON. Choose what to include, then download."
     >
-      <NetworkFilter />
       <button class="btn btn-primary mt-3 mb-3" onclick={download}>
-        Download GeoJSON
+        Download visible network (GeoJSON)
       </button>
     </Jumbotron>
+
+    <FilterNetworkCard />
 
     <CollapsibleCard open={false}>
       {#snippet header()}Details{/snippet}

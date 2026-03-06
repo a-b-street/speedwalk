@@ -6,7 +6,8 @@
     type RegionOverrides,
     type AddedCrossingSegment,
   } from "../common/localOverrides";
-  import { backend, map, mutationCounter, refreshLoadingScreen } from "../";
+  import { backend, map, mutationCounter, networkFilter, refreshLoadingScreen } from "../";
+  import { emptyGeojson } from "svelte-utils/map";
   import {
     GeoJSON,
     LineLayer,
@@ -18,6 +19,7 @@
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import Jumbotron from "../common/Jumbotron.svelte";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
+  import FilterNetworkCard from "../common/FilterNetworkCard.svelte";
   import LegendList from "../common/LegendList.svelte";
   import { downloadGeneratedFile } from "svelte-utils";
   import type { FeatureCollection, LineString, Point } from "geojson";
@@ -43,17 +45,12 @@
     type: "FeatureCollection",
     features: [],
   });
-  let ways: FeatureCollection<LineString, WayProps> = $state.raw({
-    type: "FeatureCollection",
-    features: [],
-  });
 
   $effect(() => {
     $mutationCounter;
     if ($backend) {
       try {
         nodes = JSON.parse($backend.getNodes());
-        ways = JSON.parse($backend.getWays());
       } catch (_) {}
     }
   });
@@ -82,6 +79,36 @@
     } catch {
       return [];
     }
+  });
+
+  /** Filtered network (respects Filter network options); used for the map line layer. */
+  const filteredNetworkGeoJSON = $derived.by(() => {
+    if (!$backend) return emptyGeojson();
+    try {
+      const f = $networkFilter;
+      return JSON.parse($backend.exportNetwork(f));
+    } catch {
+      return emptyGeojson();
+    }
+  });
+
+  /** Nodes that appear as endpoints of edges in the filtered network, or are manual crossings (always show those). */
+  const filteredNodesGeoJSON = $derived.by(() => {
+    const net = filteredNetworkGeoJSON;
+    const fc = nodes;
+    const ids = new Set<number>();
+    if (net.features?.length) {
+      for (const edge of net.features) {
+        const p = edge.properties as { node1?: number; node2?: number } | undefined;
+        if (p?.node1 != null) ids.add(p.node1);
+        if (p?.node2 != null) ids.add(p.node2);
+      }
+    }
+    const features = fc.features.filter((f) => {
+      const p = f.properties as { id?: number; is_manual_crossing?: boolean } | undefined;
+      return ids.has(p?.id as number) || p?.is_manual_crossing === true;
+    });
+    return { type: "FeatureCollection" as const, features };
   });
 
   const crossingWayTags = {
@@ -351,6 +378,8 @@
       </p>
     </Jumbotron>
 
+    <FilterNetworkCard />
+
     {#if !$backend}
       <div class="alert alert-warning py-2 small mb-3" role="alert">
         <strong>Load an area first.</strong>
@@ -502,21 +531,21 @@
     {/if}
 
     {#if $backend}
-      <GeoJSON data={ways} generateId>
+      <GeoJSON data={filteredNetworkGeoJSON} generateId>
         <LineLayer
           id="overwrites-ways"
           paint={{
             "line-width": roadLineWidth(0),
             "line-color": [
               "case",
-              ["get", "is_manual_crossing"],
+              ["==", ["get", "crossing"], "manual"],
               "blue",
               "black",
             ],
           }}
         />
       </GeoJSON>
-      <GeoJSON data={nodes} generateId>
+      <GeoJSON data={filteredNodesGeoJSON} generateId>
         <CircleLayer
           id="overwrites-nodes"
           paint={{
