@@ -2,6 +2,7 @@
   import { backend, debugMode, map, mutationCounter } from "../";
   import {
     roadLineWidth,
+    roadKinds,
     colors,
     sideColorMaplibre,
     type WayProps,
@@ -64,7 +65,7 @@
   }
 
   let pinnedWaySides = $derived(
-    $backend && pinnedWay
+    $backend && pinnedWay && pinnedWay.properties.kind.startsWith("Road")
       ? (JSON.parse(
           $backend.getSideLocations(BigInt(pinnedWay.properties.id)),
         ) as FeatureCollection<LineString, { side: string; label: string }>)
@@ -135,6 +136,7 @@
 <GeoJSON data={pinnedWay || emptyGeojson()}>
   <LineLayer
     beforeId="Road labels"
+    filter={["in", ["get", "kind"], ["literal", [...roadKinds]]]}
     paint={{
       "line-width": roadLineWidth(50),
       "line-color": sideColorMaplibre("left", 0.3),
@@ -144,6 +146,7 @@
 
   <LineLayer
     beforeId="Road labels"
+    filter={["in", ["get", "kind"], ["literal", [...roadKinds]]]}
     paint={{
       "line-width": roadLineWidth(50),
       "line-color": sideColorMaplibre("right", 0.3),
