@@ -83,8 +83,14 @@
   });
 </script>
 
-<button class="btn btn-secondary" onclick={() => (show = true)} disabled={show}>
-  <img src={logo} alt="Mapillary" height="30px" />
+<button
+  class="btn btn-secondary mapillary-btn"
+  onclick={() => (show = !show)}
+>
+  <img src={logo} alt="Mapillary" />
+  {#if show}
+    Close
+  {/if}
 </button>
 
 <VectorTileSource
@@ -164,19 +170,48 @@
   />
 </GeoJSON>
 
-<div class="viewer-container" style:visibility={show ? "visible" : "hidden"}>
-  <button class="btn btn-primary" onclick={() => (show = false)}>X</button>
-  <div bind:this={container} style="width: 100%; height: 100%"></div>
+<div class="mapillary-viewer-container" style:visibility={show ? "visible" : "hidden"}>
+  <div bind:this={container} class="viewer-inner"></div>
 </div>
 
 <style>
-  .viewer-container {
+  .mapillary-btn {
+    height: 38px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #35af6d;
+    border-color: #35af6d;
+    color: white;
+  }
+
+  .mapillary-btn:hover:not(:disabled) {
+    background-color: #25a85a;
+    border-color: #25a85a;
+    color: white;
+  }
+
+  .mapillary-btn img {
+    height: 22px;
+    width: auto;
+    display: block;
+  }
+
+  .mapillary-viewer-container {
     z-index: 100;
     position: absolute;
-    left: 10px;
-    bottom: 120px;
+    left: 0px;
+    bottom: 48px;
 
     width: 500px;
     height: 300px;
+  }
+
+  .viewer-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 3px;
+    overflow: clip;
   }
 </style>
