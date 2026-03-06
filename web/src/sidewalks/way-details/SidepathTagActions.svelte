@@ -16,6 +16,10 @@
     return removes.filter((key) => key in currentTags);
   }
 
+  function isTagAlreadySet(action: { tags: string[][] }): boolean {
+    return action.tags.every((pair) => currentTags[pair[0]] === pair[1]);
+  }
+
   const actions = $derived.by(() => {
     switch (highway) {
       case "path":
@@ -50,7 +54,7 @@
   async function onKeyDown(e: KeyboardEvent) {
     const key = e.key.toLowerCase();
     const action = actions.find((a) => a.shortcut === key);
-    if (action) {
+    if (action && !isTagAlreadySet(action)) {
       await updateTags(
         action.removes,
         action.tags.map((p) => [...p]),
@@ -64,11 +68,15 @@
 <ul class="list-group list-group-flush mb-0">
   {#each actions as action}
     {@const relevantRemovals = getRelevantRemovals(action.removes)}
+    {@const tagAlreadySet = isTagAlreadySet(action)}
     <li class="list-group-item px-0 py-1 border-0">
       <button
         type="button"
         class="btn btn-secondary w-100"
+        class:disabled={tagAlreadySet}
+        disabled={tagAlreadySet}
         onclick={() =>
+          !tagAlreadySet &&
           updateTags(
             action.removes,
             action.tags.map((p) => [...p]),
