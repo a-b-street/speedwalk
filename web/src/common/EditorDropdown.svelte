@@ -29,7 +29,7 @@
   }
 </script>
 
-<div class="btn-group">
+<div class="btn-group bg-white">
   <button
     class="btn btn-outline-secondary dropdown-toggle"
     type="button"

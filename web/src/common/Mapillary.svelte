@@ -83,10 +83,7 @@
   });
 </script>
 
-<button
-  class="btn btn-secondary mapillary-btn"
-  onclick={() => (show = !show)}
->
+<button class="btn btn-secondary mapillary-btn" onclick={() => (show = !show)}>
   <img src={logo} alt="Mapillary" />
   {#if show}
     Close
@@ -170,7 +167,10 @@
   />
 </GeoJSON>
 
-<div class="mapillary-viewer-container" style:visibility={show ? "visible" : "hidden"}>
+<div
+  class="mapillary-viewer-container"
+  style:visibility={show ? "visible" : "hidden"}
+>
   <div bind:this={container} class="viewer-inner"></div>
 </div>
 

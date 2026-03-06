@@ -12,18 +12,31 @@
   ]);
 </script>
 
-<div class="basemap-selector">
-  <div class="btn-group">
-    <button
-      class="btn btn-outline-secondary dropdown-toggle basemap-button"
-      type="button"
-      data-bs-toggle="dropdown"
-      aria-expanded="false"
-    >
-      {basemap}
-    </button>
-    <ul class="dropdown-menu">
-      {#each originalBasemapStyles as name}
+<div class="btn-group bg-white">
+  <button
+    class="btn btn-outline-secondary dropdown-toggle basemap-button"
+    type="button"
+    data-bs-toggle="dropdown"
+    aria-expanded="false"
+  >
+    {basemap}
+  </button>
+  <ul class="dropdown-menu">
+    {#each originalBasemapStyles as name}
+      <li>
+        <button
+          class="dropdown-item"
+          class:active={basemap === name}
+          type="button"
+          onclick={() => (basemap = name)}
+        >
+          {name}
+        </button>
+      </li>
+    {/each}
+    {#if customBasemaps.length > 0}
+      <li><hr class="dropdown-divider" /></li>
+      {#each customBasemaps as name}
         <li>
           <button
             class="dropdown-item"
@@ -35,44 +48,24 @@
           </button>
         </li>
       {/each}
-      {#if customBasemaps.length > 0}
-        <li><hr class="dropdown-divider" /></li>
-        {#each customBasemaps as name}
-          <li>
-            <button
-              class="dropdown-item"
-              class:active={basemap === name}
-              type="button"
-              onclick={() => (basemap = name)}
-            >
-              {name}
-            </button>
-          </li>
-        {/each}
-      {/if}
-      <li><hr class="dropdown-divider" /></li>
-      <li>
-        <button
-          class="dropdown-item"
-          type="button"
-          onclick={() => (showModal = true)}
-        >
-          <i class="fa-solid fa-square-plus me-2"></i>
-          Add custom basemap
-        </button>
-      </li>
-    </ul>
-  </div>
+    {/if}
+    <li><hr class="dropdown-divider" /></li>
+    <li>
+      <button
+        class="dropdown-item"
+        type="button"
+        onclick={() => (showModal = true)}
+      >
+        <i class="fa-solid fa-square-plus me-2"></i>
+        Add custom basemap
+      </button>
+    </li>
+  </ul>
 </div>
 
 <AddBasemap bind:show={showModal} />
 
 <style>
-  .basemap-selector {
-    display: flex;
-    align-items: center;
-  }
-
   .basemap-button {
     width: 50%;
     text-align: left;
