@@ -34,7 +34,7 @@
     }
   });
 
-  let basemap = $state("Maptiler OpenStreetMap");
+  let basemap = $state("Maptiler Dataviz Light");
 
   // svelte-ignore state_referenced_locally
   let initialStyle = basemapStyles.get(basemap)!;
