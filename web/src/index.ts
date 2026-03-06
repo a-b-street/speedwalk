@@ -29,13 +29,14 @@ export let enabledBulkOps = localStorageStore(
 );
 export let debugMode = writable(false);
 
-export let networkFilter = writable<{
-  include: "Everything" | "OnlyExplicitFootways" | "RouteableNetwork";
-  ignore_deadends: boolean;
-}>({
-  include: "RouteableNetwork",
+const defaultNetworkFilter = {
+  include: "RouteableNetwork" as const,
   ignore_deadends: true,
-});
+};
+export let networkFilter = localStorageStore(
+  "speedwalk-networkFilter",
+  defaultNetworkFilter,
+);
 
 // TODO Upstream several of these
 export function sum(list: number[]): number {
