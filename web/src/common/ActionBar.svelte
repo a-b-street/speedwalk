@@ -21,7 +21,6 @@
     position: absolute;
     left: 10px;
     background: white;
-    padding: 4px;
     display: flex;
     gap: 4px;
     align-items: center;
