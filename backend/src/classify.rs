@@ -83,7 +83,13 @@ impl Kind {
             return Self::RoadWithTags;
         }
 
-        if tags.is_any("highway", vec!["motorway", "motorway_link", "service"]) {
+        // Only applied when there are no sidewalk tags above. Any of these highway types with
+        // explicit sidewalk tags (e.g. sidewalk:right=yes) are already RoadWithTags and stay in
+        // the sidewalk generator.
+        if tags.is_any(
+            "highway",
+            vec!["motorway", "motorway_link", "trunk", "trunk_link", "service"],
+        ) {
             return Self::RoadWithoutSidewalksImplicit;
         }
 
@@ -130,6 +136,11 @@ mod tests {
             // TODO Not sure about some of these: https://github.com/a-b-street/speedwalk/issues/23
             (vec!["highway=path", "footway=sidewalk"], Kind::Other),
             (vec!["highway=cycleway", "foot=yes"], Kind::Other),
+            (vec!["highway=trunk"], Kind::RoadWithoutSidewalksImplicit),
+            (
+                vec!["highway=trunk", "sidewalk:both=yes"],
+                Kind::RoadWithTags,
+            ),
         ] {
             let actual = Kind::classify(&Tags::new_from_pairs(&input));
             if actual != expected {
