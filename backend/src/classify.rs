@@ -88,7 +88,19 @@ impl Kind {
         // the sidewalk generator.
         if tags.is_any(
             "highway",
-            vec!["motorway", "motorway_link", "trunk", "trunk_link", "service"],
+            vec![
+                "motorway",
+                "motorway_link",
+                "trunk",
+                "trunk_link",
+                "primary",
+                "primary_link",
+                "secondary",
+                "secondary_link",
+                "tertiary",
+                "tertiary_link",
+                "service",
+            ],
         ) {
             return Self::RoadWithoutSidewalksImplicit;
         }
@@ -139,6 +151,11 @@ mod tests {
             (vec!["highway=trunk"], Kind::RoadWithoutSidewalksImplicit),
             (
                 vec!["highway=trunk", "sidewalk:both=yes"],
+                Kind::RoadWithTags,
+            ),
+            (vec!["highway=primary"], Kind::RoadWithoutSidewalksImplicit),
+            (
+                vec!["highway=primary", "sidewalk:both=yes"],
                 Kind::RoadWithTags,
             ),
         ] {
