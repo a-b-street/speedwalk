@@ -20,7 +20,6 @@
   .action-bar {
     position: absolute;
     left: 10px;
-    background: white;
     display: flex;
     gap: 4px;
     align-items: center;
