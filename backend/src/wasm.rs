@@ -97,6 +97,7 @@ impl Speedwalk {
                 "problems",
                 serde_json::to_value(&way.problems).map_err(err_to_js)?,
             );
+            f.set_property("length_m", Euclidean.length(&way.linestring));
             if way.kind == Kind::Crossing {
                 crossings.push(f);
             } else {

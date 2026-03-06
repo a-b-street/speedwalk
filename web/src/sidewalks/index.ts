@@ -2,6 +2,9 @@ import type { Feature } from "geojson";
 import { constructMatchExpression } from "svelte-utils/map";
 import type { ExpressionSpecification } from "maplibre-gl";
 
+/** Length in meters above which a crossing-tagged way is considered suspicious (may need splitting). */
+export const CROSSING_LENGTH_WARNING_M = 20;
+
 export interface NodeProps {
   id: number;
   tags?: Record<string, string>;
@@ -16,6 +19,7 @@ export interface NodeProps {
 export interface WayProps {
   id: number;
   tags: Record<string, string>;
+  length_m?: number;
   kind:
     | "RoadWithSeparate"
     | "RoadWithTags"
