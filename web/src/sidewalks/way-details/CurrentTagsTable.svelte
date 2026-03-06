@@ -75,7 +75,7 @@
           {#if updateTags}
             <button
               type="button"
-              class="btn btn-sm btn-link text-danger p-0"
+              class="btn btn-sm btn-link trash-btn p-0"
               onclick={() => updateTags([key], [])}
               title="Remove tag"
             >
@@ -97,5 +97,11 @@
   }
   .tag-table-group .tag-recent {
     font-weight: bold;
+  }
+  .trash-btn {
+    color: #6c757d;
+  }
+  .trash-btn:hover {
+    color: var(--bs-danger);
   }
 </style>
