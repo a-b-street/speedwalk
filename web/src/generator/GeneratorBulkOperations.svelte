@@ -1,6 +1,12 @@
 <script lang="ts">
-  import { Checkbox, Loading } from "svelte-utils";
-  import { backend, mutationCounter, refreshLoadingScreen } from "../";
+  import { Checkbox, Loading, LocalStorageWrapper } from "svelte-utils";
+  import {
+    backend,
+    mutationCounter,
+    refreshLoadingScreen,
+    onlyMajorRoadsBulk,
+    includeCrossingNoBulk,
+  } from "../";
 
   const defaultCrossingOptions = {
     only_major_roads: true,
@@ -14,8 +20,6 @@
 
   let loading = $state("");
   let driveOnLeft = $state(true);
-  let onlyMakeSeverances = $state(true);
-  let connectCrossingNo = $state(false);
 
   async function generateCrossingsMajor() {
     loading = "Generating crossings on major roads";
@@ -67,7 +71,7 @@
     loading = "Generating sidewalks";
     await refreshLoadingScreen();
     try {
-      $backend!.editMakeAllSidewalks(onlyMakeSeverances);
+      $backend!.editMakeAllSidewalks($onlyMajorRoadsBulk);
       $mutationCounter++;
     } catch (err) {
       window.alert(`Error: ${err}`);
@@ -80,7 +84,7 @@
     loading = "Connecting crossings";
     await refreshLoadingScreen();
     try {
-      $backend!.editConnectAllCrossings(connectCrossingNo);
+      $backend!.editConnectAllCrossings($includeCrossingNoBulk);
       $mutationCounter++;
     } catch (err) {
       window.alert(`Error: ${err}`);
@@ -139,7 +143,11 @@
 <div class="card mb-3">
   <div class="card-header">Make all sidewalks</div>
   <div class="card-body">
-    <Checkbox bind:checked={onlyMakeSeverances}>Only for major roads</Checkbox>
+    <LocalStorageWrapper>
+      <Checkbox bind:checked={$onlyMajorRoadsBulk}>
+        Only for major roads
+      </Checkbox>
+    </LocalStorageWrapper>
     <button class="btn btn-secondary" onclick={makeAllSidewalks}>
       Make sidewalks
     </button>
@@ -149,7 +157,11 @@
 <div class="card mb-3">
   <div class="card-header">Connect all crossing nodes</div>
   <div class="card-body">
-    <Checkbox bind:checked={connectCrossingNo}>Include crossing=no</Checkbox>
+    <LocalStorageWrapper>
+      <Checkbox bind:checked={$includeCrossingNoBulk}>
+        Include crossing=no
+      </Checkbox>
+    </LocalStorageWrapper>
     <button class="btn btn-secondary" onclick={connectAllCrossings}>
       Create a way for every crossing node
     </button>
