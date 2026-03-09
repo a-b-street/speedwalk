@@ -1,20 +1,46 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
   import logo from "../../assets/logo.svg?url";
-  import { type Mode, mode, backend } from "../";
-  import { Modal } from "svelte-utils";
+  import {
+    type Mode,
+    type UseCase,
+    mode,
+    backend,
+    useCase,
+    loggedInUser,
+    ROUTE_NETWORK_ONLY_MODE_KINDS,
+    DEFAULT_AUDIT_MODE,
+  } from "../";
+  import { Modal, LocalStorageWrapper } from "svelte-utils";
   import LoadAnotherArea from "./LoadAnotherArea.svelte";
 
   let showInfo = $state(false);
 
-  let mainActions = [
+  const auditActions = [
     [{ kind: "sidewalks" }, "Sidewalks"],
     [{ kind: "crossings" }, "Crossings"],
     [{ kind: "disconnections" }, "Disconnections"],
+  ] as [Mode, string][];
+
+  const routeNetworkActions = [
+    ...auditActions,
     [{ kind: "generator" }, "Generator"],
     [{ kind: "overwrites" }, "Overwrites"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
+
+  const useCaseOptions: { value: UseCase; label: string }[] = [
+    { value: "audit", label: "audit and map sidewalks" },
+    { value: "route-networks", label: "generate and export route networks" },
+  ];
+
+  let mainActions = $derived(
+    $useCase === "route-networks" ? routeNetworkActions : auditActions,
+  );
+  let currentUseCaseLabel = $derived(
+    useCaseOptions.find((o) => o.value === $useCase)?.label ??
+      useCaseOptions[0].label,
+  );
 </script>
 
 <ul class="nav nav-underline">
@@ -23,6 +49,43 @@
 
   {#if $backend}
     <LoadAnotherArea />
+
+    {#if !$loggedInUser}
+      <li class="nav-item dropdown">
+        <button
+          class="btn btn-link nav-link dropdown-toggle text-body text-decoration-none py-0"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          type="button"
+        >
+          <LocalStorageWrapper>
+            <span>I want to {currentUseCaseLabel}</span>
+          </LocalStorageWrapper>
+        </button>
+        <ul class="dropdown-menu">
+          {#each useCaseOptions as opt}
+            <li>
+              <button
+                class="dropdown-item"
+                type="button"
+                class:active={$useCase === opt.value}
+                onclick={() => {
+                  useCase.set(opt.value);
+                  if (
+                    opt.value === "audit" &&
+                    ROUTE_NETWORK_ONLY_MODE_KINDS.includes($mode.kind)
+                  ) {
+                    mode.set(DEFAULT_AUDIT_MODE);
+                  }
+                }}
+              >
+                I want to {opt.label}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </li>
+    {/if}
 
     {#each mainActions as [setMode, label]}
       <li class="nav-item">

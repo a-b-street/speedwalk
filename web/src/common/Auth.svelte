@@ -1,7 +1,20 @@
 <script lang="ts">
   import * as OSM from "osm-api";
   import { onMount } from "svelte";
-  import { loggedInUser } from "../";
+  import { LocalStorageWrapper } from "svelte-utils";
+  import {
+    loggedInUser,
+    useCase,
+    mode,
+    type UseCase,
+    ROUTE_NETWORK_ONLY_MODE_KINDS,
+    DEFAULT_AUDIT_MODE,
+  } from "../";
+
+  const useCaseOptions: { value: UseCase; label: string }[] = [
+    { value: "audit", label: "Audit and map sidewalks" },
+    { value: "route-networks", label: "Generate and export route networks" },
+  ];
 
   onMount(handleLogin);
 
@@ -49,6 +62,32 @@
       {$loggedInUser.name}
     </button>
     <ul class="dropdown-menu">
+      <li>
+        <h6 class="dropdown-header">
+          <LocalStorageWrapper>
+            <span>Speedwalk mode</span>
+          </LocalStorageWrapper>
+        </h6>
+        {#each useCaseOptions as opt}
+          <button
+            class="dropdown-item"
+            type="button"
+            class:active={$useCase === opt.value}
+            onclick={() => {
+              useCase.set(opt.value);
+              if (
+                opt.value === "audit" &&
+                ROUTE_NETWORK_ONLY_MODE_KINDS.includes($mode.kind)
+              ) {
+                mode.set(DEFAULT_AUDIT_MODE);
+              }
+            }}
+          >
+            {opt.label}
+          </button>
+        {/each}
+      </li>
+      <li><hr class="dropdown-divider" /></li>
       <li>
         <!-- svelte-ignore a11y_invalid_attribute -->
         <a class="dropdown-item" href="#" onclick={logout}>Logout</a>

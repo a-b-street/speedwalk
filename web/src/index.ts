@@ -21,12 +21,23 @@ export type Mode =
   | { kind: "export" }
   | { kind: "overwrites" };
 
+/** Mode kinds only available when use case is "route-networks". When switching to audit, redirect off these. */
+export const ROUTE_NETWORK_ONLY_MODE_KINDS: Mode["kind"][] = [
+  "generator",
+  "overwrites",
+  "export",
+];
+
+export const DEFAULT_AUDIT_MODE: Mode = { kind: "sidewalks" };
+
 export let mode: Writable<Mode> = writable({ kind: "sidewalks" });
 
-export let enabledBulkOps = localStorageStore(
-  "speedwalk-enabledBulkOps",
-  false,
+export type UseCase = "audit" | "route-networks";
+export let useCase: Writable<UseCase> = localStorageStore(
+  "speedwalk-useCase",
+  "audit",
 );
+
 export let debugMode = writable(false);
 
 const defaultNetworkFilter = {
