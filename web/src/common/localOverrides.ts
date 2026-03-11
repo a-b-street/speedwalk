@@ -1,9 +1,15 @@
+/**
+ * Manual overwrites (e.g. added crossing segments) stored in IndexedDB.
+ * We store a single overrides blob (one record). Boundary filtering is separate:
+ * filterSegmentsInBoundary() filters segments by the loaded map boundary (bbox).
+ */
 import type { GeoJSON } from "geojson";
 import { bbox } from "svelte-utils/map";
 
 const DB_NAME = "speedwalk-overrides";
-const STORE_NAME = "regionOverrides";
-const GLOBAL_KEY = "global";
+const DB_VERSION = 2;
+const STORE_NAME = "overrides";
+const OVERRIDES_RECORD_ID = "default";
 
 export interface AddedCrossingSegment {
   id?: string;
@@ -12,23 +18,27 @@ export interface AddedCrossingSegment {
   tags: Record<string, string>;
 }
 
-export interface RegionOverrides {
+export interface ManualOverrides {
   version: number;
   addedCrossings: AddedCrossingSegment[];
 }
 
-const DEFAULT_OVERRIDES: RegionOverrides = {
+const DEFAULT_OVERRIDES: ManualOverrides = {
   version: 1,
   addedCrossings: [],
 };
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onerror = () => reject(req.error);
     req.onsuccess = () => resolve(req.result);
-    req.onupgradeneeded = () => {
-      req.result.createObjectStore(STORE_NAME, { keyPath: "regionKey" });
+    req.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      // Create store for new DB (oldVersion 0) or when upgrading to v2 (e.g. from v1). No data migration.
+      if (event.oldVersion < 2) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
     };
   });
 }
@@ -46,18 +56,16 @@ function isSegment(
   );
 }
 
-export async function getOverrides(): Promise<RegionOverrides> {
+export async function getOverrides(): Promise<ManualOverrides> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
-    const req = store.get(GLOBAL_KEY);
+    const req = store.get(OVERRIDES_RECORD_ID);
     req.onerror = () => reject(req.error);
     req.onsuccess = () => {
+      const raw = req.result as (ManualOverrides & { id?: string }) | undefined;
       db.close();
-      const raw = req.result as
-        | (RegionOverrides & { regionKey?: string })
-        | undefined;
       const list = raw?.addedCrossings ?? DEFAULT_OVERRIDES.addedCrossings;
       const addedCrossings = (
         Array.isArray(list) ? list.filter(isSegment) : []
@@ -73,15 +81,14 @@ export async function getOverrides(): Promise<RegionOverrides> {
   });
 }
 
-export async function saveOverrides(data: RegionOverrides): Promise<void> {
+export async function saveOverrides(data: ManualOverrides): Promise<void> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
-    // Plain object so IndexedDB structured-clone succeeds (no Svelte proxies)
     const record = JSON.parse(
       JSON.stringify({
-        regionKey: GLOBAL_KEY,
+        id: OVERRIDES_RECORD_ID,
         version: data.version,
         addedCrossings: data.addedCrossings,
       }),
@@ -95,8 +102,8 @@ export async function saveOverrides(data: RegionOverrides): Promise<void> {
   });
 }
 
-/** Returns segments whose midpoint is inside the boundary's bbox. */
-export function filterSegmentsInRegion(
+/** Returns segments whose midpoint is inside the boundary's bbox (e.g. loaded map area). */
+export function filterSegmentsInBoundary(
   segments: AddedCrossingSegment[],
   boundaryGeoJson: GeoJSON,
 ): AddedCrossingSegment[] {
@@ -110,19 +117,5 @@ export function filterSegmentsInRegion(
       midLat >= minLat &&
       midLat <= maxLat
     );
-  });
-}
-
-export async function deleteOverrides(): Promise<void> {
-  const db = await openDb();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    const req = store.delete(GLOBAL_KEY);
-    req.onerror = () => reject(req.error);
-    req.onsuccess = () => {
-      db.close();
-      resolve();
-    };
   });
 }

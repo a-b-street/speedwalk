@@ -2,8 +2,8 @@
   import {
     getOverrides,
     saveOverrides,
-    filterSegmentsInRegion,
-    type RegionOverrides,
+    filterSegmentsInBoundary,
+    type ManualOverrides,
     type AddedCrossingSegment,
   } from "../common/localOverrides";
   import {
@@ -45,7 +45,7 @@
   let pointA: { lng: number; lat: number } | null = $state(null);
   let pointB: { lng: number; lat: number } | null = $state(null);
   let loading = $state("");
-  let overrides: RegionOverrides = $state({ version: 1, addedCrossings: [] });
+  let overrides: ManualOverrides = $state({ version: 1, addedCrossings: [] });
   let overwritesApplied = $state(true);
   let appliedCount = $state(0);
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
@@ -71,18 +71,18 @@
     getOverrides().then((data) => {
       overrides = data;
       const boundary = JSON.parse(b.getBoundary());
-      const list = filterSegmentsInRegion(data.addedCrossings, boundary);
+      const list = filterSegmentsInBoundary(data.addedCrossings, boundary);
       if (overwritesApplied && list.length > 0 && appliedCount === 0) {
         applyAll(list);
       }
     });
   });
 
-  const inRegionSegments = $derived.by(() => {
+  const segmentsInLoadedArea = $derived.by(() => {
     if (!$backend) return [];
     try {
       const boundary = JSON.parse($backend.getBoundary());
-      return filterSegmentsInRegion(overrides.addedCrossings, boundary);
+      return filterSegmentsInBoundary(overrides.addedCrossings, boundary);
     } catch {
       return [];
     }
@@ -171,7 +171,7 @@
       await unapplyAll();
       overwritesApplied = false;
     } else {
-      await applyAll(inRegionSegments);
+      await applyAll(segmentsInLoadedArea);
       overwritesApplied = true;
     }
   }
@@ -261,7 +261,7 @@
     const id = segment.id;
     const list = overrides.addedCrossings.filter((s) => s.id !== id);
     const wasApplied =
-      inRegionSegments.findIndex((s) => s.id === id) < appliedCount;
+      segmentsInLoadedArea.findIndex((s) => s.id === id) < appliedCount;
     overrides = { ...overrides, addedCrossings: list };
     await saveOverrides(overrides);
     if (wasApplied && $backend) {
@@ -273,11 +273,11 @@
           mutationCounter.update((n) => n + 1);
         }
         appliedCount = 0;
-        const stillInRegion = filterSegmentsInRegion(
+        const stillInLoadedArea = filterSegmentsInBoundary(
           list,
           JSON.parse($backend.getBoundary()),
         );
-        for (const seg of stillInRegion) {
+        for (const seg of stillInLoadedArea) {
           $backend.editAddCrossingSegment(
             seg.start.lng,
             seg.start.lat,
@@ -287,7 +287,7 @@
           );
           mutationCounter.update((n) => n + 1);
         }
-        appliedCount = stillInRegion.length;
+        appliedCount = stillInLoadedArea.length;
       } finally {
         loading = "";
       }
@@ -322,7 +322,7 @@
     const file = input.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const data = JSON.parse(text) as RegionOverrides & { regionKey?: string };
+    const data = JSON.parse(text) as ManualOverrides & { regionKey?: string };
     const toMerge = data.addedCrossings ?? [];
     overrides = {
       version: 1,
@@ -332,8 +332,8 @@
     input.value = "";
   }
 
-  const appliedList = $derived(inRegionSegments.slice(0, appliedCount));
-  const notAppliedList = $derived(inRegionSegments.slice(appliedCount));
+  const appliedList = $derived(segmentsInLoadedArea.slice(0, appliedCount));
+  const notAppliedList = $derived(segmentsInLoadedArea.slice(appliedCount));
 
   const draftPointsGeoJSON = $derived.by(() => {
     const features: Array<{
@@ -438,7 +438,7 @@
 
     <CollapsibleCard open={true}>
       {#snippet header()}
-        In your current region: {inRegionSegments.length} in storage, {appliedCount}
+        In loaded area: {segmentsInLoadedArea.length} in storage, {appliedCount}
         applied
       {/snippet}
       {#snippet body()}
@@ -496,12 +496,12 @@
             {/each}
           </ul>
         {/if}
-        {#if inRegionSegments.length === 0}
+        {#if segmentsInLoadedArea.length === 0}
           <p class="text-muted small">
             {#if overrides.addedCrossings.length === 0}
               No manual crossings yet.
             {:else}
-              No overwrites in this region ({overrides.addedCrossings.length} total
+              No overwrites in loaded area ({overrides.addedCrossings.length} total
               in storage).
             {/if}
           </p>
