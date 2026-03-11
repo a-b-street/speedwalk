@@ -60,6 +60,7 @@
                 "speedwalk-",
                 "overwrites-",
                 "edit-polygon-",
+                "mapillary-",
               ].some((prefix) => l.id.startsWith(prefix)),
             );
             let layers = nextStyle.layers.concat(customLayers);

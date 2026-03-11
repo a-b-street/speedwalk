@@ -31,6 +31,7 @@
   import type { FeatureCollection, LineString, Point } from "geojson";
   import { type WayProps, type NodeProps } from "../sidewalks";
   import { roadLineWidth } from "../sidewalks";
+  import { MAPILLARY_PIN_LAYER_IDS_LIST } from "../common/mapillaryLayers";
 
   const overwritesLegendItems = [
     { label: "Base data", color: "black", swatchClass: "rectangle" as const },
@@ -177,6 +178,24 @@
   }
 
   function onMapClick(e: MapMouseEvent) {
+    // Do not set overwrite marker when clicking a Mapillary pin (only when clicking the map).
+    // Mapillary layers are conditional; only query layers that exist in the current style.
+    if ($map && e.point) {
+      const style = $map.getStyle();
+      const existingIds = style?.layers
+        ? new Set(style.layers.map((l) => l.id))
+        : new Set<string>();
+      const layersToQuery = MAPILLARY_PIN_LAYER_IDS_LIST.filter((id) =>
+        existingIds.has(id),
+      );
+      const mapillaryFeatures =
+        layersToQuery.length > 0
+          ? $map.queryRenderedFeatures(e.point, { layers: layersToQuery })
+          : [];
+      if (mapillaryFeatures.length > 0) {
+        return;
+      }
+    }
     let lng: number;
     let lat: number;
     if (e.lngLat) {
