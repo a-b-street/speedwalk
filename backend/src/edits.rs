@@ -26,7 +26,12 @@ pub struct Edits {
 
 #[derive(Clone, Serialize)]
 pub enum UserCmd {
-    SetTags(WayID, Vec<String>, Vec<(String, String)>),
+    /// Set tags on a way. First: tag keys to remove. Second: key-value pairs to add or set (applied after removals).
+    SetTags(
+        WayID,
+        Vec<String>,           // remove_keys
+        Vec<(String, String)>, // add_tags
+    ),
     MakeAllSidewalks(bool),
     ConnectAllCrossings(bool),
     AssumeTags(bool),
