@@ -15,6 +15,7 @@
   import logo from "../../assets/Mapillary_logo.svg";
   import lineArc from "@turf/line-arc";
   import { point } from "@turf/helpers";
+  import { MAPILLARY_PIN_LAYER_IDS } from "./mapillaryLayers";
 
   let show = $state(false);
 
@@ -108,6 +109,7 @@
   />
 
   <SymbolLayer
+    id={MAPILLARY_PIN_LAYER_IDS.symbol}
     minzoom={16}
     sourceLayer="image"
     layout={{
@@ -119,6 +121,7 @@
   />
 
   <CircleLayer
+    id={MAPILLARY_PIN_LAYER_IDS.circleInteractive}
     sourceLayer="image"
     manageHoverState
     paint={{
@@ -135,6 +138,7 @@
   />
 
   <CircleLayer
+    id={MAPILLARY_PIN_LAYER_IDS.circle}
     sourceLayer="image"
     paint={{
       "circle-radius": 4,
