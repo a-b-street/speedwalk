@@ -83,25 +83,9 @@ impl Kind {
             return Self::RoadWithTags;
         }
 
-        // Only applied when there are no sidewalk tags above. Any of these highway types with
-        // explicit sidewalk tags (e.g. sidewalk:right=yes) are already RoadWithTags and stay in
-        // the sidewalk generator.
-        if tags.is_any(
-            "highway",
-            vec![
-                "motorway",
-                "motorway_link",
-                "trunk",
-                "trunk_link",
-                "primary",
-                "primary_link",
-                "secondary",
-                "secondary_link",
-                "tertiary",
-                "tertiary_link",
-                "service",
-            ],
-        ) {
+        // Only applied when there are no sidewalk tags above. Severance highway types (see
+        // is_severance_highway) plus service; explicit sidewalk tags are already RoadWithTags.
+        if crate::is_road_without_sidewalks_implicit(tags) {
             return Self::RoadWithoutSidewalksImplicit;
         }
 

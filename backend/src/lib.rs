@@ -28,6 +28,32 @@ use utils::{Mercator, Tags};
 use wasm_bindgen::prelude::*;
 
 pub use crate::classify::Kind;
+
+/// Highway types treated as severance (major roads that cut through). Used for both
+/// Way::is_severance() and RoadWithoutSidewalksImplicit; the latter also includes "service".
+const SEVERANCE_HIGHWAY_TYPES: &[&str] = &[
+    "motorway",
+    "motorway_link",
+    "trunk",
+    "trunk_link",
+    "primary",
+    "primary_link",
+    "secondary",
+    "secondary_link",
+    "tertiary",
+    "tertiary_link",
+];
+
+/// True if the way's highway type is in the severance list (used for assume-tags, etc.).
+pub(crate) fn is_severance_highway(tags: &Tags) -> bool {
+    tags.is_any("highway", SEVERANCE_HIGHWAY_TYPES.to_vec())
+}
+
+/// True if the way should be classified as RoadWithoutSidewalksImplicit: severance types
+/// or highway=service (no sidewalk tags). Service is excluded from is_severance.
+pub(crate) fn is_road_without_sidewalks_implicit(tags: &Tags) -> bool {
+    is_severance_highway(tags) || tags.is("highway", "service")
+}
 pub use crate::edits::{Edits, UserCmd};
 
 #[wasm_bindgen]
@@ -104,21 +130,7 @@ impl Node {
 
 impl Way {
     pub fn is_severance(&self) -> bool {
-        self.tags.is_any(
-            "highway",
-            vec![
-                "motorway",
-                "motorway_link",
-                "trunk",
-                "trunk_link",
-                "primary",
-                "primary_link",
-                "secondary",
-                "secondary_link",
-                "tertiary",
-                "tertiary_link",
-            ],
-        )
+        is_severance_highway(&self.tags)
     }
 
     /// For Kind::Other cases (often cycleways or paths), is the way usable for walking?
