@@ -350,6 +350,27 @@ impl Speedwalk {
         Ok(())
     }
 
+    /// Snap two WGS84 points to the nearest road/sidewalk; returns snapped coords as JSON.
+    /// Does not apply any edit. Used so the UI can store snapped geometry for re-apply/import.
+    #[wasm_bindgen(js_name = snapCrossingSegment)]
+    pub fn snap_crossing_segment_wasm(
+        &self,
+        start_lng: f64,
+        start_lat: f64,
+        end_lng: f64,
+        end_lat: f64,
+    ) -> Result<JsValue, JsValue> {
+        let start = Point::new(start_lng, start_lat);
+        let end = Point::new(end_lng, end_lat);
+        let (s_start, s_end) =
+            crate::edits::snap_crossing_segment(self, start, end).map_err(err_to_js)?;
+        let out = serde_json::json!({
+            "start": { "lng": s_start.x(), "lat": s_start.y() },
+            "end": { "lng": s_end.x(), "lat": s_end.y() }
+        });
+        Ok(serde_wasm_bindgen::to_value(&out)?)
+    }
+
     #[wasm_bindgen(js_name = editUndo)]
     pub fn edit_undo(&mut self) -> Result<(), JsValue> {
         let mut cmds = self.edits.take().unwrap().user_commands;

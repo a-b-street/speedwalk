@@ -28,8 +28,8 @@
   import FilterNetworkCard from "../common/FilterNetworkCard.svelte";
   import LegendList from "../common/LegendList.svelte";
   import { downloadGeneratedFile, Loading } from "svelte-utils";
-  import type { FeatureCollection, LineString, Point } from "geojson";
-  import { type WayProps, type NodeProps } from "../sidewalks";
+  import type { FeatureCollection, Point } from "geojson";
+  import { type NodeProps } from "../sidewalks";
   import { roadLineWidth } from "../sidewalks";
   import { MAPILLARY_PIN_LAYER_IDS_LIST } from "../common/mapillaryLayers";
 
@@ -46,6 +46,7 @@
   let pointA: { lng: number; lat: number } | null = $state(null);
   let pointB: { lng: number; lat: number } | null = $state(null);
   let loading = $state("");
+  let applyError = $state("");
   let overrides: ManualOverrides = $state({ version: 1, addedCrossings: [] });
   let overwritesApplied = $state(true);
   let appliedCount = $state(0);
@@ -132,6 +133,7 @@
 
   async function applyAll(segments: AddedCrossingSegment[]) {
     if (!$backend) return;
+    applyError = "";
     loading = "Applying overwrites";
     await refreshLoadingScreen();
     try {
@@ -146,6 +148,11 @@
         mutationCounter.update((n) => n + 1);
       }
       appliedCount = segments.length;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      applyError =
+        msg ||
+        "Failed to apply overwrite (e.g. could not snap to road or sidewalk)";
     } finally {
       loading = "";
     }
@@ -237,18 +244,26 @@
     loading = "Adding manual crossing";
     await refreshLoadingScreen();
     try {
-      $backend.editAddCrossingSegment(
+      const snapped = $backend.snapCrossingSegment(
         pointA.lng,
         pointA.lat,
         pointB.lng,
         pointB.lat,
+      );
+      const start = snapped.start as { lng: number; lat: number };
+      const end = snapped.end as { lng: number; lat: number };
+      $backend.editAddCrossingSegment(
+        start.lng,
+        start.lat,
+        end.lng,
+        end.lat,
         tags,
       );
       mutationCounter.update((n) => n + 1);
       const newEntry: AddedCrossingSegment = {
         id: crypto.randomUUID(),
-        start: { lat: pointA.lat, lng: pointA.lng },
-        end: { lat: pointB.lat, lng: pointB.lng },
+        start: { lat: start.lat, lng: start.lng },
+        end: { lat: end.lat, lng: end.lng },
         tags,
       };
       overrides = {
@@ -259,6 +274,10 @@
       appliedCount++;
       pointA = null;
       pointB = null;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      applyError = msg || "Could not snap to road or sidewalk";
+      return;
     } finally {
       loading = "";
     }
@@ -342,13 +361,36 @@
     if (!file) return;
     const text = await file.text();
     const data = JSON.parse(text) as ManualOverrides & { regionKey?: string };
-    const toMerge = data.addedCrossings ?? [];
+    const raw = data.addedCrossings ?? [];
+    const toMerge = raw
+      .filter(
+        (s): s is AddedCrossingSegment =>
+          s != null &&
+          "start" in s &&
+          "end" in s &&
+          typeof (s as AddedCrossingSegment).start?.lat === "number" &&
+          typeof (s as AddedCrossingSegment).end?.lat === "number",
+      )
+      .map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
     overrides = {
       version: 1,
       addedCrossings: [...overrides.addedCrossings, ...toMerge],
     };
     await saveOverrides(overrides);
     input.value = "";
+
+    if (!$backend || toMerge.length === 0) return;
+    if (!overwritesApplied) return;
+    applyError = "";
+    try {
+      const boundary = JSON.parse($backend.getBoundary());
+      const inBoundary = filterSegmentsInBoundary(toMerge, boundary);
+      if (inBoundary.length > 0) {
+        const prevApplied = appliedCount;
+        await applyAll(inBoundary);
+        appliedCount = prevApplied + inBoundary.length;
+      }
+    } catch (_) {}
   }
 
   const appliedList = $derived(segmentsInLoadedArea.slice(0, appliedCount));
@@ -440,6 +482,21 @@
         <kbd>a</kbd>
         ), apply, and export/import are available after you load data (relation, polygon,
         or file).
+      </div>
+    {/if}
+
+    {#if applyError}
+      <div
+        class="alert alert-danger py-2 small mb-3 d-flex align-items-center justify-content-between"
+        role="alert"
+      >
+        <span>{applyError}</span>
+        <button
+          type="button"
+          class="btn-close btn-close-sm"
+          aria-label="Close"
+          onclick={() => (applyError = "")}
+        ></button>
       </div>
     {/if}
 
