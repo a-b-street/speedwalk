@@ -9,6 +9,40 @@ use utils::Tags;
 
 use crate::{Kind, Node, Speedwalk, Way};
 
+/// Snaps two WGS84 points to the nearest road/sidewalk; returns snapped points in WGS84.
+/// Used by the UI to store snapped geometry so re-apply and import snap correctly.
+pub fn snap_crossing_segment(
+    model: &Speedwalk,
+    start_wgs84: Point,
+    end_wgs84: Point,
+) -> Result<(Point, Point)> {
+    let start_pt = model.mercator.to_mercator(&start_wgs84);
+    let end_pt = model.mercator.to_mercator(&end_wgs84);
+    let closest_line = RTree::bulk_load(
+        model
+            .derived_ways
+            .iter()
+            .filter(|(_, way)| way.kind.is_road() || way.kind == Kind::Sidewalk)
+            .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+            .collect(),
+    );
+    let snap_to_line = |pt: Coord| -> Result<Coord> {
+        let Some(obj) = closest_line.nearest_neighbor(&Point::from(pt)) else {
+            bail!("Couldn't find a line to snap to");
+        };
+        let snapped = match obj.geom().closest_point(&Point::from(pt)) {
+            Closest::Intersection(c) | Closest::SinglePoint(c) => c.into(),
+            Closest::Indeterminate => bail!("Couldn't snap point to line"),
+        };
+        Ok(snapped)
+    };
+    let snapped_start = snap_to_line(start_pt.into())?;
+    let snapped_end = snap_to_line(end_pt.into())?;
+    let start_out = model.mercator.pt_to_wgs84(snapped_start);
+    let end_out = model.mercator.pt_to_wgs84(snapped_end);
+    Ok((Point::from(start_out), Point::from(end_out)))
+}
+
 #[derive(Default)]
 pub struct Edits {
     pub user_commands: Vec<UserCmd>,
