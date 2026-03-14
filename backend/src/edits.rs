@@ -9,8 +9,8 @@ use utils::Tags;
 
 use crate::{Kind, Node, Speedwalk, Way};
 
-/// Snaps two WGS84 points to the nearest road/sidewalk; returns snapped points in WGS84.
-/// Used by the UI to store snapped geometry so re-apply and import snap correctly.
+/// Snaps two WGS84 points to the nearest road, sidewalk, or walkable path (e.g. footway); returns snapped points in WGS84.
+/// Includes walkable "Other" ways (e.g. highway=footway) so manual crossings can connect e.g. a footway to a road.
 pub fn snap_crossing_segment(
     model: &Speedwalk,
     start_wgs84: Point,
@@ -22,7 +22,7 @@ pub fn snap_crossing_segment(
         model
             .derived_ways
             .iter()
-            .filter(|(_, way)| way.kind.is_road() || way.kind == Kind::Sidewalk)
+            .filter(|(_, way)| way.is_snap_target_for_crossing())
             .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
             .collect(),
     );
@@ -38,6 +38,17 @@ pub fn snap_crossing_segment(
     };
     let snapped_start = snap_to_line(start_pt.into())?;
     let snapped_end = snap_to_line(end_pt.into())?;
+    // Reject degenerate case: both points snapped to the same location (e.g. same road segment)
+    let dist_m = Euclidean.distance(
+        Point::from(snapped_start),
+        Point::from(snapped_end),
+    );
+    if dist_m < 0.5 {
+        bail!(
+            "Both points snapped to the same location (distance {:.1}m). Try clicking on the two crossing ways you want to connect.",
+            dist_m
+        );
+    }
     let start_out = model.mercator.pt_to_wgs84(snapped_start);
     let end_out = model.mercator.pt_to_wgs84(snapped_end);
     Ok((Point::from(start_out), Point::from(end_out)))
@@ -181,7 +192,7 @@ impl Edits {
                     model
                         .derived_ways
                         .iter()
-                        .filter(|(_, way)| way.kind.is_road() || way.kind == Kind::Sidewalk)
+                        .filter(|(_, way)| way.is_snap_target_for_crossing())
                         .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
                         .collect(),
                 );

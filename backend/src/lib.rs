@@ -145,6 +145,15 @@ impl Way {
             true
         }
     }
+
+    /// True if this way is a valid snap target for crossing segment endpoints (roads, sidewalks,
+    /// and walkable Other e.g. footway/path). Must stay in sync with snap_crossing_segment and
+    /// AddCrossingSegment so snap and apply use the same candidate set.
+    pub fn is_snap_target_for_crossing(&self) -> bool {
+        self.kind.is_road()
+            || self.kind == Kind::Sidewalk
+            || (self.kind == Kind::Other && self.is_walkable_other())
+    }
 }
 
 #[derive(Clone, Serialize)]
