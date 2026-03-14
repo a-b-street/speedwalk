@@ -58,6 +58,12 @@ export let includeCrossingNoBulk = localStorageStore(
   false,
 );
 
+export type CrossingScopeBulk = "major" | "minor" | "all";
+export let crossingScopeBulk = localStorageStore<CrossingScopeBulk>(
+  "speedwalk-crossingScopeBulk",
+  "major",
+);
+
 // TODO Upstream several of these
 export function sum(list: number[]): number {
   return list.reduce((total, x) => total + x, 0);
