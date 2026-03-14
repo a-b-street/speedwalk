@@ -43,16 +43,18 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-/** True if the item is a segment (has start and end). Drops legacy single-point entries. */
-function isSegment(
-  x: AddedCrossingSegment | { lat?: number; lng?: number },
-): x is AddedCrossingSegment {
+/** True if the segment has valid start/end with numeric lng/lat. Reused for DB reads, imports, and runtime guards. */
+export function isValidSegment(x: unknown): x is AddedCrossingSegment {
+  const seg = x as AddedCrossingSegment;
   return (
     x != null &&
+    typeof x === "object" &&
     "start" in x &&
     "end" in x &&
-    typeof (x as AddedCrossingSegment).start?.lat === "number" &&
-    typeof (x as AddedCrossingSegment).end?.lat === "number"
+    typeof seg.start?.lat === "number" &&
+    typeof seg.start?.lng === "number" &&
+    typeof seg.end?.lat === "number" &&
+    typeof seg.end?.lng === "number"
   );
 }
 
@@ -68,7 +70,7 @@ export async function getOverrides(): Promise<ManualOverrides> {
       db.close();
       const list = raw?.addedCrossings ?? DEFAULT_OVERRIDES.addedCrossings;
       const addedCrossings = (
-        Array.isArray(list) ? list.filter(isSegment) : []
+        Array.isArray(list) ? list.filter(isValidSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
       const data = raw
         ? {
@@ -102,13 +104,14 @@ export async function saveOverrides(data: ManualOverrides): Promise<void> {
   });
 }
 
-/** Returns segments whose midpoint is inside the boundary's bbox (e.g. loaded map area). */
+/** Returns segments whose midpoint is inside the boundary's bbox (e.g. loaded map area). Skips invalid segments. */
 export function filterSegmentsInBoundary(
   segments: AddedCrossingSegment[],
   boundaryGeoJson: GeoJSON,
 ): AddedCrossingSegment[] {
   const [minLng, minLat, maxLng, maxLat] = bbox(boundaryGeoJson);
   return segments.filter((seg) => {
+    if (!isValidSegment(seg)) return false;
     const midLng = (seg.start.lng + seg.end.lng) / 2;
     const midLat = (seg.start.lat + seg.end.lat) / 2;
     return (
