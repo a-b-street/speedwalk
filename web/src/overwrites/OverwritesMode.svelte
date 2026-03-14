@@ -21,6 +21,7 @@
     CircleLayer,
     MapEvents,
     Control,
+    Marker,
   } from "svelte-maplibre";
   import type { MapMouseEvent } from "maplibre-gl";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
@@ -186,7 +187,24 @@
     }
   }
 
+  /** True when any current draft point is outside the viewport (next click acts as first click). */
+  function anyDraftPointOutsideViewport(): boolean {
+    if (!$map || (!pointA && !pointB)) return false;
+    const b = $map.getBounds();
+    if (pointA && !b.contains([pointA.lng, pointA.lat])) return true;
+    if (pointB && !b.contains([pointB.lng, pointB.lat])) return true;
+    return false;
+  }
+
   function onMapClick(e: MapMouseEvent) {
+    // Ignore clicks on draft markers (they are draggable; map click would otherwise move points).
+    if (
+      (e.originalEvent?.target as Element)?.closest?.(
+        ".overwrites-draft-marker",
+      )
+    ) {
+      return;
+    }
     // Do not set overwrite marker when clicking a Mapillary pin (only when clicking the map).
     // Mapillary layers are conditional; only query layers that exist in the current style.
     if ($map && e.point) {
@@ -218,6 +236,12 @@
       return;
     }
     const pt = { lng, lat };
+    // If any draft point is outside the viewport, start fresh (e.g. one accidental click then zoom away).
+    if ((pointA || pointB) && anyDraftPointOutsideViewport()) {
+      pointA = pt;
+      pointB = null;
+      return;
+    }
     if (pointA === null) {
       pointA = pt;
     } else if (pointB === null) {
@@ -247,7 +271,9 @@
   } | null {
     if (snapped == null || typeof snapped !== "object") return null;
     const get = (obj: unknown, key: string): unknown =>
-      obj instanceof Map ? obj.get(key) : (obj as Record<string, unknown>)?.[key];
+      obj instanceof Map
+        ? obj.get(key)
+        : (obj as Record<string, unknown>)?.[key];
     const getNum = (o: unknown, key: string): number | undefined => {
       const v = get(o, key);
       return typeof v === "number" ? v : undefined;
@@ -280,7 +306,12 @@
     try {
       const a = { lng: pointA.lng, lat: pointA.lat };
       const b = { lng: pointB.lng, lat: pointB.lat };
-      console.debug("[Overwrites] Adding manual crossing: pointA =", a, "pointB =", b);
+      console.debug(
+        "[Overwrites] Adding manual crossing: pointA =",
+        a,
+        "pointB =",
+        b,
+      );
       const snapped = $backend.snapCrossingSegment(
         pointA.lng,
         pointA.lat,
@@ -289,7 +320,10 @@
       );
       const normalized = normalizeSnappedResult(snapped);
       if (normalized == null) {
-        console.error("[Overwrites] snapCrossingSegment returned invalid value:", snapped);
+        console.error(
+          "[Overwrites] snapCrossingSegment returned invalid value:",
+          snapped,
+        );
         applyError = "Snap failed: no result from backend";
         return;
       }
@@ -341,24 +375,26 @@
     if (!$backend) return;
     const id = segment.id;
     const list = overrides.addedCrossings.filter((s) => s.id !== id);
-    const wasApplied =
-      segmentsInLoadedArea.findIndex((s) => s.id === id) < appliedCount;
+    const appliedOrder = segmentsInLoadedArea;
+    const deletedIndex = appliedOrder.findIndex((s) => s.id === id);
+    const wasApplied = deletedIndex >= 0 && deletedIndex < appliedCount;
     overrides = { ...overrides, addedCrossings: list };
     await saveOverrides(overrides);
     if (wasApplied && $backend) {
       loading = "Removing crossing";
       await refreshLoadingScreen();
       try {
-        for (let i = 0; i < appliedCount; i++) {
+        // Undo only until we've removed the command for this segment (backend stack order
+        // matches appliedOrder). Each undo replays the whole stack, so we do the minimum
+        // number of undos to avoid repeated ConnectAllCrossings etc.
+        const undosNeeded = appliedCount - deletedIndex;
+        for (let i = 0; i < undosNeeded; i++) {
           $backend.editUndo();
           mutationCounter.update((n) => n + 1);
         }
-        appliedCount = 0;
-        const stillInLoadedArea = filterSegmentsInBoundary(
-          list,
-          JSON.parse($backend.getBoundary()),
-        );
-        for (const seg of stillInLoadedArea) {
+        // Re-apply segments that were after the deleted one (we popped them when we undid).
+        const toReapply = appliedOrder.slice(deletedIndex + 1, appliedCount);
+        for (const seg of toReapply) {
           if (!isValidSegment(seg)) continue;
           $backend.editAddCrossingSegment(
             seg.start.lng,
@@ -369,7 +405,7 @@
           );
           mutationCounter.update((n) => n + 1);
         }
-        appliedCount = stillInLoadedArea.length;
+        appliedCount = deletedIndex + toReapply.length;
       } finally {
         loading = "";
       }
@@ -434,29 +470,6 @@
   const appliedList = $derived(segmentsInLoadedArea.slice(0, appliedCount));
   const notAppliedList = $derived(segmentsInLoadedArea.slice(appliedCount));
 
-  const draftPointsGeoJSON = $derived.by(() => {
-    const features: Array<{
-      type: "Feature";
-      geometry: { type: "Point"; coordinates: [number, number] };
-      properties: { dot: string };
-    }> = [];
-    if (pointA) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [pointA.lng, pointA.lat] },
-        properties: { dot: "red" },
-      });
-    }
-    if (pointB) {
-      features.push({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [pointB.lng, pointB.lat] },
-        properties: { dot: "blue" },
-      });
-    }
-    return { type: "FeatureCollection" as const, features };
-  });
-
   const draftLineGeoJSON = $derived.by(() => {
     const a = pointA;
     const b = pointB;
@@ -498,17 +511,43 @@
       title="Manual overwrites"
       lead="Modify the network by manually removing geometries and adding junctions. Changes are stored in your browser."
     >
-      <p class="small mb-1">
+      <p class="small mb-2">
         <strong>Add crossing:</strong>
-        First click = red (left), second = blue (right). Click again to move either
-        point. Press
+        Place two points on the map (first = left/red, second = right/blue).
+        Drag markers to adjust, or click the map to set or move them. If both
+        points are off the map, the next click starts a new draft. Use
+        <strong>Add crossing</strong>
+        or press
         <kbd>a</kbd>
-        to add; both points are snapped to the nearest road or sidewalk.
+        to snap to the network and save. Use
+        <strong>Reset draft</strong>
+         to clear both points.
       </p>
-      <p class="small mb-0 text-muted">
+      <p class="small mb-2 text-muted">
         The new crossing is a routable segment between the two snapped points on
         the network.
       </p>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          onclick={() => {
+            pointA = null;
+            pointB = null;
+          }}
+          disabled={!pointA && !pointB}
+        >
+          Reset draft
+        </button>
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          onclick={() => addCrossingSegmentFromDraft()}
+          disabled={!pointA || !pointB || !$backend}
+        >
+          Add crossing
+        </button>
+      </div>
     </Jumbotron>
 
     <FilterNetworkCard />
@@ -538,24 +577,23 @@
       </div>
     {/if}
 
-    <button
-      class="btn mb-3 w-100 {overwritesApplied
-        ? 'btn-secondary'
-        : 'btn-primary'}"
-      onclick={toggleApply}
-      disabled={!$backend}
-    >
-      {overwritesApplied
-        ? "Unapply manual overwrites from current data"
-        : "Apply manual overwrites to current data"}
-    </button>
-
     <CollapsibleCard open={true}>
       {#snippet header()}
         In loaded area: {segmentsInLoadedArea.length} in storage, {appliedCount}
         applied
       {/snippet}
       {#snippet body()}
+        <button
+          class="btn mb-3 {overwritesApplied
+            ? 'btn-secondary'
+            : 'btn-primary'}"
+          onclick={toggleApply}
+          disabled={!$backend}
+        >
+          {overwritesApplied
+            ? "Unapply manual overwrites from current data"
+            : "Apply manual overwrites to current data"}
+        </button>
         {#if notAppliedList.length > 0}
           <h6 class="mt-2">Not applied</h6>
           <ul class="list-unstyled small">
@@ -688,26 +726,33 @@
         />
       </GeoJSON>
     {/if}
-    {#if pointA || pointB}
-      <GeoJSON data={draftPointsGeoJSON} generateId>
-        <CircleLayer
-          id="overwrites-draft-dots"
-          paint={{
-            "circle-radius": 12,
-            "circle-color": [
-              "match",
-              ["get", "dot"],
-              "red",
-              "#e74c3c",
-              "blue",
-              "#3498db",
-              "#999",
-            ],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#fff",
-          }}
-        />
-      </GeoJSON>
+    {#if pointA}
+      <Marker
+        class="overwrites-draft-marker overwrites-draft-marker--red"
+        bind:lngLat={pointA}
+        draggable={true}
+      >
+        {#snippet children()}
+          <div
+            class="overwrites-draft-dot overwrites-draft-dot--red"
+            title="Left point (drag to move)"
+          ></div>
+        {/snippet}
+      </Marker>
+    {/if}
+    {#if pointB}
+      <Marker
+        class="overwrites-draft-marker overwrites-draft-marker--blue"
+        bind:lngLat={pointB}
+        draggable={true}
+      >
+        {#snippet children()}
+          <div
+            class="overwrites-draft-dot overwrites-draft-dot--blue"
+            title="Right point (drag to move)"
+          ></div>
+        {/snippet}
+      </Marker>
     {/if}
 
     <Control position="top-right">
@@ -718,23 +763,29 @@
         {/snippet}
       </CollapsibleCard>
     </Control>
-
-    {#if pointA && pointB}
-      <div
-        class="position-absolute top-0 start-50 translate-middle-x mt-2 px-2 py-1 bg-light border rounded small"
-      >
-        Red = left, blue = right. Click again to move left or right point. Press <kbd
-        >
-          a
-        </kbd>
-        to add crossing.
-      </div>
-    {:else if pointA}
-      <div
-        class="position-absolute top-0 start-50 translate-middle-x mt-2 px-2 py-1 bg-light border rounded small"
-      >
-        First point set (red, left). Click for second point (blue, right).
-      </div>
-    {/if}
   {/snippet}
 </SplitComponent>
+
+<style>
+  :global(.overwrites-draft-marker) {
+    cursor: grab;
+  }
+  :global(.overwrites-draft-marker:active) {
+    cursor: grabbing;
+  }
+  .overwrites-draft-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    margin-left: -12px;
+    margin-top: -12px;
+  }
+  .overwrites-draft-dot--red {
+    background-color: #e74c3c;
+  }
+  .overwrites-draft-dot--blue {
+    background-color: #3498db;
+  }
+</style>
