@@ -6,6 +6,8 @@
     refreshLoadingScreen,
     onlyMajorRoadsBulk,
     includeCrossingNoBulk,
+    crossingScopeBulk,
+    type CrossingScopeBulk,
   } from "../";
 
   const defaultCrossingOptions = {
@@ -18,47 +20,29 @@
     max_distance: 40,
   };
 
+  const crossingScopeOptions: { value: CrossingScopeBulk; label: string }[] = [
+    { value: "major", label: "Major roads only" },
+    { value: "minor", label: "Major + minor, excl. service/track" },
+    {
+      value: "all",
+      label: "All roads (excl. cycleways, footways, motorways, roundabouts)",
+    },
+  ];
+
   let loading = $state("");
   let driveOnLeft = $state(true);
 
-  async function generateCrossingsMajor() {
-    loading = "Generating crossings on major roads";
-    await refreshLoadingScreen();
-    try {
-      $backend!.editGenerateMissingCrossings({
-        ...defaultCrossingOptions,
-        only_major_roads: true,
-      });
-      $mutationCounter++;
-    } catch (err) {
-      window.alert(`Error: ${err}`);
-    } finally {
-      loading = "";
-    }
-  }
-
-  async function generateCrossingsMinor() {
-    loading = "Generating crossings on minor roads";
-    await refreshLoadingScreen();
-    try {
-      $backend!.editGenerateMissingCrossings({
-        ...defaultCrossingOptions,
-        only_major_roads: false,
-        ignore_utility_roads: true,
-      });
-      $mutationCounter++;
-    } catch (err) {
-      window.alert(`Error: ${err}`);
-    } finally {
-      loading = "";
-    }
-  }
-
-  async function generateCrossingsAll() {
+  async function generateCrossings() {
+    const scope = $crossingScopeBulk;
+    const options = {
+      ...defaultCrossingOptions,
+      only_major_roads: scope === "major",
+      ignore_utility_roads: scope !== "all",
+    };
     loading = "Generating missing crossings";
     await refreshLoadingScreen();
     try {
-      $backend!.editGenerateMissingCrossings(defaultCrossingOptions);
+      $backend!.editGenerateMissingCrossings(options);
       $mutationCounter++;
     } catch (err) {
       window.alert(`Error: ${err}`);
@@ -110,22 +94,31 @@
 <Loading {loading} />
 
 <div class="card mb-3">
-  <div class="card-header">Generate crossings</div>
+  <div class="card-header">
+    <LocalStorageWrapper>
+      <span>Generate crossings</span>
+    </LocalStorageWrapper>
+  </div>
   <div class="card-body">
-    <button
-      class="btn btn-secondary me-2 mb-2"
-      onclick={generateCrossingsMajor}
-    >
-      Generate crossings on major roads
-    </button>
-    <button
-      class="btn btn-secondary me-2 mb-2"
-      onclick={generateCrossingsMinor}
-    >
-      Generate crossings on minor roads (excluding service)
-    </button>
-    <button class="btn btn-secondary mb-2" onclick={generateCrossingsAll}>
-      Generate imaginary crossings where they're missing
+    <div class="mb-2">
+      {#each crossingScopeOptions as opt}
+        <div class="form-check">
+          <input
+            type="radio"
+            class="form-check-input"
+            name="crossingScope"
+            id="crossingScope-{opt.value}"
+            value={opt.value}
+            bind:group={$crossingScopeBulk}
+          />
+          <label class="form-check-label" for="crossingScope-{opt.value}">
+            {opt.label}
+          </label>
+        </div>
+      {/each}
+    </div>
+    <button class="btn btn-secondary" onclick={generateCrossings}>
+      Generate missing crossings
     </button>
   </div>
 </div>
