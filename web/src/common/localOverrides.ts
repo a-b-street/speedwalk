@@ -5,23 +5,16 @@
  */
 import type { GeoJSON } from "geojson";
 import { bbox } from "svelte-utils/map";
+import {
+  type AddedCrossingSegment,
+  type ManualOverrides,
+  isValidSegment,
+} from "./overridesSchema";
 
 const DB_NAME = "speedwalk-overrides";
 const DB_VERSION = 2;
 const STORE_NAME = "overrides";
 const OVERRIDES_RECORD_ID = "default";
-
-export interface AddedCrossingSegment {
-  id?: string;
-  start: { lat: number; lng: number };
-  end: { lat: number; lng: number };
-  tags: Record<string, string>;
-}
-
-export interface ManualOverrides {
-  version: number;
-  addedCrossings: AddedCrossingSegment[];
-}
 
 const DEFAULT_OVERRIDES: ManualOverrides = {
   version: 1,
@@ -41,21 +34,6 @@ function openDb(): Promise<IDBDatabase> {
       }
     };
   });
-}
-
-/** True if the segment has valid start/end with numeric lng/lat. Reused for DB reads, imports, and runtime guards. */
-export function isValidSegment(x: unknown): x is AddedCrossingSegment {
-  const seg = x as AddedCrossingSegment;
-  return (
-    x != null &&
-    typeof x === "object" &&
-    "start" in x &&
-    "end" in x &&
-    typeof seg.start?.lat === "number" &&
-    typeof seg.start?.lng === "number" &&
-    typeof seg.end?.lat === "number" &&
-    typeof seg.end?.lng === "number"
-  );
 }
 
 export async function getOverrides(): Promise<ManualOverrides> {
@@ -111,7 +89,6 @@ export function filterSegmentsInBoundary(
 ): AddedCrossingSegment[] {
   const [minLng, minLat, maxLng, maxLat] = bbox(boundaryGeoJson);
   return segments.filter((seg) => {
-    if (!isValidSegment(seg)) return false;
     const midLng = (seg.start.lng + seg.end.lng) / 2;
     const midLat = (seg.start.lat + seg.end.lat) / 2;
     return (
