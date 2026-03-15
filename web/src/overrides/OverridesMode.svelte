@@ -665,7 +665,7 @@
       <button
         class="btn btn-secondary btn-sm me-1"
         onclick={exportOverrides}
-        disabled={!$backend}
+        disabled={!$backend || overrides.addedCrossings.length === 0}
       >
         Export overrides
       </button>
