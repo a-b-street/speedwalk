@@ -583,15 +583,17 @@
         applied
       {/snippet}
       {#snippet body()}
-        <button
-          class="btn mb-3 {overridesApplied ? 'btn-secondary' : 'btn-primary'}"
-          onclick={toggleApply}
-          disabled={!$backend}
-        >
-          {overridesApplied
-            ? "Unapply manual overrides from current data"
-            : "Apply manual overrides to current data"}
-        </button>
+        {#if segmentsInLoadedArea.length > 0}
+          <button
+            class="btn mb-3 {overridesApplied ? 'btn-secondary' : 'btn-primary'}"
+            onclick={toggleApply}
+            disabled={!$backend}
+          >
+            {overridesApplied
+              ? "Unapply manual overrides from current data"
+              : "Apply manual overrides to current data"}
+          </button>
+        {/if}
         {#if notAppliedList.length > 0}
           <h6 class="mt-2">Not applied</h6>
           <ul class="list-unstyled small">
