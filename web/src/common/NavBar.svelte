@@ -25,7 +25,7 @@
   const routeNetworkActions = [
     ...auditActions,
     [{ kind: "generator" }, "Generator"],
-    [{ kind: "overwrites" }, "Overwrites"],
+    [{ kind: "overrides" }, "Overrides"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 

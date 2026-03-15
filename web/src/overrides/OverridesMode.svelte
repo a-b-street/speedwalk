@@ -35,7 +35,7 @@
   import { roadLineWidth } from "../sidewalks";
   import { MAPILLARY_PIN_LAYER_IDS_LIST } from "../common/mapillaryLayers";
 
-  const overwritesLegendItems = [
+  const overridesLegendItems = [
     { label: "Base data", color: "black", swatchClass: "rectangle" as const },
     {
       label: "Manually added",
@@ -50,7 +50,7 @@
   let loading = $state("");
   let applyError = $state("");
   let overrides: ManualOverrides = $state({ version: 1, addedCrossings: [] });
-  let overwritesApplied = $state(true);
+  let overridesApplied = $state(true);
   let appliedCount = $state(0);
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
     type: "FeatureCollection",
@@ -76,7 +76,7 @@
       overrides = data;
       const boundary = JSON.parse(b.getBoundary());
       const list = filterSegmentsInBoundary(data.addedCrossings, boundary);
-      if (overwritesApplied && list.length > 0 && appliedCount === 0) {
+      if (overridesApplied && list.length > 0 && appliedCount === 0) {
         applyAll(list);
       }
     });
@@ -136,7 +136,7 @@
   async function applyAll(segments: AddedCrossingSegment[]) {
     if (!$backend) return;
     applyError = "";
-    loading = "Applying overwrites";
+    loading = "Applying overrides";
     await refreshLoadingScreen();
     try {
       for (const seg of segments) {
@@ -155,7 +155,7 @@
       const msg = e instanceof Error ? e.message : String(e);
       applyError =
         msg ||
-        "Failed to apply overwrite (e.g. could not snap to road or sidewalk)";
+        "Failed to apply override (e.g. could not snap to road or sidewalk)";
     } finally {
       loading = "";
     }
@@ -163,7 +163,7 @@
 
   async function unapplyAll() {
     if (!$backend || appliedCount === 0) return;
-    loading = "Unapplying overwrites";
+    loading = "Unapplying overrides";
     await refreshLoadingScreen();
     try {
       for (let i = 0; i < appliedCount; i++) {
@@ -178,12 +178,12 @@
 
   async function toggleApply() {
     if (!$backend) return;
-    if (overwritesApplied) {
+    if (overridesApplied) {
       await unapplyAll();
-      overwritesApplied = false;
+      overridesApplied = false;
     } else {
       await applyAll(segmentsInLoadedArea);
-      overwritesApplied = true;
+      overridesApplied = true;
     }
   }
 
@@ -199,13 +199,11 @@
   function onMapClick(e: MapMouseEvent) {
     // Ignore clicks on draft markers (they are draggable; map click would otherwise move points).
     if (
-      (e.originalEvent?.target as Element)?.closest?.(
-        ".overwrites-draft-marker",
-      )
+      (e.originalEvent?.target as Element)?.closest?.(".overrides-draft-marker")
     ) {
       return;
     }
-    // Do not set overwrite marker when clicking a Mapillary pin (only when clicking the map).
+    // Do not set override marker when clicking a Mapillary pin (only when clicking the map).
     // Mapillary layers are conditional; only query layers that exist in the current style.
     if ($map && e.point) {
       const style = $map.getStyle();
@@ -307,7 +305,7 @@
       const a = { lng: pointA.lng, lat: pointA.lat };
       const b = { lng: pointB.lng, lat: pointB.lat };
       console.debug(
-        "[Overwrites] Adding manual crossing: pointA =",
+        "[Overrides] Adding manual crossing: pointA =",
         a,
         "pointB =",
         b,
@@ -321,7 +319,7 @@
       const normalized = normalizeSnappedResult(snapped);
       if (normalized == null) {
         console.error(
-          "[Overwrites] snapCrossingSegment returned invalid value:",
+          "[Overrides] snapCrossingSegment returned invalid value:",
           snapped,
         );
         applyError = "Snap failed: no result from backend";
@@ -352,7 +350,7 @@
       pointB = null;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      console.error("[Overwrites] addCrossingSegmentFromDraft error:", e);
+      console.error("[Overrides] addCrossingSegmentFromDraft error:", e);
       applyError = msg || "Could not snap to road or sidewalk";
       return;
     } finally {
@@ -426,13 +424,13 @@
     );
   }
 
-  function exportOverwrites() {
+  function exportOverrides() {
     const blob = JSON.stringify(overrides, null, 2);
-    downloadGeneratedFile("speedwalk-overwrites.json", blob);
+    downloadGeneratedFile("speedwalk-overrides.json", blob);
   }
 
   let importInput: HTMLInputElement;
-  function importOverwrites() {
+  function importOverrides() {
     importInput?.click();
   }
 
@@ -454,7 +452,7 @@
     input.value = "";
 
     if (!$backend || toMerge.length === 0) return;
-    if (!overwritesApplied) return;
+    if (!overridesApplied) return;
     applyError = "";
     try {
       const boundary = JSON.parse($backend.getBoundary());
@@ -508,20 +506,20 @@
 <SplitComponent>
   {#snippet left()}
     <Jumbotron
-      title="Manual overwrites"
+      title="Manual overrides"
       lead="Modify the network by manually removing geometries and adding junctions. Changes are stored in your browser."
     >
       <p class="small mb-2">
         <strong>Add crossing:</strong>
-        Place two points on the map (first = left/red, second = right/blue).
-        Drag markers to adjust, or click the map to set or move them. If both
-        points are off the map, the next click starts a new draft. Use
+        Place two points on the map (first = left/red, second = right/blue). Drag
+        markers to adjust, or click the map to set or move them. If both points are
+        off the map, the next click starts a new draft. Use
         <strong>Add crossing</strong>
         or press
         <kbd>a</kbd>
         to snap to the network and save. Use
         <strong>Reset draft</strong>
-         to clear both points.
+        to clear both points.
       </p>
       <p class="small mb-2 text-muted">
         The new crossing is a routable segment between the two snapped points on
@@ -584,15 +582,13 @@
       {/snippet}
       {#snippet body()}
         <button
-          class="btn mb-3 {overwritesApplied
-            ? 'btn-secondary'
-            : 'btn-primary'}"
+          class="btn mb-3 {overridesApplied ? 'btn-secondary' : 'btn-primary'}"
           onclick={toggleApply}
           disabled={!$backend}
         >
-          {overwritesApplied
-            ? "Unapply manual overwrites from current data"
-            : "Apply manual overwrites to current data"}
+          {overridesApplied
+            ? "Unapply manual overrides from current data"
+            : "Apply manual overrides to current data"}
         </button>
         {#if notAppliedList.length > 0}
           <h6 class="mt-2">Not applied</h6>
@@ -653,7 +649,7 @@
             {#if overrides.addedCrossings.length === 0}
               No manual crossings yet.
             {:else}
-              No overwrites in loaded area ({overrides.addedCrossings.length} total
+              No overrides in loaded area ({overrides.addedCrossings.length} total
               in storage).
             {/if}
           </p>
@@ -664,17 +660,17 @@
     <div class="mt-3">
       <button
         class="btn btn-secondary btn-sm me-1"
-        onclick={exportOverwrites}
+        onclick={exportOverrides}
         disabled={!$backend}
       >
-        Export overwrites
+        Export overrides
       </button>
       <button
         class="btn btn-secondary btn-sm"
-        onclick={importOverwrites}
+        onclick={importOverrides}
         disabled={!$backend}
       >
-        Import overwrites
+        Import overrides
       </button>
     </div>
   {/snippet}
@@ -686,7 +682,7 @@
     {#if $backend}
       <GeoJSON data={filteredNetworkGeoJSON} generateId>
         <LineLayer
-          id="overwrites-ways"
+          id="overrides-ways"
           paint={{
             "line-width": roadLineWidth(0),
             "line-color": [
@@ -700,7 +696,7 @@
       </GeoJSON>
       <GeoJSON data={filteredNodesGeoJSON} generateId>
         <CircleLayer
-          id="overwrites-nodes"
+          id="overrides-nodes"
           paint={{
             "circle-radius": 6,
             "circle-color": [
@@ -717,7 +713,7 @@
     {#if pointA && pointB}
       <GeoJSON data={draftLineGeoJSON} generateId>
         <LineLayer
-          id="overwrites-draft-line"
+          id="overrides-draft-line"
           paint={{
             "line-width": 4,
             "line-color": "#9b59b6",
@@ -728,13 +724,13 @@
     {/if}
     {#if pointA}
       <Marker
-        class="overwrites-draft-marker overwrites-draft-marker--red"
+        class="overrides-draft-marker overrides-draft-marker--red"
         bind:lngLat={pointA}
         draggable={true}
       >
         {#snippet children()}
           <div
-            class="overwrites-draft-dot overwrites-draft-dot--red"
+            class="overrides-draft-dot overrides-draft-dot--red"
             title="Left point (drag to move)"
           ></div>
         {/snippet}
@@ -742,13 +738,13 @@
     {/if}
     {#if pointB}
       <Marker
-        class="overwrites-draft-marker overwrites-draft-marker--blue"
+        class="overrides-draft-marker overrides-draft-marker--blue"
         bind:lngLat={pointB}
         draggable={true}
       >
         {#snippet children()}
           <div
-            class="overwrites-draft-dot overwrites-draft-dot--blue"
+            class="overrides-draft-dot overrides-draft-dot--blue"
             title="Right point (drag to move)"
           ></div>
         {/snippet}
@@ -759,7 +755,7 @@
       <CollapsibleCard>
         {#snippet header()}Legend{/snippet}
         {#snippet body()}
-          <LegendList items={overwritesLegendItems} />
+          <LegendList items={overridesLegendItems} />
         {/snippet}
       </CollapsibleCard>
     </Control>
@@ -767,13 +763,13 @@
 </SplitComponent>
 
 <style>
-  :global(.overwrites-draft-marker) {
+  :global(.overrides-draft-marker) {
     cursor: grab;
   }
-  :global(.overwrites-draft-marker:active) {
+  :global(.overrides-draft-marker:active) {
     cursor: grabbing;
   }
-  .overwrites-draft-dot {
+  .overrides-draft-dot {
     width: 24px;
     height: 24px;
     border-radius: 50%;
@@ -782,10 +778,10 @@
     margin-left: -12px;
     margin-top: -12px;
   }
-  .overwrites-draft-dot--red {
+  .overrides-draft-dot--red {
     background-color: #e74c3c;
   }
-  .overwrites-draft-dot--blue {
+  .overrides-draft-dot--blue {
     background-color: #3498db;
   }
 </style>

@@ -19,12 +19,12 @@ export type Mode =
   | { kind: "disconnections" }
   | { kind: "generator" }
   | { kind: "export" }
-  | { kind: "overwrites" };
+  | { kind: "overrides" };
 
 /** Mode kinds only available when use case is "route-networks". When switching to audit, redirect off these. */
 export const ROUTE_NETWORK_ONLY_MODE_KINDS: Mode["kind"][] = [
   "generator",
-  "overwrites",
+  "overrides",
   "export",
 ];
 
