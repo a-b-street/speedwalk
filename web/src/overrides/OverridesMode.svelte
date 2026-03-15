@@ -403,6 +403,22 @@
     downloadGeneratedFile("speedwalk-overrides.json", blob);
   }
 
+  async function deleteAllOverrides() {
+    const n = overrides.addedCrossings.length;
+    const msg =
+      n === 0
+        ? "There are no local overrides to delete."
+        : `Delete all ${n} local override${n === 1 ? "" : "s"}? This will remove them from storage and from the map. This cannot be undone.`;
+    if (!window.confirm(msg)) return;
+    if ($backend && appliedCount > 0) {
+      loading = "Removing overrides from map";
+      await refreshLoadingScreen();
+      await unapplyAll();
+    }
+    overrides = { version: 1, addedCrossings: [] };
+    await saveOverrides(overrides);
+  }
+
   let importInput: HTMLInputElement;
   function importOverrides() {
     importInput?.click();
@@ -652,11 +668,18 @@
         Export overrides
       </button>
       <button
-        class="btn btn-secondary btn-sm"
+        class="btn btn-secondary btn-sm me-1"
         onclick={importOverrides}
         disabled={!$backend}
       >
         Import overrides
+      </button>
+      <button
+        class="btn btn-outline-danger btn-sm"
+        onclick={() => deleteAllOverrides()}
+        disabled={overrides.addedCrossings.length === 0}
+      >
+        Delete all overrides
       </button>
     </div>
   {/snippet}
