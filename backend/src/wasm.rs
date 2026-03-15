@@ -359,16 +359,16 @@ impl Speedwalk {
         start_lat: f64,
         end_lng: f64,
         end_lat: f64,
-    ) -> Result<JsValue, JsValue> {
+    ) -> Result<String, JsValue> {
         let start = Point::new(start_lng, start_lat);
         let end = Point::new(end_lng, end_lat);
         let (s_start, s_end) =
             crate::edits::snap_crossing_segment(self, start, end).map_err(err_to_js)?;
         let out = serde_json::json!({
-            "start": { "lng": s_start.x(), "lat": s_start.y() },
-            "end": { "lng": s_end.x(), "lat": s_end.y() }
+            "start": { "lat": s_start.y(), "lng": s_start.x() },
+            "end": { "lat": s_end.y(), "lng": s_end.x() }
         });
-        Ok(serde_wasm_bindgen::to_value(&out)?)
+        serde_json::to_string(&out).map_err(err_to_js)
     }
 
     #[wasm_bindgen(js_name = editUndo)]

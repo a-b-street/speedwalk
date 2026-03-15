@@ -3,10 +3,14 @@
     getOverrides,
     saveOverrides,
     filterSegmentsInBoundary,
-    isValidSegment,
-    type ManualOverrides,
-    type AddedCrossingSegment,
   } from "../common/localOverrides";
+  import {
+    type AddedCrossingSegment,
+    type ManualOverrides,
+    isValidSegment,
+    manualOverridesSchema,
+    snappedSegmentSchema,
+  } from "../common/overridesSchema";
   import {
     backend,
     map,
@@ -262,40 +266,6 @@
     }
   }
 
-  /** Backend may return a plain object or a Map (from WASM/serde). Normalize to { start: { lng, lat }, end: { lng, lat } }. */
-  function normalizeSnappedResult(snapped: unknown): {
-    start: { lng: number; lat: number };
-    end: { lng: number; lat: number };
-  } | null {
-    if (snapped == null || typeof snapped !== "object") return null;
-    const get = (obj: unknown, key: string): unknown =>
-      obj instanceof Map
-        ? obj.get(key)
-        : (obj as Record<string, unknown>)?.[key];
-    const getNum = (o: unknown, key: string): number | undefined => {
-      const v = get(o, key);
-      return typeof v === "number" ? v : undefined;
-    };
-    const startRaw = get(snapped, "start");
-    const endRaw = get(snapped, "end");
-    if (startRaw == null || endRaw == null) return null;
-    const startLng = getNum(startRaw, "lng");
-    const startLat = getNum(startRaw, "lat");
-    const endLng = getNum(endRaw, "lng");
-    const endLat = getNum(endRaw, "lat");
-    if (
-      startLng == null ||
-      startLat == null ||
-      endLng == null ||
-      endLat == null
-    )
-      return null;
-    return {
-      start: { lng: startLng, lat: startLat },
-      end: { lng: endLng, lat: endLat },
-    };
-  }
-
   async function addCrossingSegmentFromDraft() {
     if (!pointA || !pointB || !$backend) return;
     const tags = { ...crossingWayTags };
@@ -310,22 +280,26 @@
         "pointB =",
         b,
       );
-      const snapped = $backend.snapCrossingSegment(
-        pointA.lng,
-        pointA.lat,
-        pointB.lng,
-        pointB.lat,
+      const rawSnapped = JSON.parse(
+        $backend.snapCrossingSegment(
+          pointA.lng,
+          pointA.lat,
+          pointB.lng,
+          pointB.lat,
+        ),
       );
-      const normalized = normalizeSnappedResult(snapped);
-      if (normalized == null) {
-        console.error(
-          "[Overrides] snapCrossingSegment returned invalid value:",
-          snapped,
+      const parsed = snappedSegmentSchema.safeParse(rawSnapped);
+      if (!parsed.success) {
+        console.warn(
+          "[Overrides] snapCrossingSegment returned invalid shape:",
+          rawSnapped,
+          parsed.error,
         );
-        applyError = "Snap failed: no result from backend";
+        applyError =
+          "Could not snap to road or sidewalk. Ensure both points are near a road or footway.";
         return;
       }
-      const { start, end } = normalized;
+      const { start, end } = parsed.data;
       $backend.editAddCrossingSegment(
         start.lng,
         start.lat,
@@ -336,8 +310,8 @@
       mutationCounter.update((n) => n + 1);
       const newEntry: AddedCrossingSegment = {
         id: crypto.randomUUID(),
-        start: { lat: start.lat, lng: start.lng },
-        end: { lat: end.lat, lng: end.lng },
+        start,
+        end,
         tags,
       };
       overrides = {
@@ -439,11 +413,23 @@
     const file = input.files?.[0];
     if (!file) return;
     const text = await file.text();
-    const data = JSON.parse(text) as ManualOverrides & { regionKey?: string };
-    const raw = data.addedCrossings ?? [];
-    const toMerge = raw
-      .filter(isValidSegment)
-      .map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
+    let json: unknown;
+    try {
+      json = JSON.parse(text);
+    } catch (_) {
+      applyError = "Invalid JSON";
+      input.value = "";
+      return;
+    }
+    const out = manualOverridesSchema.safeParse(json);
+    if (!out.success) {
+      applyError = "Invalid overrides file format";
+      input.value = "";
+      return;
+    }
+    const toMerge = out.data.addedCrossings.map((seg) =>
+      seg.id ? seg : { ...seg, id: crypto.randomUUID() },
+    );
     overrides = {
       version: 1,
       addedCrossings: [...overrides.addedCrossings, ...toMerge],
