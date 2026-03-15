@@ -19,7 +19,7 @@
   import DisconnectionsMode from "./DisconnectionsMode.svelte";
   import ExportMode from "./ExportMode.svelte";
   import GeneratorMode from "./generator/GeneratorMode.svelte";
-  import OverwritesMode from "./overwrites/OverwritesMode.svelte";
+  import OverridesMode from "./overrides/OverridesMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
 
@@ -58,7 +58,7 @@
                 "heatmap-",
                 "symbol-",
                 "speedwalk-",
-                "overwrites-",
+                "overrides-",
                 "edit-polygon-",
                 "mapillary-",
               ].some((prefix) => l.id.startsWith(prefix)),
@@ -140,8 +140,8 @@
                 <DisconnectionsMode />
               {:else if $mode.kind == "generator"}
                 <GeneratorMode />
-              {:else if $mode.kind == "overwrites"}
-                <OverwritesMode />
+              {:else if $mode.kind == "overrides"}
+                <OverridesMode />
               {:else if $mode.kind == "export"}
                 <ExportMode />
               {/if}

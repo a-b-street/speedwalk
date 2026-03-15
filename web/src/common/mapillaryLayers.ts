@@ -1,6 +1,6 @@
 /**
  * Stable layer IDs for Mapillary pin layers (image points). Used so other modes
- * (e.g. Overwrites) can detect clicks on Mapillary pins and avoid conflicting behavior.
+ * (e.g. Overrides) can detect clicks on Mapillary pins and avoid conflicting behavior.
  */
 export const MAPILLARY_PIN_LAYER_IDS = {
   symbol: "mapillary-image-symbol",

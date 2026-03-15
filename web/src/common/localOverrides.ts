@@ -1,5 +1,5 @@
 /**
- * Manual overwrites (e.g. added crossing segments) stored in IndexedDB.
+ * Manual overrides (e.g. added crossing segments) stored in IndexedDB.
  * We store a single overrides blob (one record). Boundary filtering is separate:
  * filterSegmentsInBoundary() filters segments by the loaded map boundary (bbox).
  */
