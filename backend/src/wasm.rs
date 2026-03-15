@@ -270,14 +270,14 @@ impl Speedwalk {
         let mut edits = self.edits.take().unwrap();
         edits
             .apply_cmd(
-                UserCmd::SetTags(
-                    WayID(base),
+                UserCmd::SetTags {
+                    way: WayID(base),
                     remove_keys,
-                    add_tags
+                    add_tags: add_tags
                         .into_iter()
                         .map(|mut kv| (kv.remove(0), kv.remove(0)))
                         .collect(),
-                ),
+                },
                 self,
             )
             .map_err(err_to_js)?;
