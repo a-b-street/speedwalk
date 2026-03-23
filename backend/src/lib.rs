@@ -147,12 +147,24 @@ impl Way {
     }
 
     /// True if this way is a valid snap target for crossing segment endpoints (roads, sidewalks,
-    /// and walkable Other e.g. footway/path). Must stay in sync with snap_crossing_segment and
-    /// AddCrossingSegment so snap and apply use the same candidate set.
+    /// and walkable Other e.g. footway/path). This intentionally mirrors routeable-network logic,
+    /// so manual crossing snaps connect to the network users route on.
     pub fn is_snap_target_for_crossing(&self) -> bool {
-        self.kind.is_road()
-            || self.kind == Kind::Sidewalk
-            || (self.kind == Kind::Other && self.is_walkable_other())
+        let include = match self.kind {
+            // Separate-sidewalk roads are not routeable directly; snap to the actual sidewalk
+            // geometry instead.
+            Kind::RoadWithSeparate => false,
+            Kind::RoadWithTags => true,
+            // Small streets with no sidewalks are routeable.
+            Kind::RoadWithoutSidewalksExplicit | Kind::RoadWithoutSidewalksImplicit => self
+                .tags
+                .is_any("highway", vec!["living_street", "pedestrian", "residential", "service"]),
+            // Assume routeable when unknown.
+            Kind::RoadUnknown => true,
+            Kind::Sidewalk | Kind::Crossing => true,
+            Kind::Other => self.is_walkable_other(),
+        };
+        include && !self.tags.is("highway", "construction")
     }
 }
 
