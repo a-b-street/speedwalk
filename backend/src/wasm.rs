@@ -498,6 +498,44 @@ fn normalize_sidewalk_tags(tags: &Tags) -> NormalizedSidewalkTags {
     result
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_sidewalk_tags_legacy_left_equivalence() {
+        let legacy = Tags::new_from_pairs(&vec!["sidewalk=left"]);
+        let explicit = Tags::new_from_pairs(&vec!["sidewalk:left=yes", "sidewalk:right=no"]);
+
+        let legacy_norm = normalize_sidewalk_tags(&legacy);
+        let explicit_norm = normalize_sidewalk_tags(&explicit);
+
+        assert_eq!(legacy_norm.left.as_deref(), Some("yes"));
+        assert_eq!(legacy_norm.right.as_deref(), Some("no"));
+        assert_eq!(legacy_norm.both.as_deref(), None);
+
+        assert_eq!(explicit_norm.left.as_deref(), Some("yes"));
+        assert_eq!(explicit_norm.right.as_deref(), Some("no"));
+        assert_eq!(explicit_norm.both.as_deref(), None);
+    }
+
+    #[test]
+    fn test_normalize_sidewalk_tags_precedence() {
+        let tags = Tags::new_from_pairs(&vec![
+            "sidewalk=left",
+            "sidewalk:both=separate",
+            "sidewalk:right=no",
+        ]);
+        let norm = normalize_sidewalk_tags(&tags);
+
+        // sidewalk:both has highest priority over legacy sidewalk=*
+        assert_eq!(norm.both.as_deref(), Some("separate"));
+        // explicit per-side tags override derived values
+        assert_eq!(norm.right.as_deref(), Some("no"));
+        assert_eq!(norm.left.as_deref(), None);
+    }
+}
+
 #[derive(Default, Serialize)]
 struct Metrics {
     total_length_meters: BTreeMap<Kind, f64>,
