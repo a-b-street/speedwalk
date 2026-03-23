@@ -319,8 +319,9 @@ fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
     let dy = after.y() - before.y();
     let to_pt_x = pt.x() - closest.x();
     let to_pt_y = pt.y() - closest.y();
-    // Dot with left normal (-dy, dx): positive => left side
-    if to_pt_x * (-dy) + to_pt_y * dx >= 0.0 {
+    // Coordinates are screen-style Mercator (y grows downward), so the cartesian left/right
+    // test has opposite sign from the usual (-dy, dx) dot-product check.
+    if to_pt_x * (-dy) + to_pt_y * dx <= 0.0 {
         Side::Left
     } else {
         Side::Right
@@ -330,6 +331,29 @@ fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_classify_side_orientation() {
+        // Backend uses screen-style coordinates (y grows downward).
+        // South -> North is y decreasing. Left is west.
+        let road = GeomWithData::new(
+            LineString::new(vec![Coord { x: 0.0, y: 10.0 }, Coord { x: 0.0, y: 0.0 }]),
+            WayID(1),
+        );
+        assert_eq!(classify_side(Point::new(-2.0, 5.0), &road), Side::Left);
+        assert_eq!(classify_side(Point::new(2.0, 5.0), &road), Side::Right);
+    }
+
+    #[test]
+    fn test_classify_side_flips_when_way_reversed() {
+        // North -> South is y increasing. Left is east.
+        let road = GeomWithData::new(
+            LineString::new(vec![Coord { x: 0.0, y: 0.0 }, Coord { x: 0.0, y: 10.0 }]),
+            WayID(1),
+        );
+        assert_eq!(classify_side(Point::new(-2.0, 5.0), &road), Side::Right);
+        assert_eq!(classify_side(Point::new(2.0, 5.0), &road), Side::Left);
+    }
 
     #[test]
     fn test_side_is_allowed_by_non_separate_tags_legacy_and_per_side_equivalence() {
