@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use anyhow::Result;
-use geo::{Closest, ClosestPoint, Coord, Distance, Euclidean, LineString, Point};
+use geo::{Closest, ClosestPoint, Coord, Distance, Euclidean, Haversine, LineString, Point};
 use osm_reader::{NodeID, WayID};
 use rstar::{RTree, primitives::GeomWithData};
 use serde::Serialize;
@@ -9,13 +9,20 @@ use utils::Tags;
 
 use crate::{Kind, Node, Speedwalk, Way};
 
-/// Snaps two WGS84 points to the nearest road, sidewalk, or walkable path (e.g. footway); returns snapped points in WGS84.
-/// Includes walkable "Other" ways (e.g. highway=footway) so manual crossings can connect e.g. a footway to a road.
-pub fn snap_crossing_segment(
+const MAX_CROSSING_SNAP_DISTANCE_METERS: f64 = 25.0;
+
+struct SnappedCrossingSegment {
+    start_way: WayID,
+    end_way: WayID,
+    snapped_start: Coord,
+    snapped_end: Coord,
+}
+
+fn snap_crossing_segment_with_way_ids(
     model: &Speedwalk,
     start_wgs84: Point,
     end_wgs84: Point,
-) -> Result<(Point, Point)> {
+) -> Result<SnappedCrossingSegment> {
     let start_pt = model.mercator.to_mercator(&start_wgs84);
     let end_pt = model.mercator.to_mercator(&end_wgs84);
     let closest_line = RTree::bulk_load(
@@ -26,31 +33,53 @@ pub fn snap_crossing_segment(
             .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
             .collect(),
     );
-    let snap_to_line = |pt: Coord| -> Result<Coord> {
-        let Some(obj) = closest_line.nearest_neighbor(&Point::from(pt)) else {
+    let snap_to_line = |pt_wgs84: Point, pt_mercator: Coord| -> Result<(WayID, Coord)> {
+        let Some(obj) = closest_line.nearest_neighbor(&Point::from(pt_mercator)) else {
             bail!("Couldn't find a line to snap to");
         };
-        let snapped = match obj.geom().closest_point(&Point::from(pt)) {
+        let snapped = match obj.geom().closest_point(&Point::from(pt_mercator)) {
             Closest::Intersection(c) | Closest::SinglePoint(c) => c.into(),
             Closest::Indeterminate => bail!("Couldn't snap point to line"),
         };
-        Ok(snapped)
+        let snapped_wgs84 = Point::from(model.mercator.pt_to_wgs84(snapped));
+        let dist_m = Haversine.distance(pt_wgs84, snapped_wgs84);
+        if dist_m > MAX_CROSSING_SNAP_DISTANCE_METERS {
+            bail!(
+                "Point is {:.1}m from the nearest routable line (max {:.0}m). Move it closer to the intended road/footway.",
+                dist_m,
+                MAX_CROSSING_SNAP_DISTANCE_METERS
+            );
+        }
+        Ok((obj.data, snapped))
     };
-    let snapped_start = snap_to_line(start_pt.into())?;
-    let snapped_end = snap_to_line(end_pt.into())?;
-    // Reject degenerate case: both points snapped to the same location (e.g. same road segment)
-    let dist_m = Euclidean.distance(
-        Point::from(snapped_start),
-        Point::from(snapped_end),
-    );
+    let (start_way, snapped_start) = snap_to_line(start_wgs84, start_pt.into())?;
+    let (end_way, snapped_end) = snap_to_line(end_wgs84, end_pt.into())?;
+
+    let dist_m = Euclidean.distance(Point::from(snapped_start), Point::from(snapped_end));
     if dist_m < 0.5 {
         bail!(
             "Both points snapped to the same location (distance {:.1}m). Try clicking on the two crossing ways you want to connect.",
             dist_m
         );
     }
-    let start_out = model.mercator.pt_to_wgs84(snapped_start);
-    let end_out = model.mercator.pt_to_wgs84(snapped_end);
+    Ok(SnappedCrossingSegment {
+        start_way,
+        end_way,
+        snapped_start,
+        snapped_end,
+    })
+}
+
+/// Snaps two WGS84 points to the nearest road, sidewalk, or walkable path (e.g. footway); returns snapped points in WGS84.
+/// Includes walkable "Other" ways (e.g. highway=footway) so manual crossings can connect e.g. a footway to a road.
+pub fn snap_crossing_segment(
+    model: &Speedwalk,
+    start_wgs84: Point,
+    end_wgs84: Point,
+) -> Result<(Point, Point)> {
+    let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
+    let start_out = model.mercator.pt_to_wgs84(snapped.snapped_start);
+    let end_out = model.mercator.pt_to_wgs84(snapped.snapped_end);
     Ok((Point::from(start_out), Point::from(end_out)))
 }
 
@@ -185,39 +214,19 @@ impl Edits {
                 );
             }
             UserCmd::AddCrossingSegment(start_wgs84, end_wgs84, way_tags) => {
-                let start_pt = model.mercator.to_mercator(&start_wgs84);
-                let end_pt = model.mercator.to_mercator(&end_wgs84);
-                let closest_line = RTree::bulk_load(
-                    model
-                        .derived_ways
-                        .iter()
-                        .filter(|(_, way)| way.is_snap_target_for_crossing())
-                        .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
-                        .collect(),
-                );
-                let snap_to_line = |pt: Coord| -> Result<(WayID, Coord)> {
-                    let Some(obj) = closest_line.nearest_neighbor(&Point::from(pt)) else {
-                        bail!("Couldn't find a line to snap to");
-                    };
-                    let snapped = match obj.geom().closest_point(&Point::from(pt)) {
-                        Closest::Intersection(c) | Closest::SinglePoint(c) => c.into(),
-                        Closest::Indeterminate => bail!("Couldn't snap point to line"),
-                    };
-                    Ok((obj.data, snapped))
-                };
-                let (way_start, snapped_start) = snap_to_line(start_pt.into())?;
-                let (way_end, snapped_end) = snap_to_line(end_pt.into())?;
+                let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
                 let node_tags = way_tags.clone();
                 let mut insert_new_nodes: HashMap<WayID, Vec<(Coord, Tags)>> = HashMap::new();
                 insert_new_nodes
-                    .entry(way_start)
+                    .entry(snapped.start_way)
                     .or_default()
-                    .push((snapped_start, node_tags.clone()));
+                    .push((snapped.snapped_start, node_tags.clone()));
                 insert_new_nodes
-                    .entry(way_end)
+                    .entry(snapped.end_way)
                     .or_default()
-                    .push((snapped_end, node_tags));
-                let crossing_way = LineString::new(vec![snapped_start, snapped_end]);
+                    .push((snapped.snapped_end, node_tags));
+                let crossing_way =
+                    LineString::new(vec![snapped.snapped_start, snapped.snapped_end]);
                 let new_ways = vec![(crossing_way, way_tags)];
                 self.create_new_geometry(
                     CreateNewGeometry {
@@ -568,4 +577,37 @@ fn is_oneway(tags: &Tags) -> bool {
         return false;
     }
     tags.is("oneway", "yes") || tags.is_any("junction", vec!["circular", "roundabout"])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn model_from_osm(osm: &str) -> Speedwalk {
+        Speedwalk::new_from_osm(osm.as_bytes(), None).unwrap()
+    }
+
+    #[test]
+    fn snap_crossing_segment_allows_points_on_same_way() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000090" lat="0.000000" version="1" />
+  <node id="3" lon="0.000180" lat="0.000000" version="1" />
+  <way id="100" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+</osm>"#;
+        let model = model_from_osm(osm);
+        let snapped = snap_crossing_segment(
+            &model,
+            Point::new(0.000020, 0.000010),
+            Point::new(0.000160, -0.000010),
+        )
+        .unwrap();
+        assert_ne!(snapped.0, snapped.1);
+    }
+
 }
