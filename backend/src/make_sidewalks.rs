@@ -23,6 +23,40 @@ enum Side {
     Right,
 }
 
+/// Side allowance checks for roads that are not `Kind::RoadWithSeparate`.
+///
+/// `separate`-specific semantics are handled elsewhere:
+/// - `sidewalk=separate` roads are skipped before generation
+/// - `Kind::RoadWithSeparate` roads are handled in a dedicated branch
+fn side_is_allowed_by_non_separate_tags(tags: &Tags, side: Side) -> bool {
+    // Legacy sidewalk=left/right encode one-sided sidewalks relative to way direction.
+    if let Some(sidewalk) = tags.get("sidewalk") {
+        if sidewalk == "left" && side == Side::Right {
+            return false;
+        }
+        if sidewalk == "right" && side == Side::Left {
+            return false;
+        }
+    }
+
+    // Explicit "no"/"none" for both sides blocks generation entirely.
+    if matches!(
+        tags.get("sidewalk:both").map(String::as_str),
+        Some("no" | "none")
+    ) {
+        return false;
+    }
+
+    // Side-specific "no"/"none" blocks only that side.
+    let side_value = match side {
+        Side::Left => tags.get("sidewalk:left"),
+        Side::Right => tags.get("sidewalk:right"),
+    }
+    .map(String::as_str);
+
+    !matches!(side_value, Some("no" | "none"))
+}
+
 impl Speedwalk {
     pub fn make_all_sidewalks(&self, only_severances: bool) -> CreateNewGeometry {
         let mut roads = Vec::new();
@@ -106,10 +140,8 @@ impl Speedwalk {
                     }
                 } else {
                     // If the road lacks sidewalks on this side, skip
-                    if self.derived_ways[&way].tags.is("sidewalk", "left") && side == Side::Right {
-                        continue;
-                    }
-                    if self.derived_ways[&way].tags.is("sidewalk", "right") && side == Side::Left {
+                    if !side_is_allowed_by_non_separate_tags(&self.derived_ways[&way].tags, side)
+                    {
                         continue;
                     }
                 }
@@ -292,5 +324,47 @@ fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
         Side::Left
     } else {
         Side::Right
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_side_is_allowed_by_non_separate_tags_legacy_and_per_side_equivalence() {
+        let legacy_left = Tags::new_from_pairs(&vec!["sidewalk=left"]);
+        assert!(side_is_allowed_by_non_separate_tags(&legacy_left, Side::Left));
+        assert!(!side_is_allowed_by_non_separate_tags(
+            &legacy_left,
+            Side::Right
+        ));
+
+        let per_side_left =
+            Tags::new_from_pairs(&vec!["sidewalk:left=yes", "sidewalk:right=no"]);
+        assert!(side_is_allowed_by_non_separate_tags(
+            &per_side_left,
+            Side::Left
+        ));
+        assert!(!side_is_allowed_by_non_separate_tags(
+            &per_side_left,
+            Side::Right
+        ));
+    }
+
+    #[test]
+    fn test_side_is_allowed_by_non_separate_tags_handles_none() {
+        let right_none = Tags::new_from_pairs(&vec!["sidewalk:right=none"]);
+        assert!(!side_is_allowed_by_non_separate_tags(
+            &right_none,
+            Side::Right
+        ));
+
+        let both_none = Tags::new_from_pairs(&vec!["sidewalk:both=none"]);
+        assert!(!side_is_allowed_by_non_separate_tags(&both_none, Side::Left));
+        assert!(!side_is_allowed_by_non_separate_tags(
+            &both_none,
+            Side::Right
+        ));
     }
 }
