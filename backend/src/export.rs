@@ -32,6 +32,10 @@ const MINIMUM_DEADEND_LENGTH: f64 = 10.0;
 const MINIMUM_DISCONNECTED_LENGTH: f64 = 100.0;
 
 impl Speedwalk {
+    fn edge_is_manual_crossing(&self, edge: &Edge) -> bool {
+        self.derived_ways[&edge.osm_way].tags.is("crossing", "manual")
+    }
+
     /// Filter network without dead end check - used to determine routeable edges
     fn filter_network_without_deadends(
         &self,
@@ -101,17 +105,6 @@ impl Speedwalk {
             }
         }
 
-        // Early filtering: Only consider edges < 10m as candidates
-        let candidate_edges: HashSet<EdgeID> = routeable_edges
-            .iter()
-            .filter(|&&edge_id| {
-                edge_lengths
-                    .get(&edge_id)
-                    .map_or(false, |&len| len < MINIMUM_DEADEND_LENGTH)
-            })
-            .copied()
-            .collect();
-
         // Count routeable edges per intersection
         let mut intersection_routeable_count: HashMap<IntersectionID, usize> = HashMap::new();
         for &edge_id in &routeable_edges {
@@ -120,19 +113,11 @@ impl Speedwalk {
             *intersection_routeable_count.entry(edge.dst).or_insert(0) += 1;
         }
 
-        // Find endpoint intersections (only 1 routeable edge) that have candidate edges
+        // Find endpoint intersections (only 1 routeable edge)
         let mut endpoint_intersections: Vec<IntersectionID> = Vec::new();
         for (intersection_id, count) in &intersection_routeable_count {
             if *count == 1 {
-                // Check if this intersection has at least one candidate edge
-                let intersection = &graph.intersections[intersection_id];
-                if intersection
-                    .edges
-                    .iter()
-                    .any(|&e| candidate_edges.contains(&e))
-                {
-                    endpoint_intersections.push(*intersection_id);
-                }
+                endpoint_intersections.push(*intersection_id);
             }
         }
 
@@ -155,28 +140,21 @@ impl Speedwalk {
                     continue;
                 }
 
-                // Traverse the chain from this endpoint
-                // Build the chain, but stop early if we exceed 10m (we won't remove it anyway)
+                // Traverse from endpoint across degree-2 intersections until another endpoint or a
+                // junction. This treats split points (including from manual crossings) as normal
+                // topology and evaluates the whole chain before deciding if it is a short dead-end.
                 let mut chain_edges: Vec<EdgeID> = Vec::new();
                 let mut chain_length = 0.0;
                 let mut current_edge_id = start_edge_id;
                 let mut current_intersection = start_intersection;
 
                 loop {
-                    if !routeable_edges.contains(&current_edge_id) {
+                    if !routeable_edges.contains(&current_edge_id) || visited_edges.contains(&current_edge_id)
+                    {
                         break;
                     }
 
                     let edge_length = edge_lengths[&current_edge_id];
-
-                    // Early termination: If adding this edge would exceed 10m, stop building
-                    // We still mark it as visited but don't add to chain (we won't remove it)
-                    if chain_length + edge_length >= MINIMUM_DEADEND_LENGTH {
-                        visited_edges.insert(current_edge_id);
-                        break;
-                    }
-
-                    // Add edge to chain and continue building
                     chain_edges.push(current_edge_id);
                     chain_length += edge_length;
                     visited_edges.insert(current_edge_id);
@@ -189,50 +167,39 @@ impl Speedwalk {
                         edge.src
                     };
 
-                    // Check if we've reached another endpoint or branching intersection
-                    // Count how many OTHER routeable edges exist at this intersection
-                    // (excluding the current edge we're traversing)
+                    // Count how many OTHER routeable edges exist at this intersection.
+                    // At degree-2 intersections, we keep traversing. At endpoints/junctions,
+                    // the chain terminates.
                     let next_intersection_obj = &graph.intersections[&next_intersection];
-                    let other_routeable_edges: Vec<EdgeID> = next_intersection_obj
+                    let mut other_routeable_edges: Vec<EdgeID> = next_intersection_obj
                         .edges
                         .iter()
                         .filter(|&&e| routeable_edges.contains(&e) && e != current_edge_id)
                         .copied()
                         .collect();
 
-                    if other_routeable_edges.is_empty() {
-                        // Reached another endpoint (no other routeable edges) - chain is complete
-                        // Only remove if the entire chain is < 10m
+                    if other_routeable_edges.is_empty() || other_routeable_edges.len() >= 2 {
+                        // Reached another endpoint or a branching intersection.
                         if chain_length < MINIMUM_DEADEND_LENGTH {
-                            dead_end_edges.extend(&chain_edges);
-                        }
-                        break;
-                    } else if other_routeable_edges.len() >= 2 {
-                        // Reached a branching intersection (2+ other routeable edges) - chain ends here
-                        // Only remove if the entire chain is < 10m
-                        if chain_length < MINIMUM_DEADEND_LENGTH {
-                            dead_end_edges.extend(&chain_edges);
+                            dead_end_edges.extend(chain_edges.iter().copied().filter(|edge_id| {
+                                !self.edge_is_manual_crossing(&graph.edges[edge_id])
+                            }));
                         }
                         break;
                     }
 
-                    // Find the next routeable edge from this intersection (there's exactly 1 other)
-                    let next_edge_id = other_routeable_edges
-                        .iter()
-                        .find(|&&e| !visited_edges.contains(&e))
-                        .copied();
-
-                    if let Some(next_id) = next_edge_id {
-                        current_edge_id = next_id;
-                        current_intersection = next_intersection;
-                    } else {
-                        // No more routeable edges - chain ends
-                        // Only remove if the entire chain is < 10m
+                    // Exactly one other routeable edge from this degree-2 intersection.
+                    let next_id = other_routeable_edges.pop().unwrap();
+                    if visited_edges.contains(&next_id) {
                         if chain_length < MINIMUM_DEADEND_LENGTH {
-                            dead_end_edges.extend(&chain_edges);
+                            dead_end_edges.extend(chain_edges.iter().copied().filter(|edge_id| {
+                                !self.edge_is_manual_crossing(&graph.edges[edge_id])
+                            }));
                         }
                         break;
                     }
+                    current_edge_id = next_id;
+                    current_intersection = next_intersection;
                 }
             }
         }
@@ -321,7 +288,12 @@ impl Speedwalk {
 
             // If component is < 100m, remove all edges in it
             if component_length < MINIMUM_DISCONNECTED_LENGTH {
-                dead_end_edges.extend(&component_edges);
+                dead_end_edges.extend(
+                    component_edges
+                        .iter()
+                        .copied()
+                        .filter(|edge_id| !self.edge_is_manual_crossing(&graph.edges[edge_id])),
+                );
             }
         }
 
@@ -335,9 +307,9 @@ impl Speedwalk {
         edge: &Edge,
         dead_end_edges: Option<&HashSet<EdgeID>>,
     ) -> bool {
-        // Manual crossing segments (from overrides) are always shown so they stay visible regardless of filter
-        let way = &self.derived_ways[&edge.osm_way];
-        if way.tags.is("crossing", "manual") {
+        // Manual crossing segments stay visible, but are still included in topology when
+        // computing dead-end/disconnected filtering.
+        if self.edge_is_manual_crossing(edge) {
             return true;
         }
         // Apply filters without dead end check
@@ -409,5 +381,142 @@ impl Speedwalk {
             }
         }
         Ok(serde_json::to_string(&GeoJson::from(features))?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::Graph;
+
+    fn test_filter() -> NetworkFilter {
+        NetworkFilter {
+            include: NetworkFilterType::RouteableNetwork,
+            ignore_deadends: true,
+        }
+    }
+
+    fn model_from_osm(osm: &str) -> Speedwalk {
+        Speedwalk::new_from_osm(osm.as_bytes(), None).unwrap()
+    }
+
+    #[test]
+    fn deadend_filter_keeps_network_side_when_manual_crossing_splits_stub() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000045" lat="0.000000" version="1" />
+  <node id="3" lon="0.000180" lat="0.000000" version="1" />
+  <node id="4" lon="0.000315" lat="0.000000" version="1" />
+  <node id="5" lon="0.000045" lat="0.000090" version="1" />
+  <way id="101" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+  <way id="102" version="1">
+    <nd ref="2"/><nd ref="5"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="crossing"/>
+    <tag k="crossing" v="manual"/>
+  </way>
+</osm>"#;
+        let model = model_from_osm(osm);
+        let graph = Graph::new(&model);
+        let filter = test_filter();
+
+        let dead = model.find_dead_end_chains(&filter, &graph);
+        let mut has_1_2 = false;
+        let mut has_2_3 = false;
+        let mut has_manual_crossing = false;
+        for edge in graph.edges.values() {
+            if dead.contains(&edge.id) {
+                if (edge.osm_node1.0 == 1 && edge.osm_node2.0 == 2)
+                    || (edge.osm_node1.0 == 2 && edge.osm_node2.0 == 1)
+                {
+                    has_1_2 = true;
+                }
+                if (edge.osm_node1.0 == 2 && edge.osm_node2.0 == 3)
+                    || (edge.osm_node1.0 == 3 && edge.osm_node2.0 == 2)
+                {
+                    has_2_3 = true;
+                }
+                if (edge.osm_node1.0 == 2 && edge.osm_node2.0 == 5)
+                    || (edge.osm_node1.0 == 5 && edge.osm_node2.0 == 2)
+                {
+                    has_manual_crossing = true;
+                }
+            }
+        }
+
+        assert!(has_1_2, "short dangling side should be removed");
+        assert!(
+            !has_2_3,
+            "network side connected through branch must stay; no artificial new gap"
+        );
+        assert!(
+            !has_manual_crossing,
+            "manual crossing must remain part of the network and not be dead-end filtered"
+        );
+    }
+
+    #[test]
+    fn deadend_filter_removes_true_short_spur() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000180" lat="0.000000" version="1" />
+  <node id="3" lon="0.000360" lat="0.000000" version="1" />
+  <node id="4" lon="0.000180" lat="0.000045" version="1" />
+  <way id="201" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+  <way id="202" version="1">
+    <nd ref="2"/><nd ref="4"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+</osm>"#;
+        let model = model_from_osm(osm);
+        let graph = Graph::new(&model);
+        let filter = test_filter();
+        let dead = model.find_dead_end_chains(&filter, &graph);
+
+        let mut spur_removed = false;
+        for edge in graph.edges.values() {
+            if dead.contains(&edge.id)
+                && ((edge.osm_node1.0 == 2 && edge.osm_node2.0 == 4)
+                    || (edge.osm_node1.0 == 4 && edge.osm_node2.0 == 2))
+            {
+                spur_removed = true;
+            }
+        }
+        assert!(spur_removed, "short dangling spur should be removed");
+    }
+
+    #[test]
+    fn deadend_filter_removes_disconnected_component_under_100m() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000045" lat="0.000000" version="1" />
+  <node id="3" lon="0.000045" lat="0.000045" version="1" />
+  <node id="4" lon="0.000000" lat="0.000045" version="1" />
+  <way id="301" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/><nd ref="1"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+</osm>"#;
+        let model = model_from_osm(osm);
+        let filter = test_filter();
+        let graph = Graph::new(&model);
+        let dead = model.find_dead_end_chains(&filter, &graph);
+
+        // Entire isolated component is about 40m, so all of it should be dropped by the
+        // disconnected-component pass.
+        assert_eq!(dead.len(), graph.edges.len());
     }
 }
