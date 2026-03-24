@@ -6,6 +6,12 @@
     filterDeletionsInBoundary,
   } from "../common/localOverrides";
   import {
+    crossingStableId,
+    deletionStableId,
+    inViewIdSets,
+    type ViewportBounds,
+  } from "../common/viewportOverrides";
+  import {
     type AddedCrossingSegment,
     type DeletedWaySegment,
     type ManualOverrides,
@@ -74,6 +80,34 @@
     features: [],
   });
 
+  /** Current map camera; updated on pan/zoom for in-view row indicators. */
+  let viewportBounds = $state<ViewportBounds | null>(null);
+
+  $effect(() => {
+    const mapInstance = $map;
+    if (!mapInstance) {
+      viewportBounds = null;
+      return;
+    }
+    const mapRef = mapInstance;
+    function syncViewport() {
+      const b = mapRef.getBounds();
+      viewportBounds = {
+        west: b.getWest(),
+        south: b.getSouth(),
+        east: b.getEast(),
+        north: b.getNorth(),
+      };
+    }
+    syncViewport();
+    mapRef.on("moveend", syncViewport);
+    mapRef.on("zoomend", syncViewport);
+    return () => {
+      mapRef.off("moveend", syncViewport);
+      mapRef.off("zoomend", syncViewport);
+    };
+  });
+
   $effect(() => {
     $mutationCounter;
     if ($backend) {
@@ -94,7 +128,10 @@
       overrides = data;
       const boundary = JSON.parse(b.getBoundary());
       const list = filterSegmentsInBoundary(data.addedCrossings, boundary);
-      const delList = filterDeletionsInBoundary(data.deletedWaySegments, boundary);
+      const delList = filterDeletionsInBoundary(
+        data.deletedWaySegments,
+        boundary,
+      );
       if (
         overridesApplied &&
         appliedCrossingCount === 0 &&
@@ -209,10 +246,7 @@
   }
 
   async function unapplyAll() {
-    if (
-      !$backend ||
-      (appliedCrossingCount === 0 && appliedDeletionCount === 0)
-    )
+    if (!$backend || (appliedCrossingCount === 0 && appliedDeletionCount === 0))
       return;
     loading = "Unapplying overrides";
     await refreshLoadingScreen();
@@ -540,10 +574,7 @@
     const prefixedDeleted = overrides.deletedWaySegments.map((seg) => ({
       ...seg,
       tags: Object.fromEntries(
-        Object.entries(seg.tags).map(([k, v]) => [
-          `manually_deleted:${k}`,
-          v,
-        ]),
+        Object.entries(seg.tags).map(([k, v]) => [`manually_deleted:${k}`, v]),
       ),
     }));
     const payload: ManualOverrides = {
@@ -562,10 +593,7 @@
         ? "There are no local overrides to delete."
         : `Delete all ${n} local override${n === 1 ? "" : "s"}? This will remove them from storage and from the map. This cannot be undone.`;
     if (!window.confirm(msg)) return;
-    if (
-      $backend &&
-      (appliedCrossingCount > 0 || appliedDeletionCount > 0)
-    ) {
+    if ($backend && (appliedCrossingCount > 0 || appliedDeletionCount > 0)) {
       loading = "Removing overrides from map";
       await refreshLoadingScreen();
       await unapplyAll();
@@ -726,6 +754,29 @@
     deletionsInLoadedArea.slice(appliedDeletionCount),
   );
 
+  const inViewSets = $derived.by(() => {
+    if (!viewportBounds) return null;
+    return inViewIdSets(
+      segmentsInLoadedArea,
+      deletionsInLoadedArea,
+      viewportBounds,
+    );
+  });
+
+  function crossingRowHighlightClass(seg: AddedCrossingSegment): string {
+    if (!inViewSets) return "";
+    return inViewSets.crossingIds.has(crossingStableId(seg))
+      ? "ps-2 border-start border-3 border-primary rounded-start"
+      : "";
+  }
+
+  function deletionRowHighlightClass(seg: DeletedWaySegment): string {
+    if (!inViewSets) return "";
+    return inViewSets.deletionIds.has(deletionStableId(seg))
+      ? "ps-2 border-start border-3 border-primary rounded-start"
+      : "";
+  }
+
   const draftLineGeoJSON = $derived.by(() => {
     const a = pointA;
     const b = pointB;
@@ -789,7 +840,8 @@
         <strong>Delete segment</strong>
         or press
         <kbd>d</kbd>
-        to remove those road edges from the routable network (they disappear from the map here).
+        to remove those road edges from the routable network (they disappear from
+        the map here).
       </p>
       <div class="d-flex gap-2 align-items-center flex-wrap">
         <button
@@ -827,8 +879,12 @@
     {#if !$backend}
       <div class="alert alert-warning py-2 small mb-3" role="alert">
         <strong>Load an area first.</strong>
-        Add crossing (<kbd>a</kbd>) or delete segment (<kbd>d</kbd>), apply, and
-        export/import are available after you load data (relation, polygon, or file).
+        Add crossing (
+        <kbd>a</kbd>
+        ) or delete segment (
+        <kbd>d</kbd>
+        ), apply, and export/import are available after you load data (relation, polygon,
+        or file).
       </div>
     {/if}
 
@@ -851,11 +907,15 @@
       {#snippet header()}
         In loaded area: {segmentsInLoadedArea.length} crossing(s), {deletionsInLoadedArea.length}
         deletion(s) in storage; {appliedCrossingCount}+{appliedDeletionCount} applied
+        · In current view: {inViewSets?.crossingIds.size ?? 0} crossing(s), {inViewSets
+          ?.deletionIds.size ?? 0} deletion(s)
       {/snippet}
       {#snippet body()}
         {#if segmentsInLoadedArea.length > 0 || deletionsInLoadedArea.length > 0}
           <button
-            class="btn mb-3 {overridesApplied ? 'btn-secondary' : 'btn-primary'}"
+            class="btn mb-3 {overridesApplied
+              ? 'btn-secondary'
+              : 'btn-primary'}"
             onclick={toggleApply}
             disabled={!$backend}
           >
@@ -868,7 +928,11 @@
           <h6 class="mt-2">Crossings — not applied</h6>
           <ul class="list-unstyled small">
             {#each notAppliedCrossingList as seg}
-              <li class="d-flex align-items-center gap-2 mb-1">
+              <li
+                class="d-flex align-items-center gap-2 mb-1 {crossingRowHighlightClass(
+                  seg,
+                )}"
+              >
                 <span class="text-break small">
                   {seg.start.lat.toFixed(4)},{seg.start.lng.toFixed(4)} → {seg.end.lat.toFixed(
                     4,
@@ -895,7 +959,11 @@
           <h6 class="mt-2">Crossings — applied</h6>
           <ul class="list-unstyled small">
             {#each appliedCrossingList as seg}
-              <li class="d-flex align-items-center gap-2 mb-1">
+              <li
+                class="d-flex align-items-center gap-2 mb-1 {crossingRowHighlightClass(
+                  seg,
+                )}"
+              >
                 <span class="text-break small">
                   {seg.start.lat.toFixed(4)},{seg.start.lng.toFixed(4)} → {seg.end.lat.toFixed(
                     4,
@@ -922,7 +990,11 @@
           <h6 class="mt-2">Deletions — not applied</h6>
           <ul class="list-unstyled small">
             {#each notAppliedDeletionList as seg}
-              <li class="d-flex align-items-center gap-2 mb-1">
+              <li
+                class="d-flex align-items-center gap-2 mb-1 {deletionRowHighlightClass(
+                  seg,
+                )}"
+              >
                 <span class="text-break small">
                   way {seg.wayId} nodes {seg.node1}–{seg.node2}
                 </span>
@@ -947,7 +1019,11 @@
           <h6 class="mt-2">Deletions — applied</h6>
           <ul class="list-unstyled small">
             {#each appliedDeletionList as seg}
-              <li class="d-flex align-items-center gap-2 mb-1">
+              <li
+                class="d-flex align-items-center gap-2 mb-1 {deletionRowHighlightClass(
+                  seg,
+                )}"
+              >
                 <span class="text-break small">
                   way {seg.wayId} nodes {seg.node1}–{seg.node2}
                 </span>
@@ -973,8 +1049,8 @@
             {#if overrides.addedCrossings.length === 0 && overrides.deletedWaySegments.length === 0}
               No manual crossings or deletions yet.
             {:else}
-              No overrides in loaded area ({overrides.addedCrossings.length} crossing(s), {overrides
-                .deletedWaySegments.length}
+              No overrides in loaded area ({overrides.addedCrossings.length} crossing(s),
+              {overrides.deletedWaySegments.length}
               deletion(s) total in storage).
             {/if}
           </p>
