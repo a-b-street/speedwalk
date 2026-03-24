@@ -42,7 +42,7 @@
   import FilterNetworkCard from "../common/FilterNetworkCard.svelte";
   import LegendList from "../common/LegendList.svelte";
   import { downloadGeneratedFile, Loading } from "svelte-utils";
-  import type { FeatureCollection, Point } from "geojson";
+  import type { FeatureCollection, LineString, Point } from "geojson";
   import { type NodeProps } from "../sidewalks";
   import { roadLineWidth } from "../sidewalks";
   import { MAPILLARY_PIN_LAYER_IDS_LIST } from "../common/mapillaryLayers";
@@ -183,6 +183,43 @@
       return ids.has(p?.id as number) || p?.is_manual_crossing === true;
     });
     return { type: "FeatureCollection" as const, features };
+  });
+
+  /** Draw manual deletions using their node pairs as thin dotted red line segments. */
+  const deletedWaysGeoJSON = $derived.by(() => {
+    const idToCoord = new Map<number, [number, number]>();
+    for (const f of nodes.features) {
+      const p = f.properties as { id?: number } | undefined;
+      if (p?.id == null) continue;
+      const coords = f.geometry?.coordinates;
+      if (!coords || coords.length < 2) continue;
+      idToCoord.set(p.id, [coords[0], coords[1]]);
+    }
+
+    const features = deletionsInLoadedArea.flatMap((seg) => {
+      const c1 = idToCoord.get(seg.node1);
+      const c2 = idToCoord.get(seg.node2);
+      if (!c1 || !c2) return [];
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: [c1, c2],
+          },
+          properties: {
+            wayId: seg.wayId,
+            node1: seg.node1,
+            node2: seg.node2,
+          },
+        },
+      ];
+    });
+
+    return {
+      type: "FeatureCollection" as const,
+      features,
+    } as FeatureCollection<LineString>;
   });
 
   const crossingWayTags = {
@@ -1089,6 +1126,16 @@
               overridesLegendColors["Manually added crossing"],
               overridesLegendColors["Base data"],
             ],
+          }}
+        />
+      </GeoJSON>
+      <GeoJSON data={deletedWaysGeoJSON} generateId>
+        <LineLayer
+          id="overrides-deleted-ways"
+          paint={{
+            "line-width": 1,
+            "line-color": overridesLegendColors["Manually deleted way"],
+            "line-dasharray": [1, 2],
           }}
         />
       </GeoJSON>
