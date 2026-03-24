@@ -21,6 +21,15 @@ struct SnappedCrossingSegment {
     snapped_end: Coord,
 }
 
+pub struct ResolvedCrossingSegment {
+    pub start_way: i64,
+    pub end_way: i64,
+    pub start_lng: f64,
+    pub start_lat: f64,
+    pub end_lng: f64,
+    pub end_lat: f64,
+}
+
 fn snap_crossing_segment_with_way_ids(
     model: &Speedwalk,
     start_wgs84: Point,
@@ -73,17 +82,36 @@ fn snap_crossing_segment_with_way_ids(
     })
 }
 
-/// Snaps two WGS84 points to the nearest road, sidewalk, or walkable path (e.g. footway); returns snapped points in WGS84.
-/// Includes walkable "Other" ways (e.g. highway=footway) so manual crossings can connect e.g. a footway to a road.
-pub fn snap_crossing_segment(
+/// Resolves crossing segment snap endpoints and way IDs in one pass.
+pub fn resolve_crossing_segment(
+    model: &Speedwalk,
+    start_wgs84: Point,
+    end_wgs84: Point,
+) -> Result<ResolvedCrossingSegment> {
+    let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
+    let start_out = model.mercator.pt_to_wgs84(snapped.snapped_start);
+    let end_out = model.mercator.pt_to_wgs84(snapped.snapped_end);
+    Ok(ResolvedCrossingSegment {
+        start_way: snapped.start_way.0,
+        end_way: snapped.end_way.0,
+        start_lng: start_out.x,
+        start_lat: start_out.y,
+        end_lng: end_out.x,
+        end_lat: end_out.y,
+    })
+}
+
+#[cfg(test)]
+fn snap_crossing_segment(
     model: &Speedwalk,
     start_wgs84: Point,
     end_wgs84: Point,
 ) -> Result<(Point, Point)> {
-    let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
-    let start_out = model.mercator.pt_to_wgs84(snapped.snapped_start);
-    let end_out = model.mercator.pt_to_wgs84(snapped.snapped_end);
-    Ok((Point::from(start_out), Point::from(end_out)))
+    let resolved = resolve_crossing_segment(model, start_wgs84, end_wgs84)?;
+    Ok((
+        Point::new(resolved.start_lng, resolved.start_lat),
+        Point::new(resolved.end_lng, resolved.end_lat),
+    ))
 }
 
 /// Distance along `ls` from its first vertex to the closest point on the line to `pt` (Mercator).
@@ -219,6 +247,14 @@ pub enum UserCmd {
     AddCrossings(Vec<Point>, Tags),
     /// Add a crossing as a segment between two points; each point is snapped to the nearest road or sidewalk (closest line).
     AddCrossingSegment(Point, Point, Tags),
+    /// Add a crossing from previously resolved snapped points and target ways.
+    AddCrossingSegmentSnapped {
+        start_way: WayID,
+        end_way: WayID,
+        snapped_start_wgs84: Point,
+        snapped_end_wgs84: Point,
+        tags: Tags,
+    },
     /// Exclude one graph edge (same node orientation as [`Edge`]).
     ManualDeleteEdge {
         way: WayID,
@@ -356,9 +392,51 @@ impl Edits {
                     model,
                 );
             }
+            UserCmd::AddCrossingSegmentSnapped {
+                start_way,
+                end_way,
+                snapped_start_wgs84,
+                snapped_end_wgs84,
+                tags: way_tags,
+            } => {
+                let snapped_start = model.mercator.to_mercator(&snapped_start_wgs84);
+                let snapped_end = model.mercator.to_mercator(&snapped_end_wgs84);
+                let node_tags = way_tags.clone();
+                let mut insert_new_nodes: HashMap<WayID, Vec<(Coord, Tags)>> = HashMap::new();
+                insert_new_nodes
+                    .entry(start_way)
+                    .or_default()
+                    .push((snapped_start.into(), node_tags.clone()));
+                insert_new_nodes
+                    .entry(end_way)
+                    .or_default()
+                    .push((snapped_end.into(), node_tags));
+                let crossing_way = LineString::new(vec![snapped_start.into(), snapped_end.into()]);
+                let new_ways = vec![(crossing_way, way_tags)];
+                self.create_new_geometry(
+                    CreateNewGeometry {
+                        new_ways,
+                        new_kind: Kind::Crossing,
+                        insert_new_nodes,
+                        modify_existing_way_tags: HashMap::new(),
+                    },
+                    model,
+                );
+            }
             UserCmd::ManualDeleteEdge { way, node1, node2 } => {
                 self.manual_deleted_edges.insert((way, node1, node2));
             }
+        }
+        Ok(())
+    }
+
+    pub fn apply_cmds_without_rebuild(
+        &mut self,
+        cmds: Vec<UserCmd>,
+        model: &Speedwalk,
+    ) -> Result<()> {
+        for cmd in cmds {
+            self.apply_cmd(cmd, model)?;
         }
         Ok(())
     }
