@@ -30,6 +30,8 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.1.0",
     "zod": "^4.0.0",
+    "@turf/bbox-polygon": "^7.3.1",
+    "@turf/boolean-intersects": "^7.3.1",
     "@turf/convex": "^7.3.1",
     "@turf/helpers": "^7.3.1",
     "@turf/line-arc": "^7.3.1",
