@@ -46,20 +46,7 @@
   import { type NodeProps } from "../sidewalks";
   import { roadLineWidth } from "../sidewalks";
   import { MAPILLARY_PIN_LAYER_IDS_LIST } from "../common/mapillaryLayers";
-
-  const overridesLegendItems = [
-    { label: "Base data", color: "black", swatchClass: "rectangle" as const },
-    {
-      label: "Manually added",
-      color: "blue",
-      swatchClass: "rectangle" as const,
-    },
-    {
-      label: "Manually deleted (removed from map)",
-      color: "#95a5a6",
-      swatchClass: "rectangle" as const,
-    },
-  ];
+  import { overridesLegendColors, overridesLegendItems } from "./legend";
 
   /** First click: red dot (start of crossing segment). Second click: blue dot (end). */
   let pointA: { lng: number; lat: number } | null = $state(null);
@@ -1099,8 +1086,8 @@
             "line-color": [
               "case",
               ["==", ["get", "crossing"], "manual"],
-              "blue",
-              "black",
+              overridesLegendColors["Manually added crossing"],
+              overridesLegendColors["Base data"],
             ],
           }}
         />
@@ -1113,8 +1100,8 @@
             "circle-color": [
               "case",
               ["get", "is_manual_crossing"],
-              "blue",
-              "black",
+              overridesLegendColors["Manually added crossing"],
+              overridesLegendColors["Base data"],
             ],
           }}
         />
