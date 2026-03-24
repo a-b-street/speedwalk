@@ -33,7 +33,9 @@ const MINIMUM_DISCONNECTED_LENGTH: f64 = 100.0;
 
 impl Speedwalk {
     fn edge_is_manual_crossing(&self, edge: &Edge) -> bool {
-        self.derived_ways[&edge.osm_way].tags.is("crossing", "manual")
+        self.derived_ways[&edge.osm_way]
+            .tags
+            .is("crossing", "manual")
     }
 
     /// Filter network without dead end check - used to determine routeable edges
@@ -149,7 +151,8 @@ impl Speedwalk {
                 let mut current_intersection = start_intersection;
 
                 loop {
-                    if !routeable_edges.contains(&current_edge_id) || visited_edges.contains(&current_edge_id)
+                    if !routeable_edges.contains(&current_edge_id)
+                        || visited_edges.contains(&current_edge_id)
                     {
                         break;
                     }

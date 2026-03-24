@@ -40,21 +40,18 @@ fn side_is_allowed_by_non_separate_tags(tags: &Tags, side: Side) -> bool {
     }
 
     // Explicit "no"/"none" for both sides blocks generation entirely.
-    if matches!(
-        tags.get("sidewalk:both").map(String::as_str),
-        Some("no" | "none")
-    ) {
+    if tags.is_any("sidewalk:both", vec!["no", "none"]) {
         return false;
     }
 
     // Side-specific "no"/"none" blocks only that side.
-    let side_value = match side {
-        Side::Left => tags.get("sidewalk:left"),
-        Side::Right => tags.get("sidewalk:right"),
-    }
-    .map(String::as_str);
-
-    !matches!(side_value, Some("no" | "none"))
+    !tags.is_any(
+        match side {
+            Side::Left => "sidewalk:left",
+            Side::Right => "sidewalk:right",
+        },
+        vec!["no", "none"],
+    )
 }
 
 impl Speedwalk {
@@ -140,8 +137,7 @@ impl Speedwalk {
                     }
                 } else {
                     // If the road lacks sidewalks on this side, skip
-                    if !side_is_allowed_by_non_separate_tags(&self.derived_ways[&way].tags, side)
-                    {
+                    if !side_is_allowed_by_non_separate_tags(&self.derived_ways[&way].tags, side) {
                         continue;
                     }
                 }
@@ -310,11 +306,19 @@ fn split_new_sidewalks(
 /// Classify which side of the road a point is on using the tangent at the nearest point on the road.
 fn classify_side(pt: Point, road: &GeomWithData<LineString, WayID>) -> Side {
     let road = road.geom();
-    let Some(fraction) = road.line_locate_point(&pt) else { return Side::Left };
-    let Some(closest) = road.point_at_ratio_from_start(&Euclidean, fraction) else { return Side::Left };
+    let Some(fraction) = road.line_locate_point(&pt) else {
+        return Side::Left;
+    };
+    let Some(closest) = road.point_at_ratio_from_start(&Euclidean, fraction) else {
+        return Side::Left;
+    };
     let eps = 1e-6;
-    let before = road.point_at_ratio_from_start(&Euclidean, (fraction - eps).max(0.0)).unwrap_or(closest);
-    let after = road.point_at_ratio_from_start(&Euclidean, (fraction + eps).min(1.0)).unwrap_or(closest);
+    let before = road
+        .point_at_ratio_from_start(&Euclidean, (fraction - eps).max(0.0))
+        .unwrap_or(closest);
+    let after = road
+        .point_at_ratio_from_start(&Euclidean, (fraction + eps).min(1.0))
+        .unwrap_or(closest);
     let dx = after.x() - before.x();
     let dy = after.y() - before.y();
     let to_pt_x = pt.x() - closest.x();
@@ -358,14 +362,16 @@ mod tests {
     #[test]
     fn test_side_is_allowed_by_non_separate_tags_legacy_and_per_side_equivalence() {
         let legacy_left = Tags::new_from_pairs(&vec!["sidewalk=left"]);
-        assert!(side_is_allowed_by_non_separate_tags(&legacy_left, Side::Left));
+        assert!(side_is_allowed_by_non_separate_tags(
+            &legacy_left,
+            Side::Left
+        ));
         assert!(!side_is_allowed_by_non_separate_tags(
             &legacy_left,
             Side::Right
         ));
 
-        let per_side_left =
-            Tags::new_from_pairs(&vec!["sidewalk:left=yes", "sidewalk:right=no"]);
+        let per_side_left = Tags::new_from_pairs(&vec!["sidewalk:left=yes", "sidewalk:right=no"]);
         assert!(side_is_allowed_by_non_separate_tags(
             &per_side_left,
             Side::Left
@@ -385,7 +391,10 @@ mod tests {
         ));
 
         let both_none = Tags::new_from_pairs(&vec!["sidewalk:both=none"]);
-        assert!(!side_is_allowed_by_non_separate_tags(&both_none, Side::Left));
+        assert!(!side_is_allowed_by_non_separate_tags(
+            &both_none,
+            Side::Left
+        ));
         assert!(!side_is_allowed_by_non_separate_tags(
             &both_none,
             Side::Right
