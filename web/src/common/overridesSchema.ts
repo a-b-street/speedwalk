@@ -43,8 +43,14 @@ export const deletedWaySegmentSchema = z.object({
   wayId: z.number(),
   node1: z.number(),
   node2: z.number(),
+  node1Lat: z.optional(z.number()),
+  node1Lng: z.optional(z.number()),
+  node2Lat: z.optional(z.number()),
+  node2Lng: z.optional(z.number()),
   midLat: z.number(),
   midLng: z.number(),
+  draftStart: z.optional(pointSchema),
+  draftEnd: z.optional(pointSchema),
   tags: z._default(z.optional(z.record(z.string(), z.string())), {}),
 });
 
@@ -53,8 +59,14 @@ export type DeletedWaySegment = {
   wayId: number;
   node1: number;
   node2: number;
+  node1Lat?: number;
+  node1Lng?: number;
+  node2Lat?: number;
+  node2Lng?: number;
   midLat: number;
   midLng: number;
+  draftStart?: { lat: number; lng: number };
+  draftEnd?: { lat: number; lng: number };
   tags: Record<string, string>;
 };
 

@@ -175,29 +175,59 @@
     return { type: "FeatureCollection" as const, features };
   });
 
-  /** Draw manual deletions using their node pairs as thin dotted red line segments. */
-  const deletedWaysGeoJSON = $derived.by(() => {
-    const idToCoord = new Map<number, [number, number]>();
-    for (const f of nodes.features) {
-      const p = f.properties as { id?: number } | undefined;
-      if (p?.id == null) continue;
-      const coords = f.geometry?.coordinates;
-      if (!coords || coords.length < 2) continue;
-      idToCoord.set(p.id, [coords[0], coords[1]]);
-    }
-
+  /** Draw snapped deletion draft line (pos1-pos2) as the primary visual. */
+  const deletedDraftLinesGeoJSON = $derived.by(() => {
+    const seen = new Set<string>();
     const features = deletionsInLoadedArea.flatMap((seg) => {
-      const c1 = idToCoord.get(seg.node1);
-      const c2 = idToCoord.get(seg.node2);
-      if (!c1 || !c2) return [];
+      if (!seg.draftStart || !seg.draftEnd) return [];
+      const key = draftKey(seg);
+      if (!key || seen.has(key)) return [];
+      seen.add(key);
       return [
         {
           type: "Feature" as const,
           geometry: {
             type: "LineString" as const,
-            coordinates: [c1, c2],
+            coordinates: [
+              [seg.draftStart.lng, seg.draftStart.lat],
+              [seg.draftEnd.lng, seg.draftEnd.lat],
+            ],
           },
           properties: {
+            kind: "draft",
+          },
+        },
+      ];
+    });
+    return {
+      type: "FeatureCollection" as const,
+      features,
+    } as FeatureCollection<LineString>;
+  });
+
+  /** Draw resolved deleted edge geometry as optional secondary visual. */
+  const deletedResolvedEdgesGeoJSON = $derived.by(() => {
+    const features = deletionsInLoadedArea.flatMap((seg) => {
+      if (
+        seg.node1Lat == null ||
+        seg.node1Lng == null ||
+        seg.node2Lat == null ||
+        seg.node2Lng == null
+      ) {
+        return [];
+      }
+      return [
+        {
+          type: "Feature" as const,
+          geometry: {
+            type: "LineString" as const,
+            coordinates: [
+              [seg.node1Lng, seg.node1Lat],
+              [seg.node2Lng, seg.node2Lat],
+            ],
+          },
+          properties: {
+            kind: "resolved",
             wayId: seg.wayId,
             node1: seg.node1,
             node2: seg.node2,
@@ -205,7 +235,6 @@
         },
       ];
     });
-
     return {
       type: "FeatureCollection" as const,
       features,
@@ -251,24 +280,70 @@
     };
   }
 
-  function toBatchDeletion(seg: DeletedWaySegment): BatchDeletionPayload {
-    return {
-      wayId: seg.wayId,
-      node1: seg.node1,
-      node2: seg.node2,
-    };
+  function deletionPayloadKey(p: BatchDeletionPayload): string {
+    return `${p.wayId}:${p.node1}:${p.node2}`;
+  }
+
+  function draftKey(seg: DeletedWaySegment): string | null {
+    if (!seg.draftStart || !seg.draftEnd) return null;
+    return [
+      seg.draftStart.lng.toFixed(7),
+      seg.draftStart.lat.toFixed(7),
+      seg.draftEnd.lng.toFixed(7),
+      seg.draftEnd.lat.toFixed(7),
+    ].join("|");
   }
 
   type BatchCapableBackend = {
-    editApplyManualOverridesBatch?: (
+    editApplyManualOverridesBatch: (
       crossings: BatchCrossingPayload[],
       deletions: BatchDeletionPayload[],
     ) => void;
-    editRemoveAppliedManualDeletionAtIndex?: (
-      appliedDeletionCount: number,
-      appliedIndex: number,
-    ) => void;
+    editClearManualOverrides: () => void;
   };
+
+  async function resolveDeletionPayloadsForApply(
+    deletions: DeletedWaySegment[],
+  ): Promise<BatchDeletionPayload[]> {
+    if (!$backend) return [];
+    const payloads: BatchDeletionPayload[] = [];
+    const seen = new Set<string>();
+    const drafts = new Map<string, { start: { lng: number; lat: number }; end: { lng: number; lat: number } }>();
+
+    for (const seg of deletions) {
+      const k = draftKey(seg);
+      if (k && seg.draftStart && seg.draftEnd) {
+        if (!drafts.has(k)) {
+          drafts.set(k, { start: seg.draftStart, end: seg.draftEnd });
+        }
+      } else {
+        console.warn(
+          "[Overrides] Skipping deletion without draftStart/draftEnd; remove and redraw it.",
+          seg,
+        );
+      }
+    }
+
+    for (const draft of drafts.values()) {
+      const raw = JSON.parse(
+        $backend.resolveManualDeletion(
+          draft.start.lng,
+          draft.start.lat,
+          draft.end.lng,
+          draft.end.lat,
+        ),
+      ) as ResolvedDeletionJson;
+      for (const e of raw.edges ?? []) {
+        const p = { wayId: e.way_id, node1: e.node1, node2: e.node2 };
+        const key = deletionPayloadKey(p);
+        if (!seen.has(key)) {
+          seen.add(key);
+          payloads.push(p);
+        }
+      }
+    }
+    return payloads;
+  }
 
   function progressMessage(
     phase: "crossings" | "deletions",
@@ -282,14 +357,14 @@
 
   async function applyChunk(
     crossingsChunk: AddedCrossingSegment[],
-    deletionsChunk: DeletedWaySegment[],
+    deletionsChunk: BatchDeletionPayload[],
   ): Promise<void> {
     if (!$backend) return;
     const batchBackend = $backend as unknown as BatchCapableBackend;
     if (batchBackend.editApplyManualOverridesBatch) {
       batchBackend.editApplyManualOverridesBatch(
         crossingsChunk.map(toBatchCrossing),
-        deletionsChunk.map(toBatchDeletion),
+        deletionsChunk,
       );
       mutationCounter.update((n) => n + 1);
       return;
@@ -326,10 +401,11 @@
     applyError = "";
     const startTimeMs = performance.now();
     try {
+      const deletionPayloads = await resolveDeletionPayloadsForApply(deletions);
       const crossingChunks = chunkArray(crossings, APPLY_CHUNK_SIZE);
-      const deletionChunks = chunkArray(deletions, APPLY_CHUNK_SIZE);
+      const deletionChunks = chunkArray(deletionPayloads, APPLY_CHUNK_SIZE);
       const totalSteps = crossingChunks.length + deletionChunks.length;
-      const totalOps = crossings.length + deletions.length;
+      const totalOps = crossings.length + deletionPayloads.length;
       let processedCrossings = 0;
       let processedDeletions = 0;
       let step = 0;
@@ -365,12 +441,12 @@
         await refreshLoadingScreen();
         await applyChunk([], chunk);
         processedDeletions += chunk.length;
-        appliedDeletionCount = baseDeletions + processedDeletions;
+        appliedDeletionCount = baseDeletions + deletions.length;
       }
 
       const durationMs = Math.round(performance.now() - startTimeMs);
       console.info(
-        `[Overrides] Applied ${processedCrossings} crossings and ${processedDeletions} deletions in ${durationMs}ms (${totalSteps} step${totalSteps === 1 ? "" : "s"})`,
+        `[Overrides] Applied ${processedCrossings} crossings and ${processedDeletions} deletion edges from ${deletions.length} stored deletions in ${durationMs}ms (${totalSteps} step${totalSteps === 1 ? "" : "s"})`,
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -582,14 +658,24 @@
       way_id: number;
       node1: number;
       node2: number;
+      node1_lat?: number;
+      node1_lng?: number;
+      node2_lat?: number;
+      node2_lng?: number;
       mid_lat: number;
       mid_lng: number;
+      draft_start_lat?: number;
+      draft_start_lng?: number;
+      draft_end_lat?: number;
+      draft_end_lng?: number;
       tags: Record<string, string>;
     }>;
   };
 
   async function deleteSegmentFromDraft() {
     if (!pointA || !pointB || !$backend) return;
+    const draftStart = { lat: pointA.lat, lng: pointA.lng };
+    const draftEnd = { lat: pointB.lat, lng: pointB.lng };
     loading = "Resolving manual deletion";
     await refreshLoadingScreen();
     try {
@@ -611,8 +697,20 @@
         wayId: e.way_id,
         node1: e.node1,
         node2: e.node2,
+        node1Lat: e.node1_lat,
+        node1Lng: e.node1_lng,
+        node2Lat: e.node2_lat,
+        node2Lng: e.node2_lng,
         midLat: e.mid_lat,
         midLng: e.mid_lng,
+        draftStart:
+          e.draft_start_lat != null && e.draft_start_lng != null
+            ? { lat: e.draft_start_lat, lng: e.draft_start_lng }
+            : draftStart,
+        draftEnd:
+          e.draft_end_lat != null && e.draft_end_lng != null
+            ? { lat: e.draft_end_lat, lng: e.draft_end_lng }
+            : draftEnd,
         tags: e.tags ?? {},
       }));
       overrides = {
@@ -621,14 +719,7 @@
       };
       await saveOverrides(overrides);
       if (overridesApplied) {
-        for (const e of newEntries) {
-          $backend.editManualDeleteEdge(
-            BigInt(e.wayId),
-            BigInt(e.node1),
-            BigInt(e.node2),
-          );
-          mutationCounter.update((n) => n + 1);
-        }
+        await applyChunk([], await resolveDeletionPayloadsForApply(newEntries));
         appliedDeletionCount += newEntries.length;
       }
       applyError = "";
@@ -646,40 +737,23 @@
     if (!$backend) return;
     const id = segment.id;
     const list = overrides.addedCrossings.filter((s) => s.id !== id);
-    const appliedOrder = segmentsInLoadedArea;
-    const deletedIndex = appliedOrder.findIndex((s) => s.id === id);
-    const wasApplied = deletedIndex >= 0 && deletedIndex < appliedCrossingCount;
+    const wasApplied = segmentsInLoadedArea.some((s) => s.id === id);
     overrides = { ...overrides, addedCrossings: list };
     await saveOverrides(overrides);
     if (wasApplied && $backend) {
-      loading = "Removing crossing";
+      loading = "Rebuilding manual overrides";
       await refreshLoadingScreen();
       try {
-        // Undo only until we've removed the command for this segment (backend stack order
-        // matches appliedOrder). Each undo replays the whole stack, so we do the minimum
-        // number of undos to avoid repeated ConnectAllCrossings etc.
-        const undosNeeded = appliedCrossingCount - deletedIndex;
-        for (let i = 0; i < undosNeeded; i++) {
-          $backend.editUndo();
-          mutationCounter.update((n) => n + 1);
-        }
-        // Re-apply segments that were after the deleted one (we popped them when we undid).
-        const toReapply = appliedOrder.slice(
-          deletedIndex + 1,
-          appliedCrossingCount,
-        );
-        for (const seg of toReapply) {
-          if (!isValidSegment(seg)) continue;
-          $backend.editAddCrossingSegment(
-            seg.start.lng,
-            seg.start.lat,
-            seg.end.lng,
-            seg.end.lat,
-            { ...crossingWayTags, ...seg.tags },
-          );
-          mutationCounter.update((n) => n + 1);
-        }
-        appliedCrossingCount = deletedIndex + toReapply.length;
+        const fastBackend = $backend as unknown as BatchCapableBackend;
+        fastBackend.editClearManualOverrides();
+        mutationCounter.update((n) => n + 1);
+        appliedCrossingCount = 0;
+        appliedDeletionCount = 0;
+        await applyEverythingInBoundary(segmentsInLoadedArea, deletionsInLoadedArea);
+        overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        applyError = msg || "Failed to rebuild manual overrides";
       } finally {
         loading = "";
       }
@@ -813,43 +887,23 @@
     if (!$backend) return;
     const id = segment.id;
     const list = overrides.deletedWaySegments.filter((s) => s.id !== id);
-    const appliedOrder = deletionsInLoadedArea;
-    const deletedIndex = appliedOrder.findIndex((s) => s.id === id);
-    const wasApplied = deletedIndex >= 0 && deletedIndex < appliedDeletionCount;
+    const wasApplied = deletionsInLoadedArea.some((s) => s.id === id);
     overrides = { ...overrides, deletedWaySegments: list };
     await saveOverrides(overrides);
     if (wasApplied && $backend) {
-      loading = "Removing deletion: step 1 of 1";
+      loading = "Rebuilding manual overrides";
       await refreshLoadingScreen();
       try {
         const fastBackend = $backend as unknown as BatchCapableBackend;
-        if (fastBackend.editRemoveAppliedManualDeletionAtIndex) {
-          fastBackend.editRemoveAppliedManualDeletionAtIndex(
-            appliedDeletionCount,
-            deletedIndex,
-          );
-          mutationCounter.update((n) => n + 1);
-          appliedDeletionCount -= 1;
-          overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
-          return;
-        }
-
-        // Backwards-compatible fallback for older wasm packages.
-        const undosNeeded = appliedDeletionCount - deletedIndex;
-        for (let i = 0; i < undosNeeded; i++) {
-          $backend.editUndo();
-          mutationCounter.update((n) => n + 1);
-        }
-        const toReapply = appliedOrder.slice(deletedIndex + 1, appliedDeletionCount);
-        for (const d of toReapply) {
-          $backend.editManualDeleteEdge(BigInt(d.wayId), BigInt(d.node1), BigInt(d.node2));
-          mutationCounter.update((n) => n + 1);
-        }
-        appliedDeletionCount = deletedIndex + toReapply.length;
+        fastBackend.editClearManualOverrides();
+        mutationCounter.update((n) => n + 1);
+        appliedCrossingCount = 0;
+        appliedDeletionCount = 0;
+        await applyEverythingInBoundary(segmentsInLoadedArea, deletionsInLoadedArea);
         overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        applyError = msg || "Failed to remove manual deletion";
+        applyError = msg || "Failed to rebuild manual overrides";
       } finally {
         loading = "";
       }
@@ -1224,13 +1278,24 @@
           }}
         />
       </GeoJSON>
-      <GeoJSON data={deletedWaysGeoJSON} generateId>
+      <GeoJSON data={deletedResolvedEdgesGeoJSON} generateId>
         <LineLayer
-          id="overrides-deleted-ways"
+          id="overrides-deleted-resolved"
           paint={{
             "line-width": 1,
+            "line-opacity": 0.5,
             "line-color": overridesLegendColors["Manually deleted way"],
-            "line-dasharray": [1, 2],
+            "line-dasharray": [1, 1],
+          }}
+        />
+      </GeoJSON>
+      <GeoJSON data={deletedDraftLinesGeoJSON} generateId>
+        <LineLayer
+          id="overrides-deleted-drafts"
+          paint={{
+            "line-width": 3,
+            "line-color": overridesLegendColors["Manually deleted way"],
+            "line-dasharray": [2, 2],
           }}
         />
       </GeoJSON>

@@ -55,9 +55,20 @@ export async function getOverrides(): Promise<ManualOverrides> {
         Array.isArray(list) ? list.filter(isValidSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
       const delList = raw?.deletedWaySegments ?? DEFAULT_OVERRIDES.deletedWaySegments;
-      const deletedWaySegments = (
+      const normalizedDeletedWaySegments = (
         Array.isArray(delList) ? delList.filter(isValidDeletedSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
+      const droppedLegacyDeletions = normalizedDeletedWaySegments.filter(
+        (seg) => !seg.draftStart || !seg.draftEnd,
+      ).length;
+      if (droppedLegacyDeletions > 0) {
+        console.warn(
+          `[Overrides] Dropping ${droppedLegacyDeletions} legacy deletion override(s) without draft points; redraw them to reapply reliably.`,
+        );
+      }
+      const deletedWaySegments = normalizedDeletedWaySegments.filter(
+        (seg) => seg.draftStart && seg.draftEnd,
+      );
       const data = raw
         ? {
             version: raw.version ?? DEFAULT_OVERRIDES.version,

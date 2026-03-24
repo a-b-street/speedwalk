@@ -492,57 +492,34 @@ impl Speedwalk {
         Ok(())
     }
 
-    /// Remove one applied manual deletion command by index and rebuild once.
+    /// Clear manual override commands (manual crossing adds + manual edge deletions), preserving all
+    /// other edit commands.
     ///
-    /// `applied_deletion_count` is how many of the latest manual deletion commands are currently
-    /// considered applied in the UI; `applied_index` is the zero-based index within that applied range.
-    #[wasm_bindgen(js_name = editRemoveAppliedManualDeletionAtIndex)]
-    pub fn edit_remove_applied_manual_deletion_at_index(
-        &mut self,
-        applied_deletion_count: usize,
-        applied_index: usize,
-    ) -> Result<(), JsValue> {
+    /// Replays remaining commands one-by-one with `after_edit()` after each (same as [`edit_undo`]),
+    /// so `apply_cmd` always sees a [`Speedwalk`] graph consistent with the command history.
+    /// Batching with [`Edits::apply_cmds_without_rebuild`] against a stale derived graph can produce
+    /// invalid `change_way_nodes` / `change_way_tags` keys and panic in [`Speedwalk::after_edit`].
+    #[wasm_bindgen(js_name = editClearManualOverrides)]
+    pub fn edit_clear_manual_overrides(&mut self) -> Result<(), JsValue> {
         let mut cmds = self.edits.take().unwrap().user_commands;
-        let manual_delete_positions: Vec<usize> = cmds
-            .iter()
-            .enumerate()
-            .filter_map(|(idx, cmd)| match cmd {
-                UserCmd::ManualDeleteEdge { .. } => Some(idx),
-                _ => None,
-            })
-            .collect();
-
-        if applied_deletion_count == 0 || applied_index >= applied_deletion_count {
-            self.edits = Some(Edits::default());
-            let mut edits = self.edits.take().unwrap();
-            edits
-                .apply_cmds_without_rebuild(cmds, self)
-                .map_err(err_to_js)?;
-            self.edits = Some(edits);
-            self.after_edit();
-            return Ok(());
-        }
-
-        if applied_deletion_count > manual_delete_positions.len() {
-            return Err(JsValue::from_str(
-                "Applied deletion count exceeds manual deletion commands",
-            ));
-        }
-
-        let start = manual_delete_positions.len() - applied_deletion_count;
-        let target_pos_in_manual = start + applied_index;
-        let Some(target_cmd_idx) = manual_delete_positions.get(target_pos_in_manual).copied() else {
-            return Err(JsValue::from_str("Invalid applied deletion index"));
-        };
-        cmds.remove(target_cmd_idx);
+        cmds.retain(|cmd| {
+            !matches!(
+                cmd,
+                UserCmd::AddCrossingSegment(_, _, _)
+                    | UserCmd::AddCrossingSegmentSnapped { .. }
+                    | UserCmd::ManualDeleteEdge { .. }
+            )
+        });
 
         self.edits = Some(Edits::default());
-        let mut edits = self.edits.take().unwrap();
-        edits
-            .apply_cmds_without_rebuild(cmds, self)
-            .map_err(err_to_js)?;
-        self.edits = Some(edits);
         self.after_edit();
+
+        for cmd in cmds {
+            let mut edits = self.edits.take().unwrap();
+            edits.apply_cmd(cmd, self).map_err(err_to_js)?;
+            self.edits = Some(edits);
+            self.after_edit();
+        }
         Ok(())
     }
 
