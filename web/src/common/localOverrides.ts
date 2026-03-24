@@ -7,18 +7,21 @@ import type { GeoJSON } from "geojson";
 import { bbox } from "svelte-utils/map";
 import {
   type AddedCrossingSegment,
+  type DeletedWaySegment,
   type ManualOverrides,
+  isValidDeletedSegment,
   isValidSegment,
 } from "./overridesSchema";
 
 const DB_NAME = "speedwalk-overrides";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_NAME = "overrides";
 const OVERRIDES_RECORD_ID = "default";
 
 const DEFAULT_OVERRIDES: ManualOverrides = {
   version: 1,
   addedCrossings: [],
+  deletedWaySegments: [],
 };
 
 function openDb(): Promise<IDBDatabase> {
@@ -32,6 +35,7 @@ function openDb(): Promise<IDBDatabase> {
       if (event.oldVersion < 2) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
+      // v3: same schema; added deletedWaySegments in JSON payload (handled in getOverrides).
     };
   });
 }
@@ -50,10 +54,15 @@ export async function getOverrides(): Promise<ManualOverrides> {
       const addedCrossings = (
         Array.isArray(list) ? list.filter(isValidSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
+      const delList = raw?.deletedWaySegments ?? DEFAULT_OVERRIDES.deletedWaySegments;
+      const deletedWaySegments = (
+        Array.isArray(delList) ? delList.filter(isValidDeletedSegment) : []
+      ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
       const data = raw
         ? {
             version: raw.version ?? DEFAULT_OVERRIDES.version,
             addedCrossings,
+            deletedWaySegments,
           }
         : { ...DEFAULT_OVERRIDES };
       resolve(data);
@@ -71,6 +80,7 @@ export async function saveOverrides(data: ManualOverrides): Promise<void> {
         id: OVERRIDES_RECORD_ID,
         version: data.version,
         addedCrossings: data.addedCrossings,
+        deletedWaySegments: data.deletedWaySegments,
       }),
     );
     const req = store.put(record);
@@ -96,6 +106,22 @@ export function filterSegmentsInBoundary(
       midLng <= maxLng &&
       midLat >= minLat &&
       midLat <= maxLat
+    );
+  });
+}
+
+/** Returns deleted way segments whose midpoint is inside the boundary's bbox. */
+export function filterDeletionsInBoundary(
+  segments: DeletedWaySegment[],
+  boundaryGeoJson: GeoJSON,
+): DeletedWaySegment[] {
+  const [minLng, minLat, maxLng, maxLat] = bbox(boundaryGeoJson);
+  return segments.filter((seg) => {
+    return (
+      seg.midLng >= minLng &&
+      seg.midLng <= maxLng &&
+      seg.midLat >= minLat &&
+      seg.midLat <= maxLat
     );
   });
 }
