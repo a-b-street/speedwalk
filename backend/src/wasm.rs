@@ -62,10 +62,7 @@ impl Speedwalk {
                 "is_generated_crossing",
                 node.tags.is("crossing", "generated"),
             );
-            f.set_property(
-                "is_manual_crossing",
-                node.tags.is("crossing", "manual"),
-            );
+            f.set_property("is_manual_crossing", node.tags.is("crossing", "manual"));
             f.set_property("modified", node.modified);
             f.set_property(
                 "way_ids",

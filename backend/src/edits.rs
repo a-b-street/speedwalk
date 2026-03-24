@@ -132,7 +132,11 @@ impl Edits {
     pub fn apply_cmd(&mut self, cmd: UserCmd, model: &Speedwalk) -> Result<()> {
         self.user_commands.push(cmd.clone());
         match cmd {
-            UserCmd::SetTags { way, remove_keys, add_tags } => {
+            UserCmd::SetTags {
+                way,
+                remove_keys,
+                add_tags,
+            } => {
                 let cmds = self.change_way_tags.entry(way).or_insert_with(Vec::new);
                 // First remove all tags in the removal list
                 for key in remove_keys {
@@ -609,5 +613,4 @@ mod tests {
         .unwrap();
         assert_ne!(snapped.0, snapped.1);
     }
-
 }

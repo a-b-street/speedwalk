@@ -156,9 +156,12 @@ impl Way {
             Kind::RoadWithSeparate => false,
             Kind::RoadWithTags => true,
             // Small streets with no sidewalks are routeable.
-            Kind::RoadWithoutSidewalksExplicit | Kind::RoadWithoutSidewalksImplicit => self
-                .tags
-                .is_any("highway", vec!["living_street", "pedestrian", "residential", "service"]),
+            Kind::RoadWithoutSidewalksExplicit | Kind::RoadWithoutSidewalksImplicit => {
+                self.tags.is_any(
+                    "highway",
+                    vec!["living_street", "pedestrian", "residential", "service"],
+                )
+            }
             // Assume routeable when unknown.
             Kind::RoadUnknown => true,
             Kind::Sidewalk | Kind::Crossing => true,
