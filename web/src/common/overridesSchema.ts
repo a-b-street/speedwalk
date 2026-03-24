@@ -7,9 +7,17 @@ export const snappedSegmentSchema = z.object({
   end: pointSchema,
 });
 
+export const resolvedCrossingSegmentSchema = z.object({
+  startWay: z.number(),
+  endWay: z.number(),
+  start: pointSchema,
+  end: pointSchema,
+});
+
 const addedCrossingSegmentSchema = z.extend(snappedSegmentSchema, {
   id: z.optional(z.string()),
   tags: z._default(z.optional(z.record(z.string(), z.string())), {}),
+  resolved: z.optional(resolvedCrossingSegmentSchema),
 });
 
 export type SnappedSegment = {
@@ -20,6 +28,14 @@ export type SnappedSegment = {
 export type AddedCrossingSegment = SnappedSegment & {
   id?: string;
   tags: Record<string, string>;
+  resolved?: ResolvedCrossingSegment;
+};
+
+export type ResolvedCrossingSegment = {
+  startWay: number;
+  endWay: number;
+  start: { lat: number; lng: number };
+  end: { lat: number; lng: number };
 };
 
 export const deletedWaySegmentSchema = z.object({
