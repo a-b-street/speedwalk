@@ -22,16 +22,42 @@ export type AddedCrossingSegment = SnappedSegment & {
   tags: Record<string, string>;
 };
 
+export const deletedWaySegmentSchema = z.object({
+  id: z.optional(z.string()),
+  wayId: z.number(),
+  node1: z.number(),
+  node2: z.number(),
+  midLat: z.number(),
+  midLng: z.number(),
+  tags: z._default(z.optional(z.record(z.string(), z.string())), {}),
+});
+
+export type DeletedWaySegment = {
+  id?: string;
+  wayId: number;
+  node1: number;
+  node2: number;
+  midLat: number;
+  midLng: number;
+  tags: Record<string, string>;
+};
+
 export const manualOverridesSchema = z.object({
   version: z.number(),
   addedCrossings: z.array(addedCrossingSegmentSchema),
+  deletedWaySegments: z._default(z.array(deletedWaySegmentSchema), []),
 });
 
 export type ManualOverrides = {
   version: number;
   addedCrossings: AddedCrossingSegment[];
+  deletedWaySegments: DeletedWaySegment[];
 };
 
 export function isValidSegment(x: unknown): x is AddedCrossingSegment {
   return addedCrossingSegmentSchema.safeParse(x).success;
+}
+
+export function isValidDeletedSegment(x: unknown): x is DeletedWaySegment {
+  return deletedWaySegmentSchema.safeParse(x).success;
 }

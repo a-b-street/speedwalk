@@ -4,7 +4,7 @@ use std::sync::Once;
 use anyhow::Result;
 use geo::{Euclidean, Length, Point, Polygon};
 use geojson::{Feature, GeoJson, Geometry};
-use osm_reader::WayID;
+use osm_reader::{NodeID, WayID};
 use serde::Serialize;
 use utils::{OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
@@ -366,6 +366,45 @@ impl Speedwalk {
             "end": { "lat": s_end.y(), "lng": s_end.x() }
         });
         serde_json::to_string(&out).map_err(err_to_js)
+    }
+
+    /// Resolve which graph edges lie between two draft points (same snap as crossings). JSON: `{ "edges": [...] }`.
+    #[wasm_bindgen(js_name = resolveManualDeletion)]
+    pub fn resolve_manual_deletion_wasm(
+        &self,
+        start_lng: f64,
+        start_lat: f64,
+        end_lng: f64,
+        end_lat: f64,
+    ) -> Result<String, JsValue> {
+        let start = Point::new(start_lng, start_lat);
+        let end = Point::new(end_lng, end_lat);
+        let resolved =
+            crate::edits::resolve_manual_deletion_edges(self, start, end).map_err(err_to_js)?;
+        serde_json::to_string(&serde_json::json!({ "edges": resolved })).map_err(err_to_js)
+    }
+
+    #[wasm_bindgen(js_name = editManualDeleteEdge)]
+    pub fn edit_manual_delete_edge(
+        &mut self,
+        way_id: i64,
+        node1: i64,
+        node2: i64,
+    ) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        edits
+            .apply_cmd(
+                UserCmd::ManualDeleteEdge {
+                    way: WayID(way_id),
+                    node1: NodeID(node1),
+                    node2: NodeID(node2),
+                },
+                self,
+            )
+            .map_err(err_to_js)?;
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
     }
 
     #[wasm_bindgen(js_name = editUndo)]

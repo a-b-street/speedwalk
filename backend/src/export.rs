@@ -38,6 +38,16 @@ impl Speedwalk {
             .is("crossing", "manual")
     }
 
+    pub(crate) fn edge_is_manually_deleted(&self, edge: &Edge) -> bool {
+        self.edits
+            .as_ref()
+            .map(|e| {
+                e.manual_deleted_edges
+                    .contains(&(edge.osm_way, edge.osm_node1, edge.osm_node2))
+            })
+            .unwrap_or(false)
+    }
+
     /// Filter network without dead end check - used to determine routeable edges
     fn filter_network_without_deadends(
         &self,
@@ -45,6 +55,9 @@ impl Speedwalk {
         _graph: &Graph,
         edge: &Edge,
     ) -> bool {
+        if self.edge_is_manually_deleted(edge) {
+            return false;
+        }
         let way = &self.derived_ways[&edge.osm_way];
 
         match filter.include {
@@ -310,6 +323,9 @@ impl Speedwalk {
         edge: &Edge,
         dead_end_edges: Option<&HashSet<EdgeID>>,
     ) -> bool {
+        if self.edge_is_manually_deleted(edge) {
+            return false;
+        }
         // Manual crossing segments stay visible, but are still included in topology when
         // computing dead-end/disconnected filtering.
         if self.edge_is_manual_crossing(edge) {
@@ -390,7 +406,9 @@ impl Speedwalk {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::UserCmd;
     use crate::graph::Graph;
+    use osm_reader::WayID;
 
     fn test_filter() -> NetworkFilter {
         NetworkFilter {
@@ -401,6 +419,49 @@ mod tests {
 
     fn model_from_osm(osm: &str) -> Speedwalk {
         Speedwalk::new_from_osm(osm.as_bytes(), None).unwrap()
+    }
+
+    #[test]
+    fn manual_delete_edge_excluded_from_export_network() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000090" lat="0.000000" version="1" />
+  <node id="3" lon="0.000180" lat="0.000000" version="1" />
+  <node id="4" lon="0.000270" lat="0.000000" version="1" />
+  <way id="100" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/>
+    <tag k="highway" v="residential"/>
+  </way>
+</osm>"#;
+        let mut model = model_from_osm(osm);
+        let graph = Graph::new(&model);
+        let only_edge = graph
+            .edges
+            .values()
+            .find(|e| e.osm_way.0 == 100)
+            .expect("one edge for simple residential way");
+
+        let mut edits = model.take_edits();
+        edits
+            .apply_cmd(
+                UserCmd::ManualDeleteEdge {
+                    way: WayID(100),
+                    node1: only_edge.osm_node1,
+                    node2: only_edge.osm_node2,
+                },
+                &model,
+            )
+            .unwrap();
+        model.set_edits(edits);
+        model.after_edit();
+
+        let filter = test_filter();
+        let dead = model.find_dead_end_chains(&filter, &graph);
+        assert!(
+            !model.filter_network(&filter, &graph, only_edge, Some(&dead)),
+            "manually deleted edge must be excluded from export filter"
+        );
     }
 
     #[test]

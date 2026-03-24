@@ -7,7 +7,10 @@ use rstar::{RTree, primitives::GeomWithData};
 use serde::Serialize;
 use utils::Tags;
 
-use crate::{Kind, Node, Speedwalk, Way};
+use crate::{
+    Kind, Node, Speedwalk, Way,
+    graph::{Edge, Graph},
+};
 
 const MAX_CROSSING_SNAP_DISTANCE_METERS: f64 = 25.0;
 
@@ -83,9 +86,114 @@ pub fn snap_crossing_segment(
     Ok((Point::from(start_out), Point::from(end_out)))
 }
 
+/// Distance along `ls` from its first vertex to the closest point on the line to `pt` (Mercator).
+fn distance_along_linestring(ls: &LineString, pt: Coord) -> f64 {
+    let p = Point::from(pt);
+    let mut distance_before = 0.0;
+    let mut best = f64::INFINITY;
+    let mut best_along = 0.0;
+    for line in ls.lines() {
+        let dx = line.end.x - line.start.x;
+        let dy = line.end.y - line.start.y;
+        let len_sq = dx * dx + dy * dy;
+        if len_sq < 1e-24 {
+            continue;
+        }
+        let t =
+            (((p.x() - line.start.x) * dx + (p.y() - line.start.y) * dy) / len_sq).clamp(0.0, 1.0);
+        let cp = Point::new(line.start.x + t * dx, line.start.y + t * dy);
+        let dist = Euclidean.distance(&p, &cp);
+        let seg_len = len_sq.sqrt();
+        let d_along = distance_before + t * seg_len;
+        if dist < best {
+            best = dist;
+            best_along = d_along;
+        }
+        distance_before += seg_len;
+    }
+    best_along
+}
+
+/// Resolved edges to hide from the exported network (same snap targets as manual crossings).
+#[derive(Serialize)]
+pub struct ResolvedDeletionEdge {
+    pub way_id: i64,
+    pub node1: i64,
+    pub node2: i64,
+    pub mid_lat: f64,
+    pub mid_lng: f64,
+    pub tags: BTreeMap<String, String>,
+}
+
+/// Snap like a crossing, then select every graph edge on that way whose span overlaps the interval
+/// between the two snapped positions along the way.
+pub fn resolve_manual_deletion_edges(
+    model: &Speedwalk,
+    start_wgs84: Point,
+    end_wgs84: Point,
+) -> Result<Vec<ResolvedDeletionEdge>> {
+    let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
+    if snapped.start_way != snapped.end_way {
+        bail!(
+            "Both draft points must snap to the same way. Move them onto one road or path segment."
+        );
+    }
+    let way_id = snapped.start_way;
+    let way = &model.derived_ways[&way_id];
+    let ls = &way.linestring;
+
+    let d_a = distance_along_linestring(ls, snapped.snapped_start);
+    let d_b = distance_along_linestring(ls, snapped.snapped_end);
+    let lo = d_a.min(d_b);
+    let hi = d_a.max(d_b);
+
+    let graph = Graph::new(model);
+    let mut edges_on_way: Vec<&Edge> = graph
+        .edges
+        .values()
+        .filter(|e| e.osm_way == way_id)
+        .collect();
+    edges_on_way.sort_by_key(|e| e.idx_of_node1);
+
+    let mut out = Vec::new();
+    for edge in edges_on_way {
+        let n1 = distance_along_linestring(ls, model.derived_nodes[&edge.osm_node1].pt);
+        let n2 = distance_along_linestring(ls, model.derived_nodes[&edge.osm_node2].pt);
+        let e_lo = n1.min(n2);
+        let e_hi = n1.max(n2);
+        if e_hi >= lo && e_lo <= hi {
+            let a = model.derived_nodes[&edge.osm_node1].pt;
+            let b = model.derived_nodes[&edge.osm_node2].pt;
+            let mid_mercator = Coord {
+                x: (a.x + b.x) / 2.0,
+                y: (a.y + b.y) / 2.0,
+            };
+            let mid_wgs = model.mercator.pt_to_wgs84(mid_mercator);
+            out.push(ResolvedDeletionEdge {
+                way_id: way_id.0,
+                node1: edge.osm_node1.0,
+                node2: edge.osm_node2.0,
+                mid_lat: mid_wgs.y,
+                mid_lng: mid_wgs.x,
+                tags: way.tags.0.clone(),
+            });
+        }
+    }
+
+    if out.is_empty() {
+        bail!(
+            "No segment found between the snapped points. Try placing the draft closer to the road."
+        );
+    }
+    Ok(out)
+}
+
 #[derive(Default)]
 pub struct Edits {
     pub user_commands: Vec<UserCmd>,
+
+    /// Graph edges (way + endpoint nodes) excluded from network export / routing views.
+    pub manual_deleted_edges: HashSet<(WayID, NodeID, NodeID)>,
 
     // Derived consequences below
     // TODO Or maybe ditch TagCmd and the equivalent for inserting nodes somewhere
@@ -111,6 +219,12 @@ pub enum UserCmd {
     AddCrossings(Vec<Point>, Tags),
     /// Add a crossing as a segment between two points; each point is snapped to the nearest road or sidewalk (closest line).
     AddCrossingSegment(Point, Point, Tags),
+    /// Exclude one graph edge (same node orientation as [`Edge`]).
+    ManualDeleteEdge {
+        way: WayID,
+        node1: NodeID,
+        node2: NodeID,
+    },
 }
 
 pub enum TagCmd {
@@ -241,6 +355,9 @@ impl Edits {
                     },
                     model,
                 );
+            }
+            UserCmd::ManualDeleteEdge { way, node1, node2 } => {
+                self.manual_deleted_edges.insert((way, node1, node2));
             }
         }
         Ok(())
@@ -586,6 +703,7 @@ fn is_oneway(tags: &Tags) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
 
     fn model_from_osm(osm: &str) -> Speedwalk {
         Speedwalk::new_from_osm(osm.as_bytes(), None).unwrap()
@@ -612,5 +730,51 @@ mod tests {
         )
         .unwrap();
         assert_ne!(snapped.0, snapped.1);
+    }
+
+    #[test]
+    fn resolve_manual_deletion_selects_multiple_edges_between_points() {
+        let osm = r#"<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="test">
+  <node id="1" lon="0.000000" lat="0.000000" version="1" />
+  <node id="2" lon="0.000090" lat="0.000000" version="1" />
+  <node id="3" lon="0.000180" lat="0.000000" version="1" />
+  <node id="4" lon="0.000270" lat="0.000000" version="1" />
+  <node id="5" lon="0.000090" lat="0.000090" version="1" />
+  <node id="6" lon="0.000180" lat="0.000090" version="1" />
+  <way id="100" version="1">
+    <nd ref="1"/><nd ref="2"/><nd ref="3"/><nd ref="4"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="200" version="1">
+    <nd ref="2"/><nd ref="5"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+  <way id="201" version="1">
+    <nd ref="3"/><nd ref="6"/>
+    <tag k="highway" v="footway"/>
+    <tag k="footway" v="sidewalk"/>
+  </way>
+</osm>"#;
+        let model = model_from_osm(osm);
+        let resolved = resolve_manual_deletion_edges(
+            &model,
+            Point::new(0.000020, 0.000010),
+            Point::new(0.000250, -0.000010),
+        )
+        .unwrap();
+
+        let edges: HashSet<(i64, i64, i64)> = resolved
+            .iter()
+            .map(|e| (e.way_id, e.node1, e.node2))
+            .collect();
+        let has_edge =
+            |a: i64, b: i64| edges.contains(&(100, a, b)) || edges.contains(&(100, b, a));
+
+        assert_eq!(resolved.len(), 3, "A->B should cover exactly 3 edges");
+        assert!(has_edge(1, 2));
+        assert!(has_edge(2, 3));
+        assert!(has_edge(3, 4));
     }
 }
