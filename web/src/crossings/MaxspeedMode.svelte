@@ -8,7 +8,7 @@
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { localStorageStore } from "svelte-utils";
-  import { backend, mutationCounter } from "../";
+  import { backend, mutationCounter, refreshLoadingScreen } from "../";
   import type { FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
   import CollapsibleCard from "../common/CollapsibleCard.svelte";
@@ -45,19 +45,20 @@
 
   let unit = $derived($unitOverride === "auto" ? detectedUnit : $unitOverride);
 
+  const rect = { swatchClass: "rectangle" as const };
   let legendItems = $derived(
     unit === "mph"
       ? [
-          { color: "#2ecc71", label: "≤ 20 mph", swatchClass: "rectangle" as const },
-          { color: "#f1c40f", label: "≤ 30 mph", swatchClass: "rectangle" as const },
-          { color: "#e74c3c", label: "> 30 mph", swatchClass: "rectangle" as const },
-          { color: "#aaaaaa", label: "No maxspeed", swatchClass: "rectangle" as const },
+          { color: "#2ecc71", label: "≤ 20 mph", ...rect },
+          { color: "#f1c40f", label: "≤ 30 mph", ...rect },
+          { color: "#e74c3c", label: "> 30 mph", ...rect },
+          { color: "#aaaaaa", label: "No maxspeed", ...rect },
         ]
       : [
-          { color: "#2ecc71", label: "≤ 30 km/h", swatchClass: "rectangle" as const },
-          { color: "#f1c40f", label: "≤ 50 km/h", swatchClass: "rectangle" as const },
-          { color: "#e74c3c", label: "> 50 km/h", swatchClass: "rectangle" as const },
-          { color: "#aaaaaa", label: "No maxspeed", swatchClass: "rectangle" as const },
+          { color: "#2ecc71", label: "≤ 30 km/h", ...rect },
+          { color: "#f1c40f", label: "≤ 50 km/h", ...rect },
+          { color: "#e74c3c", label: "> 50 km/h", ...rect },
+          { color: "#aaaaaa", label: "No maxspeed", ...rect },
         ],
   );
 
@@ -73,15 +74,12 @@
 
   let working = $state(false);
 
-  function applyMaxspeed() {
+  async function applyMaxspeed() {
     working = true;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        $backend!.editApplyMaxspeed();
-        $mutationCounter++;
-        working = false;
-      });
-    });
+    await refreshLoadingScreen();
+    $backend!.editApplyMaxspeed();
+    $mutationCounter++;
+    working = false;
   }
 </script>
 
