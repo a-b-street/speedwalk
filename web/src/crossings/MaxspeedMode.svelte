@@ -7,6 +7,7 @@
     Control,
   } from "svelte-maplibre";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
+  import { localStorageStore } from "svelte-utils";
   import { backend, mutationCounter } from "../";
   import type { FeatureCollection } from "geojson";
   import { emptyGeojson } from "svelte-utils/map";
@@ -14,12 +15,9 @@
   import Jumbotron from "../common/Jumbotron.svelte";
   import LegendList from "../common/LegendList.svelte";
 
-  const legendItems: { color: string; label: string; swatchClass: "rectangle" }[] = [
-    { color: "#2ecc71", label: "≤ 30 km/h", swatchClass: "rectangle" },
-    { color: "#f1c40f", label: "≤ 50 km/h", swatchClass: "rectangle" },
-    { color: "#e74c3c", label: "> 50 km/h", swatchClass: "rectangle" },
-    { color: "#aaaaaa", label: "No maxspeed", swatchClass: "rectangle" },
-  ];
+  type Unit = "auto" | "km/h" | "mph";
+
+  let unitOverride = localStorageStore<Unit>("maxspeed_unit", "auto");
 
   let crossings = $derived.by(() => {
     $mutationCounter;
@@ -38,6 +36,32 @@
     }
     return gj;
   });
+
+  let detectedUnit = $derived(
+    crossings.features.some((f) => f.properties!.maxspeed?.includes("mph"))
+      ? "mph"
+      : "km/h",
+  );
+
+  let unit = $derived($unitOverride === "auto" ? detectedUnit : $unitOverride);
+
+  let legendItems = $derived(
+    unit === "mph"
+      ? [
+          { color: "#2ecc71", label: "≤ 20 mph", swatchClass: "rectangle" as const },
+          { color: "#f1c40f", label: "≤ 30 mph", swatchClass: "rectangle" as const },
+          { color: "#e74c3c", label: "> 30 mph", swatchClass: "rectangle" as const },
+          { color: "#aaaaaa", label: "No maxspeed", swatchClass: "rectangle" as const },
+        ]
+      : [
+          { color: "#2ecc71", label: "≤ 30 km/h", swatchClass: "rectangle" as const },
+          { color: "#f1c40f", label: "≤ 50 km/h", swatchClass: "rectangle" as const },
+          { color: "#e74c3c", label: "> 50 km/h", swatchClass: "rectangle" as const },
+          { color: "#aaaaaa", label: "No maxspeed", swatchClass: "rectangle" as const },
+        ],
+  );
+
+  let thresholds = $derived(unit === "mph" ? [20, 30] : [30, 50]);
 
   let crossingsWithMaxspeed = $derived(
     crossings.features.filter((f) => f.properties!.maxspeed !== null).length,
@@ -78,6 +102,38 @@
       {/if}
     </Jumbotron>
 
+    <div class="mb-3">
+      <p class="form-label small text-muted mb-1">
+        Unit
+        {#if $unitOverride === "auto"}
+          <span class="text-secondary">(auto-detected: {detectedUnit})</span>
+        {/if}
+      </p>
+      <div class="btn-group btn-group-sm d-block">
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "auto"}
+          onclick={() => ($unitOverride = "auto")}
+        >
+          Auto
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "km/h"}
+          onclick={() => ($unitOverride = "km/h")}
+        >
+          km/h
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "mph"}
+          onclick={() => ($unitOverride = "mph")}
+        >
+          mph
+        </button>
+      </div>
+    </div>
+
     <button class="btn btn-primary mb-3" onclick={applyMaxspeed} disabled={working}>
       {#if working}
         <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -99,9 +155,9 @@
             "case",
             ["==", ["get", "maxspeed_num"], null],
             "#aaaaaa",
-            ["<=", ["get", "maxspeed_num"], 30],
+            ["<=", ["get", "maxspeed_num"], thresholds[0]],
             "#2ecc71",
-            ["<=", ["get", "maxspeed_num"], 50],
+            ["<=", ["get", "maxspeed_num"], thresholds[1]],
             "#f1c40f",
             "#e74c3c",
           ],
