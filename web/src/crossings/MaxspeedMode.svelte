@@ -73,7 +73,7 @@
       </p>
       {#if crossingsWithoutMaxspeed > 0}
         <p class="mb-0 small text-muted">
-          {crossingsWithoutMaxspeed.toLocaleString()} crossings have no maxspeed — road has no maxspeed data.
+          {crossingsWithoutMaxspeed.toLocaleString()} crossings have no maxspeed because of missing data on road.
         </p>
       {/if}
     </Jumbotron>

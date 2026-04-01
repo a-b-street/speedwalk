@@ -1,9 +1,9 @@
 use utils::Tags;
 
-/// Effektiven Maxspeed aus OSM-Tags ermitteln.
-/// - `maxspeed` direkt → zurückgeben
-/// - `maxspeed:forward` + `maxspeed:backward` → höheren Original-String zurückgeben
-/// - Alles andere → None (keine Maxspeed-Info vorhanden)
+/// Determine effective maxspeed from OSM tags.
+/// - `maxspeed` directly → return it
+/// - `maxspeed:forward` + `maxspeed:backward` → return the higher original string
+/// - Anything else → None (no maxspeed info available)
 pub fn get_maxspeed_from_tags(tags: &Tags) -> Option<String> {
     if let Some(v) = tags.get("maxspeed") {
         return Some(v.clone());
@@ -14,8 +14,8 @@ pub fn get_maxspeed_from_tags(tags: &Tags) -> Option<String> {
     }
 }
 
-/// Numerischen Teil eines Maxspeed-Wertes in km/h-Äquivalent parsen.
-/// Unterstützt Format "50" oder "30 mph" (Zahl, Optional-Leerzeichen, Optional-Einheit).
+/// Parse the numeric part of a maxspeed value into a km/h equivalent.
+/// Supports formats like "50" or "30 mph" (number, optional space, optional unit).
 fn parse_maxspeed_value(s: &str) -> Option<f64> {
     let mut parts = s.splitn(2, ' ');
     let num: f64 = parts.next()?.trim().parse().ok()?;
@@ -26,7 +26,7 @@ fn parse_maxspeed_value(s: &str) -> Option<f64> {
     }
 }
 
-/// Den String-Wert der höheren Maxspeed zurückgeben (Original, nicht konvertiert).
+/// Return the string value of the higher maxspeed (original, not converted).
 fn pick_higher_maxspeed(a: &str, b: &str) -> Option<String> {
     let a_val = parse_maxspeed_value(a)?;
     let b_val = parse_maxspeed_value(b)?;
