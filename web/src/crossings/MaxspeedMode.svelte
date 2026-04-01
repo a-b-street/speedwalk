@@ -100,6 +100,9 @@
           {crossingsWithoutMaxspeed.toLocaleString()} crossings have no maxspeed because of missing data on road.
         </p>
       {/if}
+      <p class="mb-0 small text-muted">
+        When a crossing spans a dual carriageway or multiple roads, the highest speed limit among all crossed roads is used.
+      </p>
     </Jumbotron>
 
     <div class="mb-3">

@@ -463,42 +463,44 @@ impl Edits {
                     .collect();
 
                 for (crossing_id, linestring, tags) in crossings {
-                    // 1. Direct lookup via tmp:osm_way_id (generated crossings)
-                    let ms = tags.get("tmp:osm_way_id").and_then(|ref_str| {
-                        let id_str = ref_str.strip_prefix("way/")?;
-                        let raw_id: i64 = id_str.parse().ok()?;
+                    let mut candidates: Vec<String> = Vec::new();
+
+                    // a) Direct lookup via tmp:osm_way_id (generated crossings)
+                    if let Some(ms) = tags.get("tmp:osm_way_id").and_then(|ref_str| {
+                        let raw_id: i64 =
+                            ref_str.strip_prefix("way/")?.parse().ok()?;
                         let road = model.derived_ways.get(&WayID(raw_id))?;
                         maxspeed::get_maxspeed_from_tags(&road.tags)
-                    });
+                    }) {
+                        candidates.push(ms);
+                    }
 
-                    // 2. Spatial fallback for manual crossings
-                    let ms = ms.or_else(|| {
-                        for segment in linestring.lines() {
-                            let bbox = segment.bounding_rect();
-                            let aabb = AABB::from_corners(
-                                Point::new(bbox.min().x, bbox.min().y),
-                                Point::new(bbox.max().x, bbox.max().y),
-                            );
-                            for road_obj in
-                                road_rtree.locate_in_envelope_intersecting(&aabb)
-                            {
-                                if road_obj.geom().intersects(&linestring) {
-                                    if let Some(road) =
-                                        model.derived_ways.get(&road_obj.data)
+                    // b) Spatial lookup – ALL intersecting roads (handles dual
+                    // carriageways and crossings that span multiple road ways)
+                    for segment in linestring.lines() {
+                        let bbox = segment.bounding_rect();
+                        let aabb = AABB::from_corners(
+                            Point::new(bbox.min().x, bbox.min().y),
+                            Point::new(bbox.max().x, bbox.max().y),
+                        );
+                        for road_obj in
+                            road_rtree.locate_in_envelope_intersecting(&aabb)
+                        {
+                            if road_obj.geom().intersects(&linestring) {
+                                if let Some(road) =
+                                    model.derived_ways.get(&road_obj.data)
+                                {
+                                    if let Some(ms) =
+                                        maxspeed::get_maxspeed_from_tags(&road.tags)
                                     {
-                                        if let Some(found) =
-                                            maxspeed::get_maxspeed_from_tags(&road.tags)
-                                        {
-                                            return Some(found);
-                                        }
+                                        candidates.push(ms);
                                     }
                                 }
                             }
                         }
-                        None
-                    });
+                    }
 
-                    if let Some(ms_val) = ms {
+                    if let Some(ms_val) = maxspeed::pick_highest_maxspeed(&candidates) {
                         self.change_way_tags
                             .entry(crossing_id)
                             .or_default()
