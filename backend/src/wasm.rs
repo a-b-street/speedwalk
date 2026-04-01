@@ -288,6 +288,15 @@ impl Speedwalk {
         Ok(())
     }
 
+    #[wasm_bindgen(js_name = editApplyMaxspeed)]
+    pub fn edit_apply_maxspeed(&mut self) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        let _ = edits.apply_cmd(UserCmd::ApplyMaxspeed, self);
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
     #[wasm_bindgen(js_name = editSetTags)]
     pub fn edit_set_tags(
         &mut self,

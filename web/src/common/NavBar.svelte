@@ -23,6 +23,7 @@
     [{ kind: "generator" }, "Generator"],
     [{ kind: "overrides" }, "Overrides"],
     [{ kind: "export" }, "Export"],
+    [{ kind: "maxspeed" }, "Maxspeed"],
   ] as [Mode, string][];
 
   let mainActions = $derived(

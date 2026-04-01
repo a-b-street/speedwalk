@@ -8,7 +8,7 @@ use serde::Serialize;
 use utils::Tags;
 
 use crate::{
-    Kind, Node, Speedwalk, Way,
+    maxspeed, Kind, Node, Speedwalk, Way,
     graph::{Edge, Graph},
 };
 
@@ -306,6 +306,8 @@ pub enum UserCmd {
         node1: NodeID,
         node2: NodeID,
     },
+    /// Enrich all crossing ways with the maxspeed from the road they cross.
+    ApplyMaxspeed,
 }
 
 pub enum TagCmd {
@@ -436,6 +438,73 @@ impl Edits {
                     },
                     model,
                 );
+            }
+            UserCmd::ApplyMaxspeed => {
+                use geo::{BoundingRect, Intersects};
+                use rstar::AABB;
+
+                let road_rtree: RTree<GeomWithData<LineString, WayID>> =
+                    RTree::bulk_load(
+                        model
+                            .derived_ways
+                            .iter()
+                            .filter(|(_, way)| way.kind.is_road())
+                            .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                            .collect(),
+                    );
+
+                let crossings: Vec<(WayID, LineString, Tags)> = model
+                    .derived_ways
+                    .iter()
+                    .filter(|(_, way)| {
+                        way.kind == Kind::Crossing && !way.tags.has("maxspeed")
+                    })
+                    .map(|(id, way)| (*id, way.linestring.clone(), way.tags.clone()))
+                    .collect();
+
+                for (crossing_id, linestring, tags) in crossings {
+                    // 1. Direct lookup via tmp:osm_way_id (generated crossings)
+                    let ms = tags.get("tmp:osm_way_id").and_then(|ref_str| {
+                        let id_str = ref_str.strip_prefix("way/")?;
+                        let raw_id: i64 = id_str.parse().ok()?;
+                        let road = model.derived_ways.get(&WayID(raw_id))?;
+                        maxspeed::get_maxspeed_from_tags(&road.tags)
+                    });
+
+                    // 2. Spatial fallback for manual crossings
+                    let ms = ms.or_else(|| {
+                        for segment in linestring.lines() {
+                            let bbox = segment.bounding_rect();
+                            let aabb = AABB::from_corners(
+                                Point::new(bbox.min().x, bbox.min().y),
+                                Point::new(bbox.max().x, bbox.max().y),
+                            );
+                            for road_obj in
+                                road_rtree.locate_in_envelope_intersecting(&aabb)
+                            {
+                                if road_obj.geom().intersects(&linestring) {
+                                    if let Some(road) =
+                                        model.derived_ways.get(&road_obj.data)
+                                    {
+                                        if let Some(found) =
+                                            maxspeed::get_maxspeed_from_tags(&road.tags)
+                                        {
+                                            return Some(found);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        None
+                    });
+
+                    if let Some(ms_val) = ms {
+                        self.change_way_tags
+                            .entry(crossing_id)
+                            .or_default()
+                            .push(TagCmd::Set("maxspeed".to_string(), ms_val));
+                    }
+                }
             }
             UserCmd::AddCrossingSegmentSnapped {
                 start_way,

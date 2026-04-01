@@ -12,6 +12,7 @@ mod edits;
 mod export;
 mod graph;
 mod make_sidewalks;
+mod maxspeed;
 mod problems;
 mod scrape;
 mod wasm;
