@@ -22,8 +22,8 @@
     ...auditActions,
     [{ kind: "generator" }, "Generator"],
     [{ kind: "overrides" }, "Overrides"],
-    [{ kind: "export" }, "Export"],
     [{ kind: "maxspeed" }, "Maxspeed"],
+    [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 
   let mainActions = $derived(
