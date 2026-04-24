@@ -1,4 +1,4 @@
-# Speedwalk
+# [Speedwalk](https://a-b-street.github.io/speedwalk/)
 
 This is a web tool to assess sidewalk data quality in OpenStreetMap and conveniently edit it. It's
 intended for use only by OSM mappers that have a basic understanding of [how to map
@@ -19,8 +19,8 @@ The first version:
 
 Later work:
 
-- [ ] https://github.com/a-b-street/speedwalk/issues/4 Split ways within the tool
-- [ ] https://github.com/a-b-street/speedwalk/issues/5 Integrate into the iD editor
+- [ ] [#4](https://github.com/a-b-street/speedwalk/issues/4) Split ways within the tool
+- [ ] [#5](https://github.com/a-b-street/speedwalk/issues/5) Integrate into the iD editor
 
 ### Automated sidewalk generation
 
@@ -29,7 +29,7 @@ Speedwalk also has some tools to generate separate sidewalk geometry when they a
 that consume OSM data and make assumptions about consistent mapping styles. This feature is very
 experimental and often wrong.
 
-Please also check out https://github.com/kauevestena/osm_sidewalkreator for a similar effort.
+Please also check out [kauevestena/osm_sidewalkreator](https://github.com/kauevestena/osm_sidewalkreator) for a similar effort.
 
 ## Local development
 
@@ -48,4 +48,4 @@ To run locally, you'll need [npm](https://docs.npmjs.com/downloading-and-install
 - `npm run fmt` to auto-format code
 - `npm run check` to see TypeScript errors
 
-Check recent changesets using Speedwalk: https://changesets.mapki.com/?tags=created_by%3DSpeedwalk
+Check recent changesets using Speedwalk on [changesets.mapki.com](https://changesets.mapki.com/?tags=created_by%3DSpeedwalk)
