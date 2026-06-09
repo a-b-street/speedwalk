@@ -19,13 +19,15 @@ export type Mode =
   | { kind: "disconnections" }
   | { kind: "generator" }
   | { kind: "export" }
-  | { kind: "overrides" };
+  | { kind: "overrides" }
+  | { kind: "maxspeed" };
 
 /** Mode kinds only available when use case is "route-networks". When switching to audit, redirect off these. */
 export const ROUTE_NETWORK_ONLY_MODE_KINDS: Mode["kind"][] = [
   "generator",
   "overrides",
   "export",
+  "maxspeed",
 ];
 
 export const DEFAULT_AUDIT_MODE: Mode = { kind: "sidewalks" };

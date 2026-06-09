@@ -495,6 +495,24 @@ impl Speedwalk {
     /// Clear manual override commands (manual crossing adds + manual edge deletions), preserving all
     /// other edit commands.
     ///
+    #[wasm_bindgen(js_name = editApplyMaxspeed)]
+    pub fn edit_apply_maxspeed(&mut self) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        let _ = edits.apply_cmd(UserCmd::ApplyMaxspeed, self);
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
+    #[wasm_bindgen(js_name = editApplyCrossingNodeTags)]
+    pub fn edit_apply_crossing_node_tags(&mut self) -> Result<(), JsValue> {
+        let mut edits = self.edits.take().unwrap();
+        let _ = edits.apply_cmd(UserCmd::ApplyCrossingNodeTags, self);
+        self.edits = Some(edits);
+        self.after_edit();
+        Ok(())
+    }
+
     /// Replays remaining commands one-by-one with `after_edit()` after each (same as [`edit_undo`]),
     /// so `apply_cmd` always sees a [`Speedwalk`] graph consistent with the command history.
     /// Batching with [`Edits::apply_cmds_without_rebuild`] against a stale derived graph can produce
