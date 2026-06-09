@@ -7,6 +7,7 @@
     onlyMajorRoadsBulk,
     includeCrossingNoBulk,
     crossingScopeBulk,
+    recipeSteps,
     type CrossingScopeBulk,
   } from "../";
 
@@ -44,6 +45,7 @@
     try {
       $backend!.editGenerateMissingCrossings(options);
       $mutationCounter++;
+      recipeSteps.update((s) => [...s, { op: "generateMissingCrossings", scope }]);
     } catch (err) {
       window.alert(`Error: ${err}`);
     } finally {
@@ -52,11 +54,13 @@
   }
 
   async function makeAllSidewalks() {
+    const onlyMajor = $onlyMajorRoadsBulk;
     loading = "Generating sidewalks";
     await refreshLoadingScreen();
     try {
-      $backend!.editMakeAllSidewalks($onlyMajorRoadsBulk);
+      $backend!.editMakeAllSidewalks(onlyMajor);
       $mutationCounter++;
+      recipeSteps.update((s) => [...s, { op: "makeAllSidewalks", onlyMajor }]);
     } catch (err) {
       window.alert(`Error: ${err}`);
     } finally {
@@ -65,11 +69,13 @@
   }
 
   async function connectAllCrossings() {
+    const includeCrossingNo = $includeCrossingNoBulk;
     loading = "Connecting crossings";
     await refreshLoadingScreen();
     try {
-      $backend!.editConnectAllCrossings($includeCrossingNoBulk);
+      $backend!.editConnectAllCrossings(includeCrossingNo);
       $mutationCounter++;
+      recipeSteps.update((s) => [...s, { op: "connectAllCrossings", includeCrossingNo }]);
     } catch (err) {
       window.alert(`Error: ${err}`);
     } finally {
@@ -83,6 +89,7 @@
     try {
       $backend!.editAssumeTags(driveOnLeft);
       $mutationCounter++;
+      recipeSteps.update((s) => [...s, { op: "assumeTags", driveOnLeft }]);
     } catch (err) {
       window.alert(`Error: ${err}`);
     } finally {

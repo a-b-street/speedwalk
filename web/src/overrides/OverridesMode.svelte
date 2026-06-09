@@ -27,6 +27,7 @@
     mutationCounter,
     networkFilter,
     refreshLoadingScreen,
+    recipeSteps,
   } from "../";
   import { emptyGeojson } from "svelte-utils/map";
   import {
@@ -492,6 +493,9 @@
         deletionsInLoadedArea,
       );
       overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
+      if (overridesApplied) {
+        recipeSteps.update((s) => [...s, { op: "applyOverrides" }]);
+      }
     }
   }
 
