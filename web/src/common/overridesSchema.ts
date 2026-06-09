@@ -18,6 +18,8 @@ const addedCrossingSegmentSchema = z.extend(snappedSegmentSchema, {
   id: z.optional(z.string()),
   tags: z._default(z.optional(z.record(z.string(), z.string())), {}),
   resolved: z.optional(resolvedCrossingSegmentSchema),
+  failed: z.optional(z.boolean()),
+  rematched: z.optional(z.boolean()),
 });
 
 export type SnappedSegment = {
@@ -29,6 +31,8 @@ export type AddedCrossingSegment = SnappedSegment & {
   id?: string;
   tags: Record<string, string>;
   resolved?: ResolvedCrossingSegment;
+  failed?: boolean;
+  rematched?: boolean;
 };
 
 export type ResolvedCrossingSegment = {

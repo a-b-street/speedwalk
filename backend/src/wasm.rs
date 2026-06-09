@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use utils::{OffsetCurve, Tags};
 use wasm_bindgen::prelude::*;
 
-use crate::{Edits, Kind, Speedwalk, UserCmd};
+use crate::{Edits, Kind, Speedwalk, UserCmd, edits::resolve_crossing_segment};
 
 static START: Once = Once::new();
 
@@ -30,6 +30,8 @@ struct BatchResolvedCrossingInput {
 
 #[derive(Deserialize)]
 struct BatchCrossingInput {
+    #[serde(default)]
+    id: Option<String>,
     start: BatchPoint,
     end: BatchPoint,
     #[serde(default)]
@@ -44,6 +46,29 @@ struct BatchDeletionInput {
     way_id: i64,
     node1: i64,
     node2: i64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RematchedCrossingOutput {
+    id: String,
+    start_way: i64,
+    end_way: i64,
+    start: RematchedPoint,
+    end: RematchedPoint,
+}
+
+#[derive(Serialize)]
+struct RematchedPoint {
+    lat: f64,
+    lng: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BatchApplyResult {
+    failed_crossing_ids: Vec<String>,
+    rematched_crossings: Vec<RematchedCrossingOutput>,
 }
 
 #[wasm_bindgen]
@@ -298,7 +323,7 @@ impl Speedwalk {
         let remove_keys: Vec<String> = serde_wasm_bindgen::from_value(remove_keys)?;
         let add_tags: Vec<Vec<String>> = serde_wasm_bindgen::from_value(add_tags)?;
         let mut edits = self.edits.take().unwrap();
-        edits
+        let result = edits
             .apply_cmd(
                 UserCmd::SetTags {
                     way: WayID(base),
@@ -310,8 +335,9 @@ impl Speedwalk {
                 },
                 self,
             )
-            .map_err(err_to_js)?;
+            .map_err(err_to_js);
         self.edits = Some(edits);
+        result?;
         self.after_edit();
         Ok(())
     }
@@ -323,10 +349,11 @@ impl Speedwalk {
         let mut tags = Tags::empty();
         tags.insert("highway", "crossing");
         tags.insert("crossing", "traffic_signals");
-        edits
+        let result = edits
             .apply_cmd(UserCmd::AddCrossings(vec![Point::new(x, y)], tags), self)
-            .map_err(err_to_js)?;
+            .map_err(err_to_js);
         self.edits = Some(edits);
+        result?;
         self.after_edit();
         Ok(())
     }
@@ -345,10 +372,11 @@ impl Speedwalk {
             tags.insert(&k, &v);
         }
         let mut edits = self.edits.take().unwrap();
-        edits
+        let result = edits
             .apply_cmd(UserCmd::AddCrossings(vec![Point::new(x, y)], tags), self)
-            .map_err(err_to_js)?;
+            .map_err(err_to_js);
         self.edits = Some(edits);
+        result?;
         self.after_edit();
         Ok(())
     }
@@ -372,10 +400,11 @@ impl Speedwalk {
         let start = Point::new(start_lng, start_lat);
         let end = Point::new(end_lng, end_lat);
         let mut edits = self.edits.take().unwrap();
-        edits
+        let result = edits
             .apply_cmd(UserCmd::AddCrossingSegment(start, end, tags), self)
-            .map_err(err_to_js)?;
+            .map_err(err_to_js);
         self.edits = Some(edits);
+        result?;
         self.after_edit();
         Ok(())
     }
@@ -448,24 +477,80 @@ impl Speedwalk {
         &mut self,
         crossings_js: JsValue,
         deletions_js: JsValue,
-    ) -> Result<(), JsValue> {
+    ) -> Result<JsValue, JsValue> {
         let crossings: Vec<BatchCrossingInput> = serde_wasm_bindgen::from_value(crossings_js)?;
         let deletions: Vec<BatchDeletionInput> = serde_wasm_bindgen::from_value(deletions_js)?;
         let mut cmds = Vec::with_capacity(crossings.len() + deletions.len());
 
+        let mut failed_crossing_ids: Vec<String> = Vec::new();
+        let mut rematched_crossings: Vec<RematchedCrossingOutput> = Vec::new();
+
         for crossing in crossings {
             let mut tags = Tags::empty();
-            for (k, v) in crossing.tags {
-                tags.insert(&k, &v);
+            for (k, v) in &crossing.tags {
+                tags.insert(k, v);
             }
             if let Some(resolved) = crossing.resolved {
-                cmds.push(UserCmd::AddCrossingSegmentSnapped {
-                    start_way: WayID(resolved.start_way),
-                    end_way: WayID(resolved.end_way),
-                    snapped_start_wgs84: Point::new(resolved.start.lng, resolved.start.lat),
-                    snapped_end_wgs84: Point::new(resolved.end.lng, resolved.end.lat),
-                    tags,
-                });
+                let start_way = WayID(resolved.start_way);
+                let end_way = WayID(resolved.end_way);
+
+                if self.derived_ways.contains_key(&start_way)
+                    && self.derived_ways.contains_key(&end_way)
+                {
+                    // Fast path: way IDs still valid
+                    cmds.push(UserCmd::AddCrossingSegmentSnapped {
+                        start_way,
+                        end_way,
+                        snapped_start_wgs84: Point::new(resolved.start.lng, resolved.start.lat),
+                        snapped_end_wgs84: Point::new(resolved.end.lng, resolved.end.lat),
+                        tags,
+                    });
+                } else {
+                    // Stale way IDs: attempt geographic re-snap using original coordinates
+                    let original_start = Point::new(crossing.start.lng, crossing.start.lat);
+                    let original_end = Point::new(crossing.end.lng, crossing.end.lat);
+                    match resolve_crossing_segment(self, original_start, original_end) {
+                        Ok(new_resolved) => {
+                            if let Some(id) = &crossing.id {
+                                rematched_crossings.push(RematchedCrossingOutput {
+                                    id: id.clone(),
+                                    start_way: new_resolved.start_way,
+                                    end_way: new_resolved.end_way,
+                                    start: RematchedPoint {
+                                        lat: new_resolved.start_lat,
+                                        lng: new_resolved.start_lng,
+                                    },
+                                    end: RematchedPoint {
+                                        lat: new_resolved.end_lat,
+                                        lng: new_resolved.end_lng,
+                                    },
+                                });
+                            }
+                            cmds.push(UserCmd::AddCrossingSegmentSnapped {
+                                start_way: WayID(new_resolved.start_way),
+                                end_way: WayID(new_resolved.end_way),
+                                snapped_start_wgs84: Point::new(
+                                    new_resolved.start_lng,
+                                    new_resolved.start_lat,
+                                ),
+                                snapped_end_wgs84: Point::new(
+                                    new_resolved.end_lng,
+                                    new_resolved.end_lat,
+                                ),
+                                tags,
+                            });
+                        }
+                        Err(e) => {
+                            warn!(
+                                "[Overrides] Could not re-snap crossing {}: {e}",
+                                crossing.id.as_deref().unwrap_or("?")
+                            );
+                            if let Some(id) = crossing.id {
+                                failed_crossing_ids.push(id);
+                            }
+                        }
+                    }
+                }
             } else {
                 cmds.push(UserCmd::AddCrossingSegment(
                     Point::new(crossing.start.lng, crossing.start.lat),
@@ -483,13 +568,17 @@ impl Speedwalk {
             });
         }
 
-        let mut edits = self.edits.take().unwrap();
-        edits
-            .apply_cmds_without_rebuild(cmds, self)
-            .map_err(err_to_js)?;
-        self.edits = Some(edits);
+        let mut edits = self.edits.take().unwrap_or_default();
+        let result = edits.apply_cmds_without_rebuild(cmds, self);
+        self.edits = Some(edits); // always restore — prevents cascading panics on retry
         self.after_edit();
-        Ok(())
+        result.map_err(err_to_js)?;
+
+        let apply_result = BatchApplyResult {
+            failed_crossing_ids,
+            rematched_crossings,
+        };
+        serde_wasm_bindgen::to_value(&apply_result).map_err(err_to_js)
     }
 
     /// Clear manual override commands (manual crossing adds + manual edge deletions), preserving all
@@ -533,8 +622,9 @@ impl Speedwalk {
         // We have to start over and replay almost all the commands
         for cmd in cmds {
             let mut edits = self.edits.take().unwrap();
-            edits.apply_cmd(cmd, self).map_err(err_to_js)?;
+            let result = edits.apply_cmd(cmd, self).map_err(err_to_js);
             self.edits = Some(edits);
+            result?;
             self.after_edit();
         }
         Ok(())

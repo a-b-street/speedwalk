@@ -65,6 +65,7 @@
   /** Backend command stack: all crossings in order, then all manual deletions in order. */
   let appliedCrossingCount = $state(0);
   let appliedDeletionCount = $state(0);
+  let failedDeletionIds: Set<string> = $state(new Set());
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
     type: "FeatureCollection",
     features: [],
@@ -259,10 +260,22 @@
   }
 
   type BatchCrossingPayload = {
+    id?: string;
     start: { lng: number; lat: number };
     end: { lng: number; lat: number };
     tags: Record<string, string>;
     resolved?: ResolvedCrossingSegment;
+  };
+
+  type BatchApplyResult = {
+    failedCrossingIds: string[];
+    rematchedCrossings: Array<{
+      id: string;
+      startWay: number;
+      endWay: number;
+      start: { lat: number; lng: number };
+      end: { lat: number; lng: number };
+    }>;
   };
 
   type BatchDeletionPayload = {
@@ -273,6 +286,7 @@
 
   function toBatchCrossing(seg: AddedCrossingSegment): BatchCrossingPayload {
     return {
+      id: seg.id,
       start: seg.start,
       end: seg.end,
       tags: { ...crossingWayTags, ...seg.tags },
@@ -298,17 +312,29 @@
     editApplyManualOverridesBatch: (
       crossings: BatchCrossingPayload[],
       deletions: BatchDeletionPayload[],
-    ) => void;
+    ) => BatchApplyResult;
     editClearManualOverrides: () => void;
   };
 
   async function resolveDeletionPayloadsForApply(
     deletions: DeletedWaySegment[],
-  ): Promise<BatchDeletionPayload[]> {
-    if (!$backend) return [];
+  ): Promise<{ payloads: BatchDeletionPayload[]; failedIds: Set<string> }> {
+    const failedIds = new Set<string>();
+    if (!$backend) return { payloads: [], failedIds };
+    if (!("resolveManualDeletion" in $backend)) {
+      if (deletions.length > 0) {
+        console.warn(
+          "[Overrides] resolveManualDeletion not available in this WASM build; deletions skipped",
+        );
+        for (const seg of deletions) failedIds.add(seg.id);
+      }
+      return { payloads: [], failedIds };
+    }
     const payloads: BatchDeletionPayload[] = [];
     const seen = new Set<string>();
     const drafts = new Map<string, { start: { lng: number; lat: number }; end: { lng: number; lat: number } }>();
+    // Track which segment IDs share each draft key so we can mark them failed if the draft resolves to nothing.
+    const draftKeyToIds = new Map<string, string[]>();
 
     for (const seg of deletions) {
       const k = draftKey(seg);
@@ -316,15 +342,19 @@
         if (!drafts.has(k)) {
           drafts.set(k, { start: seg.draftStart, end: seg.draftEnd });
         }
+        const ids = draftKeyToIds.get(k) ?? [];
+        ids.push(seg.id);
+        draftKeyToIds.set(k, ids);
       } else {
         console.warn(
           "[Overrides] Skipping deletion without draftStart/draftEnd; remove and redraw it.",
           seg,
         );
+        failedIds.add(seg.id);
       }
     }
 
-    for (const draft of drafts.values()) {
+    for (const [k, draft] of drafts.entries()) {
       const raw = JSON.parse(
         $backend.resolveManualDeletion(
           draft.start.lng,
@@ -333,16 +363,22 @@
           draft.end.lat,
         ),
       ) as ResolvedDeletionJson;
-      for (const e of raw.edges ?? []) {
-        const p = { wayId: e.way_id, node1: e.node1, node2: e.node2 };
-        const key = deletionPayloadKey(p);
-        if (!seen.has(key)) {
-          seen.add(key);
-          payloads.push(p);
+      const edges = raw.edges ?? [];
+      if (edges.length === 0) {
+        // Draft resolved to nothing (network may have changed); mark all sharing this draft as failed.
+        for (const id of draftKeyToIds.get(k) ?? []) failedIds.add(id);
+      } else {
+        for (const e of edges) {
+          const p = { wayId: e.way_id, node1: e.node1, node2: e.node2 };
+          const key = deletionPayloadKey(p);
+          if (!seen.has(key)) {
+            seen.add(key);
+            payloads.push(p);
+          }
         }
       }
     }
-    return payloads;
+    return { payloads, failedIds };
   }
 
   function progressMessage(
@@ -358,16 +394,17 @@
   async function applyChunk(
     crossingsChunk: AddedCrossingSegment[],
     deletionsChunk: BatchDeletionPayload[],
-  ): Promise<void> {
-    if (!$backend) return;
+  ): Promise<BatchApplyResult> {
+    const emptyResult: BatchApplyResult = { failedCrossingIds: [], rematchedCrossings: [] };
+    if (!$backend) return emptyResult;
     const batchBackend = $backend as unknown as BatchCapableBackend;
     if (batchBackend.editApplyManualOverridesBatch) {
-      batchBackend.editApplyManualOverridesBatch(
+      const result = batchBackend.editApplyManualOverridesBatch(
         crossingsChunk.map(toBatchCrossing),
         deletionsChunk,
       );
       mutationCounter.update((n) => n + 1);
-      return;
+      return result ?? emptyResult;
     }
 
     // Fallback when running older wasm package without batch API.
@@ -386,6 +423,7 @@
       $backend.editManualDeleteEdge(BigInt(d.wayId), BigInt(d.node1), BigInt(d.node2));
       mutationCounter.update((n) => n + 1);
     }
+    return emptyResult;
   }
 
   /** Apply crossings first, then manual deletions (matches backend undo order). */
@@ -398,10 +436,15 @@
     const append = opts.append ?? false;
     const baseCrossings = append ? appliedCrossingCount : 0;
     const baseDeletions = append ? appliedDeletionCount : 0;
+    if (!append) failedDeletionIds = new Set();
     applyError = "";
     const startTimeMs = performance.now();
     try {
-      const deletionPayloads = await resolveDeletionPayloadsForApply(deletions);
+      const { payloads: deletionPayloads, failedIds } = await resolveDeletionPayloadsForApply(deletions);
+      // Merge newly-failed IDs into state (union for append mode, already cleared for fresh apply).
+      if (failedIds.size > 0) {
+        failedDeletionIds = new Set([...failedDeletionIds, ...failedIds]);
+      }
       const crossingChunks = chunkArray(crossings, APPLY_CHUNK_SIZE);
       const deletionChunks = chunkArray(deletionPayloads, APPLY_CHUNK_SIZE);
       const totalSteps = crossingChunks.length + deletionChunks.length;
@@ -409,6 +452,9 @@
       let processedCrossings = 0;
       let processedDeletions = 0;
       let step = 0;
+
+      const allFailedCrossingIds = new Set<string>();
+      const allRematchedCrossings: BatchApplyResult["rematchedCrossings"] = [];
 
       for (const chunk of crossingChunks) {
         step++;
@@ -422,7 +468,9 @@
         );
         console.info("[Overrides]", loading);
         await refreshLoadingScreen();
-        await applyChunk(chunk, []);
+        const chunkResult = await applyChunk(chunk, []);
+        for (const id of chunkResult.failedCrossingIds) allFailedCrossingIds.add(id);
+        allRematchedCrossings.push(...chunkResult.rematchedCrossings);
         processedCrossings += chunk.length;
         appliedCrossingCount = baseCrossings + processedCrossings;
       }
@@ -442,6 +490,42 @@
         await applyChunk([], chunk);
         processedDeletions += chunk.length;
         appliedDeletionCount = baseDeletions + deletions.length;
+      }
+
+      // Persist re-matched resolved data and failed flags into IndexedDB
+      if (allFailedCrossingIds.size > 0 || allRematchedCrossings.length > 0) {
+        const rematchById = new Map(allRematchedCrossings.map((r) => [r.id, r]));
+        let changed = false;
+        for (const seg of overrides.addedCrossings) {
+          if (!seg.id) continue;
+          const rematched = rematchById.get(seg.id);
+          if (rematched) {
+            seg.resolved = {
+              startWay: rematched.startWay,
+              endWay: rematched.endWay,
+              start: rematched.start,
+              end: rematched.end,
+            };
+            seg.rematched = true;
+            seg.failed = undefined;
+            changed = true;
+          } else if (allFailedCrossingIds.has(seg.id)) {
+            seg.failed = true;
+            seg.rematched = undefined;
+            changed = true;
+          }
+        }
+        if (changed) await saveOverrides(overrides);
+        if (allFailedCrossingIds.size > 0) {
+          console.warn(
+            `[Overrides] ${allFailedCrossingIds.size} crossing(s) could not be re-snapped after data update and are marked as failed.`,
+          );
+        }
+        if (allRematchedCrossings.length > 0) {
+          console.info(
+            `[Overrides] ${allRematchedCrossings.length} crossing(s) were automatically re-matched to updated road data.`,
+          );
+        }
       }
 
       const durationMs = Math.round(performance.now() - startTimeMs);
@@ -476,6 +560,7 @@
       }
       appliedDeletionCount = 0;
       appliedCrossingCount = 0;
+      failedDeletionIds = new Set();
     } finally {
       loading = "";
     }
@@ -719,7 +804,11 @@
       };
       await saveOverrides(overrides);
       if (overridesApplied) {
-        await applyChunk([], await resolveDeletionPayloadsForApply(newEntries));
+        const { payloads: newPayloads, failedIds: newFailed } = await resolveDeletionPayloadsForApply(newEntries);
+        if (newFailed.size > 0) {
+          failedDeletionIds = new Set([...failedDeletionIds, ...newFailed]);
+        }
+        await applyChunk([], newPayloads);
         appliedDeletionCount += newEntries.length;
       }
       applyError = "";
@@ -818,6 +907,7 @@
       addedCrossings: [],
       deletedWaySegments: [],
     };
+    failedDeletionIds = new Set();
     await saveOverrides(overrides);
   }
 
@@ -916,11 +1006,18 @@
   const notAppliedCrossingList = $derived(
     segmentsInLoadedArea.slice(appliedCrossingCount),
   );
+  const failedDeletionList = $derived(
+    deletionsInLoadedArea.filter((s) => failedDeletionIds.has(s.id)),
+  );
   const appliedDeletionList = $derived(
-    deletionsInLoadedArea.slice(0, appliedDeletionCount),
+    deletionsInLoadedArea
+      .filter((s) => !failedDeletionIds.has(s.id))
+      .slice(0, appliedDeletionCount),
   );
   const notAppliedDeletionList = $derived(
-    deletionsInLoadedArea.slice(appliedDeletionCount),
+    deletionsInLoadedArea
+      .filter((s) => !failedDeletionIds.has(s.id))
+      .slice(appliedDeletionCount),
   );
 
   const inViewSets = $derived.by(() => {
@@ -1106,6 +1203,17 @@
                   seg,
                 )}"
               >
+                {#if seg.failed}
+                  <span
+                    class="text-danger"
+                    title="Could not be re-snapped after data update — please redraw or remove"
+                  >⚠</span>
+                {:else if seg.rematched}
+                  <span
+                    class="text-warning"
+                    title="Automatically re-matched to updated road data — verify position and re-export if needed"
+                  >⚠</span>
+                {/if}
                 <span class="text-break small">
                   {seg.start.lat.toFixed(4)},{seg.start.lng.toFixed(4)} → {seg.end.lat.toFixed(
                     4,
@@ -1137,6 +1245,17 @@
                   seg,
                 )}"
               >
+                {#if seg.failed}
+                  <span
+                    class="text-danger"
+                    title="Could not be re-snapped after data update — please redraw or remove"
+                  >⚠</span>
+                {:else if seg.rematched}
+                  <span
+                    class="text-warning"
+                    title="Automatically re-matched to updated road data — verify position and re-export if needed"
+                  >⚠</span>
+                {/if}
                 <span class="text-break small">
                   {seg.start.lat.toFixed(4)},{seg.start.lng.toFixed(4)} → {seg.end.lat.toFixed(
                     4,
@@ -1198,6 +1317,39 @@
                 )}"
               >
                 <span class="text-break small">
+                  way {seg.wayId} nodes {seg.node1}–{seg.node2}
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-link p-0 small text-primary"
+                  onclick={() => zoomToDeletion(seg)}
+                >
+                  Zoom
+                </button>
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  onclick={() => removeDeletedSegment(seg)}
+                >
+                  Remove
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        {#if failedDeletionList.length > 0}
+          <h6 class="mt-2 text-warning">Deletions — failed</h6>
+          <p class="text-muted small mb-1">
+            These deletions could not be applied (missing draft data or no matching edges in
+            current network). Remove and redraw them to fix.
+          </p>
+          <ul class="list-unstyled small">
+            {#each failedDeletionList as seg}
+              <li
+                class="d-flex align-items-center gap-2 mb-1 {deletionRowHighlightClass(
+                  seg,
+                )}"
+              >
+                <span class="text-break small text-warning">
                   way {seg.wayId} nodes {seg.node1}–{seg.node2}
                 </span>
                 <button
