@@ -12,6 +12,7 @@ export interface NodeProps {
   is_explicit_crossing_no: boolean;
   is_generated_crossing?: boolean;
   is_manual_crossing?: boolean;
+  is_kerb: boolean;
   modified: boolean;
   way_ids: number[];
   problems: Problem[];
