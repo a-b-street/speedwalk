@@ -18,12 +18,17 @@
   let nodeProblems = [
     "missing crossing node",
     "separate sidewalks should be continued here",
+    "multiple sidewalks and a crossing all meet",
+    "barrier=kerb may be blocking the middle of a sidewalk",
+    "need to split a crossing and tag the barrier=kerb",
+    "possibly missing barrier=kerb",
   ];
   let wayProblems = [
     "missing footway=crossing",
     "possible separate sidewalk near way without it tagged",
     "sidewalk=separate is ambiguous about the side",
     "sidewalk:left and sidewalk:right should each be tagged as separate or no",
+    "crossing leads nowhere",
   ];
 
   let problemCounts = $derived.by(() => {
@@ -147,6 +152,38 @@
         (This problem is detected when the road names are the same, so there are
         some false positives you can ignore.)
       </p>
+    {:else if show == "multiple sidewalks and a crossing all meet"}
+      <p>
+        A crossing should usually connect to just one sidewalk link way and have
+        a <i>barrier=kerb</i>
+        node. You may need to first split the crossing way to more precisely start
+        and end at the kerb, then link it to the actual sidewalk. There may be false
+        positives you can ignore.
+      </p>
+    {:else if show == "barrier=kerb may be blocking the middle of a sidewalk"}
+      <p>
+        There's a <i>barrier=kerb</i>
+        node in the middle of a sidewalk, meaning just using the sidewalk (without
+        the crossing) encounters the kerb. This might be a tagging error, unless there
+        is a kerb to continue along the sidewalk.
+      </p>
+    {:else if show == "need to split a crossing and tag the barrier=kerb"}
+      <p>
+        There should usually be a <i>barrier=kerb</i>
+        node where a crossing and sidewalk meet. But first, you probably need to split
+        the crossing way to more accurately show where the kerb is, and connect that
+        with the actual sidewalk. Otherwise, a kerb node would also affect routes
+        that just use the sidewalk and not the crossing.
+      </p>
+    {:else if show == "possibly missing barrier=kerb"}
+      <p>
+        This node connects a sidewalk and a crossing, but it isn't tagged with <i
+        >
+          barrier=kerb
+        </i>
+        . It appears there is already a short sidewalk segment linking to the
+        actual sidewalk, so you just need to tag the node.
+      </p>
     {:else if show == "missing footway=crossing"}
       <p>
         Here are footways with a crossing node, but the way needs to be split
@@ -190,7 +227,13 @@
         These roads have separate sidewalks tagged on one side, but the other
         side is unspecified or not drawn separately. Be consistent on each road
         and use another editor to draw separate sidewalks on both sides.
-      </p>{/if}
+      </p>
+    {:else if show == "crossing leads nowhere"}
+      <p>
+        Both endpoints of a crossing way should connect to something. This is a
+        dead-end, or the crossing extends too far.
+      </p>
+    {/if}
   {/snippet}
 </CollapsibleCard>
 

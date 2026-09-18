@@ -102,6 +102,18 @@ impl Speedwalk {
             }
         }
 
+        for (way_id, way) in &self.derived_ways {
+            if way.kind == Kind::Crossing {
+                let degree_first = self.derived_nodes[&way.node_ids[0]].way_ids.len();
+                let degree_last = self.derived_nodes[way.node_ids.last().unwrap()]
+                    .way_ids
+                    .len();
+                if degree_first == 1 || degree_last == 1 {
+                    problem_ways.push((*way_id, "crossing leads nowhere", Vec::new()));
+                }
+            }
+        }
+
         for (node_id, node) in &self.derived_nodes {
             let mut good_road_names = BTreeSet::new();
             let mut bad_road_names = BTreeSet::new();
@@ -130,6 +142,70 @@ impl Speedwalk {
                     "separate sidewalks should be continued here",
                     Vec::new(),
                 ));
+            }
+        }
+
+        for (node_id, node) in &self.derived_nodes {
+            let mut touches_crossing = false;
+            let mut touches_sidewalk = false;
+            for w in &node.way_ids {
+                let way = &self.derived_ways[w];
+                touches_crossing = touches_crossing || way.tags.is("footway", "crossing");
+                touches_sidewalk = touches_sidewalk || way.tags.is("footway", "sidewalk");
+            }
+            if !touches_crossing || !touches_sidewalk {
+                continue;
+            }
+
+            // There probably should be a barrier=kerb here, but we need to distinguish crossing
+            // ways that incorrectly go directly between sidewalks, without a small link sidewalk
+            // piece.
+            let mut loop_sidewalk = false;
+            let mut touches_sidewalk_endpoint = false;
+            let mut num_sidewalks = 0;
+            for w in &node.way_ids {
+                let way = &self.derived_ways[w];
+
+                if way.tags.is("footway", "sidewalk") {
+                    num_sidewalks += 1;
+                    if way.is_loop() {
+                        loop_sidewalk = true;
+                    } else if way.node_ids[0] == *node_id || way.node_ids.last().unwrap() == node_id
+                    {
+                        touches_sidewalk_endpoint = true;
+                    }
+                }
+            }
+
+            if num_sidewalks > 1 {
+                problem_nodes.push((
+                    *node_id,
+                    "multiple sidewalks and a crossing all meet",
+                    Vec::new(),
+                ));
+                continue;
+            }
+
+            let need_to_split = loop_sidewalk || !touches_sidewalk_endpoint;
+
+            if node.tags.is("barrier", "kerb") {
+                if need_to_split {
+                    problem_nodes.push((
+                        *node_id,
+                        "barrier=kerb may be blocking the middle of a sidewalk",
+                        Vec::new(),
+                    ));
+                }
+            } else {
+                if need_to_split {
+                    problem_nodes.push((
+                        *node_id,
+                        "need to split a crossing and tag the barrier=kerb",
+                        Vec::new(),
+                    ));
+                } else {
+                    problem_nodes.push((*node_id, "possibly missing barrier=kerb", Vec::new()));
+                }
             }
         }
 
