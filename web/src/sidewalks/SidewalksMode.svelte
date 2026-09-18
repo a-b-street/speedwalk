@@ -26,6 +26,7 @@
   } from "geojson";
   import Metrics from "./Metrics.svelte";
   import WayDetails from "./WayDetails.svelte";
+  import LegendList from "../common/LegendList.svelte";
 
   // Don't make these deeply reactive; it's extremely slow
   let nodes: FeatureCollection<Point, NodeProps> = $state.raw({
@@ -156,11 +157,18 @@
             "case",
             ["any", ["get", "is_crossing"], ["get", "is_explicit_crossing_no"]],
             "yellow",
+            ["get", "is_kerb"],
+            "pink",
             "grey",
           ],
           "circle-opacity": [
             "case",
-            ["any", ["get", "is_crossing"], ["get", "is_explicit_crossing_no"]],
+            [
+              "any",
+              ["get", "is_crossing"],
+              ["get", "is_explicit_crossing_no"],
+              ["get", "is_kerb"],
+            ],
             onlyModified ? ["case", ["get", "modified"], 1.0, 0.5] : 1.0,
             0,
           ],
@@ -228,6 +236,15 @@
           <h6 class="mb-2 mt-3">Others</h6>
           <Checkbox bind:checked={$debugMode}>Debug mode</Checkbox>
           <Checkbox bind:checked={showNodes}>Nodes</Checkbox>
+          {#if showNodes}
+            <LegendList
+              items={[
+                { label: "Crossing", color: "yellow" },
+                { label: "Kerb", color: "pink" },
+              ]}
+              swatchClass="circle"
+            />
+          {/if}
           <Checkbox bind:checked={onlyModified}>Only modified objects</Checkbox>
         {/snippet}
       </CollapsibleCard>
