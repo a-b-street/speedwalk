@@ -308,7 +308,10 @@
     if (!$backend) return [];
     const payloads: BatchDeletionPayload[] = [];
     const seen = new Set<string>();
-    const drafts = new Map<string, { start: { lng: number; lat: number }; end: { lng: number; lat: number } }>();
+    const drafts = new Map<
+      string,
+      { start: { lng: number; lat: number }; end: { lng: number; lat: number } }
+    >();
 
     for (const seg of deletions) {
       const k = draftKey(seg);
@@ -383,7 +386,11 @@
       mutationCounter.update((n) => n + 1);
     }
     for (const d of deletionsChunk) {
-      $backend.editManualDeleteEdge(BigInt(d.wayId), BigInt(d.node1), BigInt(d.node2));
+      $backend.editManualDeleteEdge(
+        BigInt(d.wayId),
+        BigInt(d.node1),
+        BigInt(d.node2),
+      );
       mutationCounter.update((n) => n + 1);
     }
   }
@@ -604,7 +611,8 @@
         return;
       }
       const { start, end } = parsed.data;
-      const resolvedParsed = resolvedCrossingSegmentSchema.safeParse(rawSnapped);
+      const resolvedParsed =
+        resolvedCrossingSegmentSchema.safeParse(rawSnapped);
       $backend.editAddCrossingSegment(
         start.lng,
         start.lat,
@@ -749,7 +757,10 @@
         mutationCounter.update((n) => n + 1);
         appliedCrossingCount = 0;
         appliedDeletionCount = 0;
-        await applyEverythingInBoundary(segmentsInLoadedArea, deletionsInLoadedArea);
+        await applyEverythingInBoundary(
+          segmentsInLoadedArea,
+          deletionsInLoadedArea,
+        );
         overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -878,7 +889,9 @@
       const inBoundary = filterSegmentsInBoundary(toMerge, boundary);
       const inBoundaryDel = filterDeletionsInBoundary(normalizedDel, boundary);
       if (inBoundary.length > 0 || inBoundaryDel.length > 0) {
-        await applyEverythingInBoundary(inBoundary, inBoundaryDel, { append: true });
+        await applyEverythingInBoundary(inBoundary, inBoundaryDel, {
+          append: true,
+        });
       }
     } catch (_) {}
   }
@@ -899,7 +912,10 @@
         mutationCounter.update((n) => n + 1);
         appliedCrossingCount = 0;
         appliedDeletionCount = 0;
-        await applyEverythingInBoundary(segmentsInLoadedArea, deletionsInLoadedArea);
+        await applyEverythingInBoundary(
+          segmentsInLoadedArea,
+          deletionsInLoadedArea,
+        );
         overridesApplied = appliedCrossingCount > 0 || appliedDeletionCount > 0;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -988,8 +1004,10 @@
       lead="Modify the network by manually removing geometries and adding junctions. Changes are stored in your browser."
     >
       <p class="small mb-2 text-muted">
-        Stored manual overrides are loaded for review first and only applied after you click
-        <strong> Apply manual overrides to current data</strong>.
+        Stored manual overrides are loaded for review first and only applied
+        after you click
+        <strong>Apply manual overrides to current data</strong>
+        .
       </p>
       <p class="small mb-2">
         <strong>Add crossing:</strong>

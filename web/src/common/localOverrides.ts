@@ -54,7 +54,8 @@ export async function getOverrides(): Promise<ManualOverrides> {
       const addedCrossings = (
         Array.isArray(list) ? list.filter(isValidSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));
-      const delList = raw?.deletedWaySegments ?? DEFAULT_OVERRIDES.deletedWaySegments;
+      const delList =
+        raw?.deletedWaySegments ?? DEFAULT_OVERRIDES.deletedWaySegments;
       const normalizedDeletedWaySegments = (
         Array.isArray(delList) ? delList.filter(isValidDeletedSegment) : []
       ).map((seg) => (seg.id ? seg : { ...seg, id: crypto.randomUUID() }));

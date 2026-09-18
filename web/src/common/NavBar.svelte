@@ -1,12 +1,7 @@
 <script lang="ts">
   import Auth from "./Auth.svelte";
   import logo from "../../assets/logo.svg?url";
-  import {
-    type Mode,
-    mode,
-    backend,
-    useCase,
-  } from "../";
+  import { type Mode, mode, backend, useCase } from "../";
   import { Modal } from "svelte-utils";
   import LoadAnotherArea from "./LoadAnotherArea.svelte";
 
