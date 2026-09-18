@@ -169,6 +169,10 @@ impl Way {
         };
         include && !self.tags.is("highway", "construction")
     }
+
+    pub fn is_loop(&self) -> bool {
+        self.node_ids[0] == *self.node_ids.last().unwrap()
+    }
 }
 
 #[derive(Clone, Serialize)]
