@@ -16,7 +16,8 @@
   } = $props();
 
   let nodeProblems = [
-    "missing crossing node",
+    "crossing way is missing a crossing node",
+    "footway crosses a road",
     "separate sidewalks should be continued here",
     "multiple sidewalks and a crossing all meet",
     "barrier=kerb may be blocking the middle of a sidewalk",
@@ -127,10 +128,17 @@
       </div>
     {/if}
 
-    {#if show == "missing crossing node"}
+    {#if show == "crossing way is missing a crossing node"}
       <p>
         When a crossing way hits a road, the node should be tagged as a
         crossing. Instructions to fix are TODO.
+      </p>
+    {:else if show == "footway crosses a road"}
+      <p>
+        A footway crosses a road, but there's no crossing node. The footway
+        should maybe be split into a <i>footway=crossing</i>
+         way, with a crossing node added. This may not always be applicable for crossing
+        small roads. Follow local mapping conventions.
       </p>
     {:else if show == "separate sidewalks should be continued here"}
       <p>
@@ -181,8 +189,8 @@
         >
           barrier=kerb
         </i>
-        . It appears there is already a short sidewalk segment linking to the
-        actual sidewalk, so you just need to tag the node.
+        . It appears there is already a short sidewalk segment linking to the actual
+        sidewalk, so you just need to tag the node.
       </p>
     {:else if show == "missing footway=crossing"}
       <p>

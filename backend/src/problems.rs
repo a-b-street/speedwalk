@@ -77,14 +77,14 @@ impl Speedwalk {
         }
     }
 
-    /// Look for footway=crossing ways that don't have crossing nodes on the roads
+    /// Look for highway=footway ways that don't have crossing nodes on the roads
     fn find_missing_crossing_nodes_from_ways(&self) -> Vec<NodeProblem> {
         let mut problems = Vec::new();
         for (_way_id, way) in &self.derived_ways {
-            if !way.tags.is("footway", "crossing") {
+            if !way.tags.is("highway", "footway") && !way.tags.is("footway", "sidewalk") {
                 continue;
             }
-            for node_id in &way.node_ids {
+            for (idx, node_id) in way.node_ids.iter().enumerate() {
                 let node = &self.derived_nodes[node_id];
                 if node.is_crossing() {
                     continue;
@@ -95,7 +95,29 @@ impl Speedwalk {
                         Kind::Sidewalk | Kind::Crossing | Kind::Other
                     )
                 }) {
-                    problems.push((*node_id, "missing crossing node", Vec::new()));
+                    // The instructions to fix differ
+                    if way.tags.is("footway", "crossing") {
+                        problems.push((
+                            *node_id,
+                            "crossing way is missing a crossing node",
+                            Vec::new(),
+                        ));
+                    } else {
+                        // Footways often connect to a road on only one end, without any kind of
+                        // crossing expected. Only look for full crossings.
+                        let is_middle_node = idx != 0 && idx != way.node_ids.len() - 1;
+                        // Unclear whether this is a good heuristic. Some service roads crossing a
+                        // sidewalk or footway have raised kerbs. For now, choosing to exclude
+                        // these.
+                        let is_service_road = node.way_ids.iter().any(|other_way_id| {
+                            self.derived_ways[other_way_id]
+                                .tags
+                                .is("highway", "service")
+                        });
+                        if is_middle_node && !is_service_road {
+                            problems.push((*node_id, "footway crosses a road", Vec::new()));
+                        }
+                    }
                 }
             }
         }
