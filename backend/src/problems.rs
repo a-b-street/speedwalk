@@ -2,18 +2,84 @@ use std::collections::BTreeSet;
 
 use geo::{Euclidean, InterpolatableLine, Intersects, Length, LineLocatePoint, LineString, Point};
 use geojson::Feature;
-use osm_reader::WayID;
+use osm_reader::{NodeID, WayID};
 use rstar::{RTree, primitives::GeomWithData};
 use utils::{LineSplit, aabb, buffer_aabb};
 
 use crate::{Kind, Problem, Speedwalk};
+
+type NodeProblem = (NodeID, &'static str, Vec<Feature>);
+type WayProblem = (WayID, &'static str, Vec<Feature>);
 
 impl Speedwalk {
     pub fn recalculate_problems(&mut self) {
         let mut problem_nodes = Vec::new();
         let mut problem_ways = Vec::new();
 
-        // Look for footway=crossing ways that don't have crossing nodes on the roads
+        problem_nodes.extend(self.find_missing_crossing_nodes_from_ways());
+        problem_ways.extend(self.find_missing_crossing_ways());
+
+        for (road, _sidewalks, details) in self.find_parallel_sidewalks() {
+            problem_ways.push((
+                road,
+                "possible separate sidewalk near way without it tagged",
+                details,
+            ));
+        }
+
+        for (way_id, way) in &self.derived_ways {
+            if way.tags.is("sidewalk", "separate") {
+                problem_ways.push((
+                    *way_id,
+                    "sidewalk=separate is ambiguous about the side",
+                    Vec::new(),
+                ));
+            }
+        }
+
+        problem_ways.extend(self.find_sidewalk_inconsistent_tags());
+
+        for (way_id, way) in &self.derived_ways {
+            if way.kind == Kind::Crossing {
+                let degree_first = self.derived_nodes[&way.node_ids[0]].way_ids.len();
+                let degree_last = self.derived_nodes[way.node_ids.last().unwrap()]
+                    .way_ids
+                    .len();
+                if degree_first == 1 || degree_last == 1 {
+                    problem_ways.push((*way_id, "crossing leads nowhere", Vec::new()));
+                }
+            }
+        }
+
+        problem_nodes.extend(self.find_separate_sidewalk_endings());
+        problem_nodes.extend(self.find_kerb_node_problems());
+
+        // Fill out problems
+        for (id, note, details) in problem_nodes {
+            self.derived_nodes
+                .get_mut(&id)
+                .unwrap()
+                .problems
+                .push(Problem {
+                    note: note.to_string(),
+                    details,
+                });
+        }
+        for (id, note, details) in problem_ways {
+            self.derived_ways
+                .get_mut(&id)
+                .unwrap()
+                .problems
+                .push(Problem {
+                    note: note.to_string(),
+                    details,
+                });
+        }
+    }
+
+    /// Look for footway=crossing ways that don't have crossing nodes on the roads
+    fn find_missing_crossing_nodes_from_ways(&self) -> Vec<NodeProblem> {
+        let mut problems = Vec::new();
         for (_way_id, way) in &self.derived_ways {
             if !way.tags.is("footway", "crossing") {
                 continue;
@@ -29,12 +95,16 @@ impl Speedwalk {
                         Kind::Sidewalk | Kind::Crossing | Kind::Other
                     )
                 }) {
-                    problem_nodes.push((*node_id, "missing crossing node", Vec::new()));
+                    problems.push((*node_id, "missing crossing node", Vec::new()));
                 }
             }
         }
+        problems
+    }
 
-        // Look for footways involving crossing nodes that aren't marked footway=crossing
+    /// Look for footways involving crossing nodes that aren't marked footway=crossing
+    fn find_missing_crossing_ways(&self) -> Vec<WayProblem> {
+        let mut problems = Vec::new();
         for (way_id, way) in &self.derived_ways {
             if !matches!(way.kind, Kind::Sidewalk | Kind::Other) {
                 continue;
@@ -57,28 +127,14 @@ impl Speedwalk {
             }
 
             if !detail_nodes.is_empty() {
-                problem_ways.push((*way_id, "missing footway=crossing", detail_nodes));
+                problems.push((*way_id, "missing footway=crossing", detail_nodes));
             }
         }
+        problems
+    }
 
-        for (road, _sidewalks, details) in self.find_parallel_sidewalks() {
-            problem_ways.push((
-                road,
-                "possible separate sidewalk near way without it tagged",
-                details,
-            ));
-        }
-
-        for (way_id, way) in &self.derived_ways {
-            if way.tags.is("sidewalk", "separate") {
-                problem_ways.push((
-                    *way_id,
-                    "sidewalk=separate is ambiguous about the side",
-                    Vec::new(),
-                ));
-            }
-        }
-
+    fn find_sidewalk_inconsistent_tags(&self) -> Vec<WayProblem> {
+        let mut problems = Vec::new();
         for (way_id, way) in &self.derived_ways {
             if way.kind != Kind::RoadWithSeparate {
                 continue;
@@ -94,26 +150,18 @@ impl Speedwalk {
             let right_ok = way.tags.is_any("sidewalk:right", vec!["separate", "no"]);
             if !left_ok || !right_ok {
                 // TODO The description is literal, but maybe too verbose
-                problem_ways.push((
+                problems.push((
                     *way_id,
                     "sidewalk:left and sidewalk:right should each be tagged as separate or no",
                     Vec::new(),
                 ));
             }
         }
+        problems
+    }
 
-        for (way_id, way) in &self.derived_ways {
-            if way.kind == Kind::Crossing {
-                let degree_first = self.derived_nodes[&way.node_ids[0]].way_ids.len();
-                let degree_last = self.derived_nodes[way.node_ids.last().unwrap()]
-                    .way_ids
-                    .len();
-                if degree_first == 1 || degree_last == 1 {
-                    problem_ways.push((*way_id, "crossing leads nowhere", Vec::new()));
-                }
-            }
-        }
-
+    fn find_separate_sidewalk_endings(&self) -> Vec<NodeProblem> {
+        let mut problems = Vec::new();
         for (node_id, node) in &self.derived_nodes {
             let mut good_road_names = BTreeSet::new();
             let mut bad_road_names = BTreeSet::new();
@@ -137,14 +185,18 @@ impl Speedwalk {
                 .next()
                 .is_some()
             {
-                problem_nodes.push((
+                problems.push((
                     *node_id,
                     "separate sidewalks should be continued here",
                     Vec::new(),
                 ));
             }
         }
+        problems
+    }
 
+    fn find_kerb_node_problems(&self) -> Vec<NodeProblem> {
+        let mut problems = Vec::new();
         for (node_id, node) in &self.derived_nodes {
             let mut touches_crossing = false;
             let mut touches_sidewalk = false;
@@ -178,7 +230,7 @@ impl Speedwalk {
             }
 
             if num_sidewalks > 1 {
-                problem_nodes.push((
+                problems.push((
                     *node_id,
                     "multiple sidewalks and a crossing all meet",
                     Vec::new(),
@@ -190,7 +242,7 @@ impl Speedwalk {
 
             if node.tags.is("barrier", "kerb") {
                 if need_to_split {
-                    problem_nodes.push((
+                    problems.push((
                         *node_id,
                         "barrier=kerb may be blocking the middle of a sidewalk",
                         Vec::new(),
@@ -198,38 +250,17 @@ impl Speedwalk {
                 }
             } else {
                 if need_to_split {
-                    problem_nodes.push((
+                    problems.push((
                         *node_id,
                         "need to split a crossing and tag the barrier=kerb",
                         Vec::new(),
                     ));
                 } else {
-                    problem_nodes.push((*node_id, "possibly missing barrier=kerb", Vec::new()));
+                    problems.push((*node_id, "possibly missing barrier=kerb", Vec::new()));
                 }
             }
         }
-
-        // Fill out problems
-        for (id, note, details) in problem_nodes {
-            self.derived_nodes
-                .get_mut(&id)
-                .unwrap()
-                .problems
-                .push(Problem {
-                    note: note.to_string(),
-                    details,
-                });
-        }
-        for (id, note, details) in problem_ways {
-            self.derived_ways
-                .get_mut(&id)
-                .unwrap()
-                .problems
-                .push(Problem {
-                    note: note.to_string(),
-                    details,
-                });
-        }
+        problems
     }
 
     // Returns pairs of (road, nearby matching sidewalks, debug)
