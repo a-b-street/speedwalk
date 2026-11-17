@@ -1,0 +1,53 @@
+use utils::Tags;
+
+/// Determine effective maxspeed from OSM tags.
+/// - `maxspeed` directly → return it
+/// - `maxspeed:forward` + `maxspeed:backward` → return the higher original string
+/// - Anything else → None (no maxspeed info available)
+pub fn get_maxspeed_from_tags(tags: &Tags) -> Option<String> {
+    if let Some(v) = tags.get("maxspeed") {
+        return Some(v.clone());
+    }
+    match (tags.get("maxspeed:forward"), tags.get("maxspeed:backward")) {
+        (Some(fwd), Some(bwd)) => pick_highest_maxspeed(&[fwd.clone(), bwd.clone()]),
+        _ => None,
+    }
+}
+
+/// Given a list of raw maxspeed strings, return the one with the highest parsed km/h
+/// equivalent. Un-parseable strings (e.g. "DE:urban") are kept as fallback only if no
+/// numeric value is found.
+pub fn pick_highest_maxspeed(candidates: &[String]) -> Option<String> {
+    let mut best_str: Option<String> = None;
+    let mut best_val: Option<f64> = None;
+    let mut fallback: Option<String> = None;
+
+    for s in candidates {
+        match parse_maxspeed_value(s) {
+            Some(v) => {
+                if best_val.map_or(true, |b| v > b) {
+                    best_val = Some(v);
+                    best_str = Some(s.clone());
+                }
+            }
+            None => {
+                if fallback.is_none() {
+                    fallback = Some(s.clone());
+                }
+            }
+        }
+    }
+    best_str.or(fallback)
+}
+
+/// Parse the numeric part of a maxspeed value into a km/h equivalent.
+/// Supports formats like "50" or "30 mph" (number, optional space, optional unit).
+fn parse_maxspeed_value(s: &str) -> Option<f64> {
+    let mut parts = s.splitn(2, ' ');
+    let num: f64 = parts.next()?.trim().parse().ok()?;
+    match parts.next().map(|u| u.trim()) {
+        Some("mph") => Some(num * 1.60934),
+        _ => Some(num),
+    }
+}
+

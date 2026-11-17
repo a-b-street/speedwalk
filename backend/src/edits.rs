@@ -8,7 +8,7 @@ use serde::Serialize;
 use utils::Tags;
 
 use crate::{
-    Kind, Node, Speedwalk, Way,
+    maxspeed, Kind, Node, Speedwalk, Way,
     graph::{Edge, Graph},
 };
 
@@ -306,6 +306,10 @@ pub enum UserCmd {
         node1: NodeID,
         node2: NodeID,
     },
+    /// Enrich all crossing ways with the maxspeed from the road they cross.
+    ApplyMaxspeed,
+    /// Enrich crossing ways with crossing tags from nodes that lie on them.
+    ApplyCrossingNodeTags,
 }
 
 pub enum TagCmd {
@@ -344,11 +348,11 @@ impl Edits {
             }
             UserCmd::MakeAllSidewalks(only_severances) => {
                 let results = model.make_all_sidewalks(only_severances);
-                self.create_new_geometry(results, model);
+                self.create_new_geometry(results, model)?;
             }
             UserCmd::ConnectAllCrossings(include_crossing_no) => {
                 let results = model.connect_all_crossings(include_crossing_no);
-                self.create_new_geometry(results, model);
+                self.create_new_geometry(results, model)?;
             }
             UserCmd::AssumeTags(drive_on_left) => {
                 for (id, way) in &model.derived_ways {
@@ -410,7 +414,7 @@ impl Edits {
                         modify_existing_way_tags: HashMap::new(),
                     },
                     model,
-                );
+                )?;
             }
             UserCmd::AddCrossingSegment(start_wgs84, end_wgs84, way_tags) => {
                 let snapped = snap_crossing_segment_with_way_ids(model, start_wgs84, end_wgs84)?;
@@ -435,7 +439,7 @@ impl Edits {
                         modify_existing_way_tags: HashMap::new(),
                     },
                     model,
-                );
+                )?;
             }
             UserCmd::AddCrossingSegmentSnapped {
                 start_way,
@@ -466,10 +470,135 @@ impl Edits {
                         modify_existing_way_tags: HashMap::new(),
                     },
                     model,
-                );
+                )?;
             }
             UserCmd::ManualDeleteEdge { way, node1, node2 } => {
                 self.manual_deleted_edges.insert((way, node1, node2));
+            }
+            UserCmd::ApplyMaxspeed => {
+                use geo::{BoundingRect, Intersects};
+                use rstar::AABB;
+
+                let road_rtree: RTree<GeomWithData<LineString, WayID>> =
+                    RTree::bulk_load(
+                        model
+                            .derived_ways
+                            .iter()
+                            .filter(|(_, way)| way.kind.is_road())
+                            .map(|(id, way)| GeomWithData::new(way.linestring.clone(), *id))
+                            .collect(),
+                    );
+
+                let crossings: Vec<(WayID, LineString, Tags)> = model
+                    .derived_ways
+                    .iter()
+                    .filter(|(_, way)| {
+                        way.kind == Kind::Crossing && !way.tags.has("maxspeed")
+                    })
+                    .map(|(id, way)| (*id, way.linestring.clone(), way.tags.clone()))
+                    .collect();
+
+                info!(
+                    "ApplyMaxspeed: {} crossings without maxspeed to process",
+                    crossings.len()
+                );
+
+                let mut enriched = 0usize;
+                let mut missing = 0usize;
+
+                for (crossing_id, linestring, tags) in crossings {
+                    let mut candidates: Vec<String> = Vec::new();
+
+                    // a) Direct lookup via tmp:osm_way_id (generated crossings)
+                    if let Some(ms) = tags.get("tmp:osm_way_id").and_then(|ref_str| {
+                        let raw_id: i64 =
+                            ref_str.strip_prefix("way/")?.parse().ok()?;
+                        let road = model.derived_ways.get(&WayID(raw_id))?;
+                        maxspeed::get_maxspeed_from_tags(&road.tags)
+                    }) {
+                        candidates.push(ms);
+                    }
+
+                    // b) Spatial lookup – ALL intersecting roads (handles dual
+                    // carriageways and crossings that span multiple road ways)
+                    for segment in linestring.lines() {
+                        let bbox = segment.bounding_rect();
+                        let aabb = AABB::from_corners(
+                            Point::new(bbox.min().x, bbox.min().y),
+                            Point::new(bbox.max().x, bbox.max().y),
+                        );
+                        for road_obj in road_rtree.locate_in_envelope_intersecting(&aabb) {
+                            if road_obj.geom().intersects(&linestring) {
+                                if let Some(road) = model.derived_ways.get(&road_obj.data) {
+                                    if let Some(ms) =
+                                        maxspeed::get_maxspeed_from_tags(&road.tags)
+                                    {
+                                        candidates.push(ms);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if let Some(ms_val) = maxspeed::pick_highest_maxspeed(&candidates) {
+                        self.change_way_tags
+                            .entry(crossing_id)
+                            .or_default()
+                            .push(TagCmd::Set("maxspeed".to_string(), ms_val));
+                        enriched += 1;
+                    } else {
+                        missing += 1;
+                    }
+                }
+
+                info!(
+                    "ApplyMaxspeed: enriched {} crossings, {} have no maxspeed data on crossed road",
+                    enriched, missing
+                );
+            }
+            UserCmd::ApplyCrossingNodeTags => {
+                const CROSSING_EXTRA_KEYS: &[&str] = &[
+                    "tactile_paving",
+                    "button_operated",
+                    "flashing_lights",
+                    "supervised",
+                ];
+
+                let crossings: Vec<(WayID, Vec<NodeID>, Tags)> = model
+                    .derived_ways
+                    .iter()
+                    .filter(|(_, way)| way.kind == Kind::Crossing)
+                    .map(|(id, way)| (*id, way.node_ids.clone(), way.tags.clone()))
+                    .collect();
+
+                let mut enriched = 0usize;
+                for (way_id, node_ids, way_tags) in crossings {
+                    let mut tags_to_add: Vec<(String, String)> = Vec::new();
+                    for node_id in &node_ids {
+                        if let Some(node) = model.derived_nodes.get(node_id) {
+                            for (k, v) in &node.tags.0 {
+                                let relevant = k.starts_with("crossing")
+                                    || CROSSING_EXTRA_KEYS.contains(&k.as_str());
+                                if relevant
+                                    && !way_tags.has(k)
+                                    && !tags_to_add.iter().any(|(tk, _)| tk == k)
+                                {
+                                    tags_to_add.push((k.clone(), v.clone()));
+                                }
+                            }
+                        }
+                    }
+                    if !tags_to_add.is_empty() {
+                        for (k, v) in tags_to_add {
+                            self.change_way_tags
+                                .entry(way_id)
+                                .or_default()
+                                .push(TagCmd::Set(k, v));
+                        }
+                        enriched += 1;
+                    }
+                }
+                info!("ApplyCrossingNodeTags: enriched {} crossing ways", enriched);
             }
         }
         Ok(())
@@ -486,7 +615,11 @@ impl Edits {
         Ok(())
     }
 
-    fn create_new_geometry(&mut self, results: CreateNewGeometry, model: &Speedwalk) {
+    fn create_new_geometry(
+        &mut self,
+        results: CreateNewGeometry,
+        model: &Speedwalk,
+    ) -> Result<()> {
         // TODO Or use+modify new_nodes immediately or something?
         let mut node_mapping: HashMap<HashedPoint, NodeID> = HashMap::new();
         // Insert all existing nodes. When we create crossing ways from a crossing node, we don't
@@ -497,8 +630,14 @@ impl Edits {
 
         // Modify existing ways first
         for (way_id, insert_points) in results.insert_new_nodes {
-            let mut node_ids = model.derived_ways[&way_id].node_ids.clone();
-            let mut linestring = model.derived_ways[&way_id].linestring.clone();
+            let way = model.derived_ways.get(&way_id).ok_or_else(|| {
+                anyhow::anyhow!(
+                    "way {:?} no longer exists in derived_ways (stale override?)",
+                    way_id
+                )
+            })?;
+            let mut node_ids = way.node_ids.clone();
+            let mut linestring = way.linestring.clone();
 
             for (pt, tags) in insert_points {
                 let node_id = self.new_node_id();
@@ -581,6 +720,7 @@ impl Edits {
                 .or_insert_with(Vec::new)
                 .extend(cmds);
         }
+        Ok(())
     }
 
     pub fn to_osc(&self, model: &Speedwalk) -> String {

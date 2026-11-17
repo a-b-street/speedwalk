@@ -1,0 +1,201 @@
+<script lang="ts">
+  import {
+    LineLayer,
+    GeoJSON,
+    hoverStateFilter,
+    Popup,
+    Control,
+  } from "svelte-maplibre";
+  import { SplitComponent } from "svelte-utils/top_bar_layout";
+  import { localStorageStore, Loading } from "svelte-utils";
+  import { backend, mutationCounter, refreshLoadingScreen } from "../";
+  import type { FeatureCollection } from "geojson";
+  import { emptyGeojson } from "svelte-utils/map";
+  import CollapsibleCard from "../common/CollapsibleCard.svelte";
+  import Jumbotron from "../common/Jumbotron.svelte";
+  import LegendList from "../common/LegendList.svelte";
+
+  type Unit = "auto" | "km/h" | "mph";
+
+  let unitOverride = localStorageStore<Unit>("maxspeed_unit", "auto");
+
+  let crossings = $derived.by(() => {
+    $mutationCounter;
+    if (!$backend) {
+      return emptyGeojson();
+    }
+    const gj = JSON.parse($backend.getWays()) as FeatureCollection;
+    gj.features = gj.features.filter(
+      (f) => f.properties!.kind === "Crossing",
+    );
+    for (const f of gj.features) {
+      const tags = f.properties!.tags ?? {};
+      const ms: string | undefined = tags.maxspeed;
+      f.properties!.maxspeed = ms ?? null;
+      f.properties!.maxspeed_num = ms ? parseFloat(ms) : null;
+    }
+    return gj;
+  });
+
+  let detectedUnit = $derived(
+    crossings.features.some((f) => f.properties!.maxspeed?.includes("mph"))
+      ? "mph"
+      : "km/h",
+  );
+
+  let unit = $derived($unitOverride === "auto" ? detectedUnit : $unitOverride);
+
+  const rect = { swatchClass: "rectangle" as const };
+  let legendItems = $derived(
+    unit === "mph"
+      ? [
+          { color: "#2ecc71", label: "≤ 20 mph", ...rect },
+          { color: "#f1c40f", label: "≤ 30 mph", ...rect },
+          { color: "#e74c3c", label: "> 30 mph", ...rect },
+          { color: "#aaaaaa", label: "No maxspeed", ...rect },
+        ]
+      : [
+          { color: "#2ecc71", label: "≤ 30 km/h", ...rect },
+          { color: "#f1c40f", label: "≤ 50 km/h", ...rect },
+          { color: "#e74c3c", label: "> 50 km/h", ...rect },
+          { color: "#aaaaaa", label: "No maxspeed", ...rect },
+        ],
+  );
+
+  let thresholds = $derived(unit === "mph" ? [20, 30] : [30, 50]);
+
+  let crossingsWithMaxspeed = $derived(
+    crossings.features.filter((f) => f.properties!.maxspeed !== null).length,
+  );
+
+  let crossingsWithoutMaxspeed = $derived(
+    crossings.features.length - crossingsWithMaxspeed,
+  );
+
+  let loading = $state("");
+
+  async function applyMaxspeed() {
+    loading = "Applying maxspeed to crossings";
+    await refreshLoadingScreen();
+    try {
+      $backend!.editApplyMaxspeed();
+      $mutationCounter++;
+    } catch (err) {
+      window.alert(`Error: ${err}`);
+    } finally {
+      loading = "";
+    }
+  }
+</script>
+
+<Loading {loading} />
+
+<SplitComponent>
+  {#snippet left()}
+    <Jumbotron
+      title="Maxspeed"
+      lead="Enriches crossing ways with the maxspeed attribute of the crossed road. When a crossing spans more than one road, the highest speed limit among all crossed roads is used."
+    >
+      <p class="mb-0 small text-muted">
+        {crossingsWithMaxspeed.toLocaleString()} of {crossings.features.length.toLocaleString()}
+        crossings already have a maxspeed attribute.
+      </p>
+      {#if crossingsWithoutMaxspeed > 0}
+        <p class="mb-0 small text-muted">
+          {crossingsWithoutMaxspeed.toLocaleString()} crossings have no maxspeed because of missing data on road.
+        </p>
+      {/if}
+    </Jumbotron>
+
+    <div class="mb-3">
+      <p class="form-label small text-muted mb-1">
+        Unit
+        {#if $unitOverride === "auto"}
+          <span class="text-secondary">(auto-detected: {detectedUnit})</span>
+        {/if}
+      </p>
+      <div class="btn-group btn-group-sm d-block">
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "auto"}
+          onclick={() => ($unitOverride = "auto")}
+        >
+          Auto
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "km/h"}
+          onclick={() => ($unitOverride = "km/h")}
+        >
+          km/h
+        </button>
+        <button
+          class="btn btn-outline-secondary"
+          class:active={$unitOverride === "mph"}
+          onclick={() => ($unitOverride = "mph")}
+        >
+          mph
+        </button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary mb-3" onclick={applyMaxspeed}>
+      Apply maxspeed to all crossings
+    </button>
+  {/snippet}
+
+  {#snippet main()}
+    <GeoJSON data={crossings} generateId>
+      <LineLayer
+        manageHoverState
+        paint={{
+          "line-width": 5,
+          "line-opacity": hoverStateFilter(0.6, 1.0),
+          "line-color": [
+            "case",
+            ["==", ["get", "maxspeed_num"], null],
+            "#aaaaaa",
+            ["<=", ["get", "maxspeed_num"], thresholds[0]],
+            "#2ecc71",
+            ["<=", ["get", "maxspeed_num"], thresholds[1]],
+            "#f1c40f",
+            "#e74c3c",
+          ],
+        }}
+        hoverCursor="pointer"
+      >
+        <Popup openOn="hover">
+          {#snippet children({ data })}
+            {@const props = data?.properties ?? {}}
+            <table class="table table-bordered table-sm mb-0">
+              <tbody>
+                <tr>
+                  <td>maxspeed</td>
+                  <td>{props.maxspeed ?? "–"}</td>
+                </tr>
+                {#if props.tags}
+                  {@const tags = props.tags}
+                  {#if tags.crossing}
+                    <tr>
+                      <td>crossing</td>
+                      <td>{tags.crossing}</td>
+                    </tr>
+                  {/if}
+                {/if}
+              </tbody>
+            </table>
+          {/snippet}
+        </Popup>
+      </LineLayer>
+    </GeoJSON>
+
+    <Control position="top-right">
+      <CollapsibleCard>
+        {#snippet header()}Legend{/snippet}
+        {#snippet body()}
+          <LegendList items={legendItems} />
+        {/snippet}
+      </CollapsibleCard>
+    </Control>
+  {/snippet}
+</SplitComponent>

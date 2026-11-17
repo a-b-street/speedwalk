@@ -17,6 +17,7 @@
     ...auditActions,
     [{ kind: "generator" }, "Generator"],
     [{ kind: "overrides" }, "Overrides"],
+    [{ kind: "maxspeed" }, "Maxspeed"],
     [{ kind: "export" }, "Export"],
   ] as [Mode, string][];
 

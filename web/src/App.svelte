@@ -20,6 +20,7 @@
   import ExportMode from "./ExportMode.svelte";
   import GeneratorMode from "./generator/GeneratorMode.svelte";
   import OverridesMode from "./overrides/OverridesMode.svelte";
+  import MaxspeedMode from "./crossings/MaxspeedMode.svelte";
   import StudyAreaFade from "./common/StudyAreaFade.svelte";
   import NavBar from "./common/NavBar.svelte";
 
@@ -144,6 +145,8 @@
                 <OverridesMode />
               {:else if $mode.kind == "export"}
                 <ExportMode />
+              {:else if $mode.kind == "maxspeed"}
+                <MaxspeedMode />
               {/if}
             {/key}
           {:else}
