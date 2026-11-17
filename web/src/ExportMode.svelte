@@ -11,7 +11,14 @@
   import LegendList from "./common/LegendList.svelte";
   import { SplitComponent } from "svelte-utils/top_bar_layout";
   import { constructMatchExpression, emptyGeojson } from "svelte-utils/map";
-  import { backend, networkFilter, prettyPrintDistance } from "./";
+  import {
+    backend,
+    networkFilter,
+    prettyPrintDistance,
+    recipeSteps,
+  } from "./";
+  import { encodeRecipe, stepLabel } from "./recipe";
+  import type { RecipeStep } from "./recipe";
   import CollapsibleCard from "./common/CollapsibleCard.svelte";
   import FilterNetworkCard from "./common/FilterNetworkCard.svelte";
   import Jumbotron from "./common/Jumbotron.svelte";
@@ -25,6 +32,35 @@
   function download() {
     downloadGeneratedFile("network.geojson", JSON.stringify(gj));
   }
+
+  let copyFeedback = $state(false);
+  let copiedSteps = $state<RecipeStep[]>([]);
+
+  function copyRecipeLink() {
+    const steps = $recipeSteps;
+    if (steps.length === 0) {
+      window.alert(
+        "No steps recorded yet. Run bulk operations in the Generator, apply overrides, or apply maxspeed first.",
+      );
+      return;
+    }
+    const filter = $networkFilter;
+    const stepsWithFilter = [
+      ...steps,
+      {
+        op: "setNetworkFilter" as const,
+        include: filter.include,
+        ignore_deadends: filter.ignore_deadends,
+      },
+    ];
+    const encoded = encodeRecipe({ v: 1, steps: stepsWithFilter });
+    const url = new URL(window.location.href);
+    url.searchParams.set("recipe", encoded);
+    navigator.clipboard.writeText(url.toString());
+    copiedSteps = stepsWithFilter;
+    copyFeedback = true;
+    setTimeout(() => (copyFeedback = false), 2000);
+  }
 </script>
 
 <SplitComponent>
@@ -33,10 +69,31 @@
       title="Export network"
       lead="Export the routeable walking network as GeoJSON. Choose what to include, then download."
     >
-      <button class="btn btn-primary mt-3 mb-3" onclick={download}>
-        Download visible network (GeoJSON)
-      </button>
+      <div class="d-flex gap-2 mt-3 mb-3 flex-wrap">
+        <button class="btn btn-primary" onclick={download}>
+          Download visible network (GeoJSON)
+        </button>
+        <button class="btn btn-outline-secondary" onclick={copyRecipeLink}>
+          {copyFeedback ? "Copied!" : "Copy recipe link"}
+        </button>
+      </div>
     </Jumbotron>
+
+    {#if copiedSteps.length > 0}
+      <div class="card mb-3 border-success">
+        <div class="card-header bg-success-subtle text-success-emphasis">
+          <strong>Copied recipe</strong> — {copiedSteps.length}
+          {copiedSteps.length === 1 ? "step" : "steps"}
+        </div>
+        <div class="card-body py-2">
+          <ol class="mb-0 ps-3">
+            {#each copiedSteps as step}
+              <li class="small">{stepLabel(step)}</li>
+            {/each}
+          </ol>
+        </div>
+      </div>
+    {/if}
 
     <FilterNetworkCard />
 

@@ -8,7 +8,9 @@
   import chevron from "../assets/chevron.png?url";
   import { MapLibre } from "svelte-maplibre";
   import { onMount, untrack } from "svelte";
-  import { backend, mode, map as mapStore } from "./";
+  import { backend, mode, map as mapStore, pendingRecipe } from "./";
+  import RecipeCard from "./common/RecipeCard.svelte";
+  import { decodeRecipe } from "./recipe";
   import type { Map } from "maplibre-gl";
   import { basemapStyles, Geocoder, StandardControls } from "svelte-utils/map";
   import ActionBar from "./common/ActionBar.svelte";
@@ -25,6 +27,20 @@
 
   onMount(async () => {
     await backendPkg.default();
+
+    const params = new URLSearchParams(window.location.search);
+    const recipeParam = params.get("recipe");
+    if (recipeParam) {
+      const recipe = decodeRecipe(recipeParam);
+      if (recipe) {
+        pendingRecipe.set(recipe);
+        params.delete("recipe");
+        const newUrl =
+          (params.size > 0 ? "?" + params.toString() : "") +
+          window.location.hash;
+        history.replaceState(null, "", newUrl || window.location.pathname);
+      }
+    }
   });
 
   let map: Map | undefined = $state();
@@ -102,6 +118,9 @@
   {#snippet left()}
     <div class="p-3">
       {#if map}
+        {#if $backend && $pendingRecipe}
+          <RecipeCard />
+        {/if}
         <div bind:this={leftTarget.value}></div>
       {/if}
     </div>

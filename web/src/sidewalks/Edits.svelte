@@ -8,6 +8,7 @@
     mutationCounter,
     refreshLoadingScreen,
     anyEdits,
+    recipeSteps,
   } from "../";
   import { uploadChangeset } from "osm-api";
 
@@ -32,6 +33,7 @@
     await refreshLoadingScreen();
     try {
       $backend!.editClear();
+      recipeSteps.set([]);
       $mutationCounter++;
     } finally {
       loading = "";
